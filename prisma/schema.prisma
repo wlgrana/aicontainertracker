@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ImportLog {
+  fileName        String           @id
+  fileURL         String?
+  importedBy      String?
+  importedOn      DateTime         @default(now())
+  rowsProcessed   Int              @default(0)
+  rowsSucceeded   Int              @default(0)
+  rowsFailed      Int              @default(0)
+  carrierFormatId String?
+  importType      String?
+  status          String           @default("PENDING")
+  errorLog        String?
+  aiAnalysis      Json?
+  aiAnalyzedAt    DateTime?
+  forwarder       String?
+  completedAt     DateTime?
+  summary         Json?
+  aceStatusLogs   ACEStatusLog[]
+  containers      Container[]
+  containerEvents ContainerEvent[]
+  carrierFormat   CarrierFormat?   @relation(fields: [carrierFormatId], references: [formatName])
+  rawRows         RawRow[]
+  shipments       Shipment[]
+  shipmentEvents  ShipmentEvent[]
+}
+
+model RawRow {
+  id              String     @id @default(uuid())
+  importLogId     String
+  rowIndex        Int        // NEW: 0-indexed original row position
+  rowNumber       Int
+  data            String
+  containerId     String?
+  originalHeaders String?
+  container       Container? @relation(fields: [containerId], references: [containerNumber])
+  importLog       ImportLog  @relation(fields: [importLogId], references: [fileName])
+}
+
+model TransitStage {
+  stageName         String           @id
+  stageCode         String?
+  sequence          Int
+  category          String?
+  expectedDays      Int?
+  alertAfterDays    Int?
+  responsibleTeam   String?
+  isActive          Boolean          @default(true)
+  dcsaEventType     String?
+  dcsaEventCategory String?
+  dcsaFacilityType  String?
+  containers        Container[]
+  previousEvents    ContainerEvent[] @relation("PreviousStageEvents")
+  containerEvents   ContainerEvent[] @relation("StageEvents")
+  dcsaEventMaps     DCSAEventMap[]
+}
+
+model Shipment {
+  shipmentReference  String              @id
+  hbl                String?
+  mbl                String?
+  bookingReference   String?
+  shipmentType       String?
+  carrier            String?
+  forwarder          String?
+  shipper            String?
+  consignee          String?
+  pol                String?
+  pod                String?
+  finalDestination   String?
+  contents           String?
+  supplier           String?
+  totalWeight        Float?
+  totalPieces        Int?
+  customerReference  String?
+  poNumber           String?
+  incoTerms          String?
+  expectedContainers Int?
+  blType             String?
+  blStatus           String?
+  paymentStatus      String?
+  paymentDueDate     DateTime?
+  amountDue          Float?
+  releaseStatus      String?
+  releaseDate        DateTime?
+  holdReason         String?
+  notes              String?
+  aceEntryNumber     String?
+  aceEntryType       String?
+  dutyAmount         Float?
+  liquidationStatus  String?
+  liquidationDate    DateTime?
+  bookingDate        DateTime?
+  businessUnit       String?
+  destinationCity    String?
+  freightCost        Float?
+  shipmentVolume     Float?
+  transportMode      String?
+  importLogId        String?
+  metadata           Json?
+  customerPo         String?
+  aceStatusLogs      ACEStatusLog[]
+  importLog          ImportLog?          @relation(fields: [importLogId], references: [fileName])
+  shipmentContainers ShipmentContainer[]
+  shipmentEvents     ShipmentEvent[]
+}
+
+model Container {
+  containerNumber     String              @id
+  containerType       String?
+  currentStatus       String?
+  currentLocation     String?
+  currentVessel       String?
+  currentVoyage       String?
+  mbl                 String?
+  carrier             String?
+  pol                 String?
+  pod                 String?
+  etd                 DateTime?
+  atd                 DateTime?
+  eta                 DateTime?
+  ata                 DateTime?
+  lastFreeDay         DateTime?
+  detentionFreeDay    DateTime?
+  statusLastUpdated   DateTime?
+  hasException        Boolean             @default(false)
+  exceptionType       String?
+  exceptionOwner      String?
+  exceptionNotes      String?
+  exceptionDate       DateTime?
+  manualPriority      String?
+  priorityReason      String?
+  prioritySetBy       String?
+  prioritySetDate     DateTime?
+  notes               String?
+  emptyIndicator      Boolean?
+  sealNumber          String?
+  grossWeight         Float?
+  carrierEventId      String?
+  aceEntryNumber      String?
+  aceDisposition      String?
+  aceStatus           String?
+  aceLastUpdated      DateTime?
+  pgaHold             Boolean?
+  pgaAgency           String?
+  pgaHoldReason       String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  emptyReturnDate     DateTime?
+  gateOutDate         DateTime?
+  importLogId         String?
+  metadata            Json?
+  aiAnalysis          Json?
+  aiLastUpdated       DateTime?
+  daysInTransit       Int?
+  demurrageExposure   String?
+  healthScore         Int?
+  businessUnit        String?
+  aiAssessment        Json?
+  aiAttentionCategory String?
+  aiAttentionHeadline String?
+  aiDataConfidence    String?
+  aiOperationalStatus String?
+  aiRecommendedOwner  String?
+  aiStatusReason      String?
+  aiUrgencyLevel      String?
+  deliveryDate        DateTime?
+  finalDestinationEta DateTime?
+  hbl                 String?
+  loadType            String?
+  meta                Json?
+  pieces              Int?
+  serviceType         String?
+  volumeCbm           Float?
+  aceStatusLogs       ACEStatusLog[]
+  activityLogs        ActivityLog[]
+  attentionFlags      AttentionFlag[]
+  stage               TransitStage?       @relation(fields: [currentStatus], references: [stageName])
+  importLog           ImportLog?          @relation(fields: [importLogId], references: [fileName])
+  events              ContainerEvent[]
+  rawRows             RawRow[]
+  riskAssessment      RiskAssessment?
+  shipmentContainers  ShipmentContainer[]
+  statusOverrides     StatusOverride[]
+}
+
+model ShipmentContainer {
+  id                String    @id @default(uuid())
+  shipmentId        String
+  containerId       String
+  piecesInContainer Int?
+  weightInContainer Float?
+  notes             String?
+  container         Container @relation(fields: [containerId], references: [containerNumber])
+  shipment          Shipment  @relation(fields: [shipmentId], references: [shipmentReference])
+}
+
+model ContainerEvent {
+  id               String        @id @default(uuid())
+  containerId      String
+  stageName        String?
+  eventDateTime    DateTime
+  location         String?
+  facilityId       String?
+  vessel           String?
+  voyage           String?
+  source           String?
+  sourceFileId     String?
+  updatedBy        String?
+  updatedOn        DateTime?
+  previousStatus   String?
+  exceptionCleared Boolean?
+  notes            String?
+  eventCategory    String?
+  eventClassifier  String?
+  dcsaEventType    String?
+  transportMode    String?
+  facilityType     String?
+  emptyIndicator   Boolean?
+  carrierEventId   String?
+  meta             Json?
+  container        Container     @relation(fields: [containerId], references: [containerNumber])
+  facility         Facility?     @relation(fields: [facilityId], references: [facilityName])
+  previousStage    TransitStage? @relation("PreviousStageEvents", fields: [previousStatus], references: [stageName])
+  importLog        ImportLog?    @relation(fields: [sourceFileId], references: [fileName])
+  stage            TransitStage? @relation("StageEvents", fields: [stageName], references: [stageName])
+}
+
+model ShipmentEvent {
+  id               String     @id @default(uuid())
+  shipmentId       String
+  eventType        String
+  eventDateTime    DateTime
+  documentType     String?
+  source           String?
+  sourceFileId     String?
+  updatedBy        String?
+  updatedOn        DateTime?
+  previousBLStatus String?
+  newBLStatus      String?
+  notes            String?
+  dcsaEventType    String?
+  carrierEventId   String?
+  shipment         Shipment   @relation(fields: [shipmentId], references: [shipmentReference])
+  importLog        ImportLog? @relation(fields: [sourceFileId], references: [fileName])
+}
+
+model ACEStatusLog {
+  id                String     @id @default(uuid())
+  containerId       String?
+  shipmentId        String?
+  aceDisposition    String?
+  aceStatus         String?
+  previousACEStatus String?
+  holdType          String?
+  pgaAgency         String?
+  holdReason        String?
+  eventDateTime     DateTime?
+  source            String?
+  sourceFileId      String?
+  updatedOn         DateTime?
+  notes             String?
+  container         Container? @relation(fields: [containerId], references: [containerNumber])
+  shipment          Shipment?  @relation(fields: [shipmentId], references: [shipmentReference])
+  importLog         ImportLog? @relation(fields: [sourceFileId], references: [fileName])
+}
+
+model Facility {
+  facilityName    String           @id
+  facilityCode    String?
+  facilityType    String?
+  portId          String?
+  address         String?
+  unLocationCode  String?
+  isActive        Boolean          @default(true)
+  containerEvents ContainerEvent[]
+  port            Port?            @relation(fields: [portId], references: [portName])
+}
+
+model Carrier {
+  carrierName      String          @id
+  scac             String?
+  shortName        String?
+  trackingURL      String?
+  isActive         Boolean         @default(true)
+  dcsaCompliant    Boolean?
+  apiEndpoint      String?
+  apiCredentialRef String?
+  carrierFormats   CarrierFormat[]
+  dcsaEventMaps    DCSAEventMap[]
+  demurrageRates   DemurrageRate[]
+}
+
+model Port {
+  portName        String          @id
+  portCode        String?
+  country         String?
+  countryCode     String?
+  region          String?
+  defaultFreeDays Int?
+  isActive        Boolean         @default(true)
+  acePortCode     String?
+  cbpDistrict     String?
+  demurrageRates  DemurrageRate[]
+  facilities      Facility[]
+}
+
+model Forwarder {
+  forwarderName String  @id
+  shortName     String?
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  address       String?
+  notes         String?
+  isActive      Boolean @default(true)
+  customsBroker String?
+  aceFilerCode  String?
+}
+
+model DemurrageRate {
+  name          String    @id
+  carrierId     String?
+  portId        String?
+  containerType String?
+  freeDays      Int?
+  dailyRate     Float?
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  notes         String?
+  carrier       Carrier?  @relation(fields: [carrierId], references: [carrierName])
+  port          Port?     @relation(fields: [portId], references: [portName])
+}
+
+model CarrierFormat {
+  formatName    String      @id
+  carrierId     String?
+  formatType    String?
+  columnMapping String?
+  sampleHeaders String?
+  isActive      Boolean     @default(true)
+  notes         String?
+  carrier       Carrier?    @relation(fields: [carrierId], references: [carrierName])
+  importLogs    ImportLog[]
+}
+
+model DCSAEventMap {
+  name             String        @id
+  carrierId        String?
+  sourceEventCode  String?
+  sourceEventName  String?
+  dcsaEventType    String?
+  transitStageName String?
+  eventCategory    String?
+  notes            String?
+  isActive         Boolean       @default(true)
+  carrier          Carrier?      @relation(fields: [carrierId], references: [carrierName])
+  transitStage     TransitStage? @relation(fields: [transitStageName], references: [stageName])
+}
+
+model AttentionFlag {
+  id             String    @id @default(uuid())
+  containerId    String
+  reason         String
+  priority       String
+  flaggedBy      String?
+  flaggedOn      DateTime  @default(now())
+  owner          String?
+  notes          String?
+  resolved       Boolean   @default(false)
+  resolvedBy     String?
+  resolvedDate   DateTime?
+  resolutionNote String?
+  container      Container @relation(fields: [containerId], references: [containerNumber])
+}
+
+model ActivityLog {
+  id          String     @id @default(uuid())
+  containerId String?
+  shipmentId  String?
+  action      String
+  actor       String?
+  detail      String?
+  source      String?
+  metadata    String?
+  createdAt   DateTime   @default(now())
+  container   Container? @relation(fields: [containerId], references: [containerNumber])
+}
+
+model StatusOverride {
+  id              String    @id @default(uuid())
+  containerNumber String
+  previousStatus  String?
+  newStatus       String
+  reason          String
+  overriddenBy    String?
+  overriddenAt    DateTime  @default(now())
+  container       Container @relation(fields: [containerNumber], references: [containerNumber])
+}
+
+model RiskAssessment {
+  id              String    @id @default(uuid())
+  containerId     String    @unique
+  riskScore       Int
+  riskFactors     String
+  recommendations String
+  lastUpdated     DateTime  @default(now())
+  container       Container @relation(fields: [containerId], references: [containerNumber])
+}
