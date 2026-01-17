@@ -1,0 +1,344 @@
+{
+  "schemaMapping": {
+    "fieldMappings": {
+      "containerNumber": {
+        "sourceHeader": "Container_No",
+        "targetField": "containerNumber",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "pol": {
+        "sourceHeader": "From (POL)",
+        "targetField": "pol",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "pod": {
+        "sourceHeader": "To (POD)",
+        "targetField": "pod",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "eta": {
+        "sourceHeader": "Est Arrival",
+        "targetField": "eta",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "atd": {
+        "sourceHeader": "Act Depart",
+        "targetField": "atd",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "vesselName": {
+        "sourceHeader": "Vsl Name",
+        "targetField": "vesselName",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "Notes/Comments": {
+        "sourceHeader": "Notes/Comments",
+        "targetField": "metadata.notes",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
+      }
+    },
+    "unmappedSourceFields": [
+      {
+        "sourceHeader": "Notes/Comments",
+        "sampleValue": null,
+        "suggestedField": null,
+        "confidence": 0,
+        "potentialMeaning": "Unknown"
+      }
+    ],
+    "missingSchemaFields": [],
+    "detectedForwarder": "Unknown"
+  },
+  "containers": [
+    {
+      "rawRowId": "1e3715a9-5e2a-44f4-b215-988e372cde6b",
+      "fields": {
+        "container_number": {
+          "value": "MSCU1234567",
+          "originalValue": "MSCU1234567",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pol": {
+          "value": "CNNYC",
+          "originalValue": "CNNYC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "USLGB",
+          "originalValue": "USLGB",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "eta": {
+          "value": "2023-10-15",
+          "originalValue": "2023-10-15",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "atd": {
+          "value": "2023-09-01",
+          "originalValue": "2023-09-01",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "vessel_name": {
+          "value": "Gulsun",
+          "originalValue": "Gulsun",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        }
+      },
+      "meta": {
+        "Notes/Comments": "Priority"
+      },
+      "overallConfidence": 0.85,
+      "flagsForReview": []
+    },
+    {
+      "rawRowId": "02500e32-fd41-434c-96d3-1390a4e8dd4d",
+      "fields": {
+        "container_number": {
+          "value": "MAEU9876543",
+          "originalValue": "MAEU9876543",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pol": {
+          "value": "CNSHA",
+          "originalValue": "CNSHA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "USLAX",
+          "originalValue": "USLAX",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "eta": {
+          "value": "2023-10-20",
+          "originalValue": "2023-10-20",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "atd": {
+          "value": "2023-09-05",
+          "originalValue": "2023-09-05",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "vessel_name": {
+          "value": "Alabama",
+          "originalValue": "Alabama",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        }
+      },
+      "meta": {
+        "Notes/Comments": ""
+      },
+      "overallConfidence": 0.85,
+      "flagsForReview": []
+    },
+    {
+      "rawRowId": "61837411-20b1-44f5-9cab-d758d1125148",
+      "fields": {
+        "container_number": {
+          "value": "CMAU1122334",
+          "originalValue": "CMAU1122334",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pol": {
+          "value": "CNNING",
+          "originalValue": "CNNING",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "USSAV",
+          "originalValue": "USSAV",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "eta": {
+          "value": "2023-11-01",
+          "originalValue": "2023-11-01",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "atd": {
+          "value": "2023-09-10",
+          "originalValue": "2023-09-10",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "vessel_name": {
+          "value": "Marco Polo",
+          "originalValue": "Marco Polo",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        }
+      },
+      "meta": {
+        "Notes/Comments": "Do not stack"
+      },
+      "overallConfidence": 0.85,
+      "flagsForReview": []
+    },
+    {
+      "rawRowId": "6a7588d0-22b8-41f5-90f8-9578fd2fa9a7",
+      "fields": {
+        "container_number": {
+          "value": "COSU5566778",
+          "originalValue": "COSU5566778",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pol": {
+          "value": "CNYANT",
+          "originalValue": "CNYANT",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "USNYC",
+          "originalValue": "USNYC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "eta": {
+          "value": "2023-10-30",
+          "originalValue": "2023-10-30",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "atd": {
+          "value": "2023-09-15",
+          "originalValue": "2023-09-15",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "vessel_name": {
+          "value": "Shipping",
+          "originalValue": "Shipping",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        }
+      },
+      "meta": {
+        "Notes/Comments": "Fragile"
+      },
+      "overallConfidence": 0.85,
+      "flagsForReview": []
+    },
+    {
+      "rawRowId": "8a4f1f21-44ad-4fef-92cd-8697fc02c0ad",
+      "fields": {
+        "container_number": {
+          "value": "ONEU9988776",
+          "originalValue": "ONEU9988776",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pol": {
+          "value": "JPTOK",
+          "originalValue": "JPTOK",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "USSEA",
+          "originalValue": "USSEA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "eta": {
+          "value": "10/12/2023",
+          "originalValue": "10/12/2023",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "atd": {
+          "value": "09/02/2023",
+          "originalValue": "09/02/2023",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "vessel_name": {
+          "value": "Apus",
+          "originalValue": "Apus",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        }
+      },
+      "meta": {
+        "Notes/Comments": "Check seal"
+      },
+      "overallConfidence": 0.85,
+      "flagsForReview": []
+    }
+  ],
+  "events": [],
+  "confidenceReport": {
+    "overallScore": 0.8,
+    "summary": "Heuristic Fallback Generated",
+    "totalFields": 7,
+    "highConfidence": 6,
+    "mediumConfidence": 0,
+    "lowConfidence": 0,
+    "flaggedForReview": 0
+  },
+  "dictionaryVersion": "Fallback",
+  "_meta": {
+    "isSample": true,
+    "sampleSize": 5,
+    "totalAvailableRows": 5
+  }
+}

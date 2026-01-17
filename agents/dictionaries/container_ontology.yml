@@ -1,0 +1,849 @@
+required_fields:
+  business_unit:
+    definition: First Brands Group business unit (brand) for this shipment
+    header_synonyms:
+      - BU
+      - Business Unit
+      - Brand
+      - Division
+      - Product Line
+    value_source: business_units.yml dictionary
+    parsing_rules:
+      - Map to canonical BU via dictionary
+      - If no match and confidence < 0.70 → 'Unknown'
+      - If no match and confidence ≥ 0.70 → flag for review
+    data_type: string
+    confidence_threshold: 0.85
+  container_number:
+    definition: ISO 6346 container number (4-letter owner + 6-digit serial + check digit)
+    header_synonyms:
+      - Container
+      - "Container #"
+      - Container Number
+      - CNTR
+      - "CNTR #"
+      - Equipment
+      - Equipment Number
+      - ContainerNumber
+      - CNTR ID
+      - Container#
+      - Container_No
+      - The Unique Identification Number of the Shipping Container
+    value_patterns:
+      - regex: ^[A-Z]{4}[0-9]{6}[0-9]$
+        example: TEMU1234567
+    parsing_rules:
+      - Remove spaces, hyphens
+      - Convert to uppercase
+      - Validate check digit
+      - Flag if invalid format
+    data_type: string
+    confidence_threshold: 0.95
+  carrier:
+    definition: Shipping line / ocean carrier (SCAC code or name)
+    header_synonyms:
+      - Carrier
+      - Shipping Line
+      - Ocean Carrier
+      - Steamship Line
+      - SSL
+      - SCAC
+      - Carrier Code
+      - Carrier Name
+      - CARRIER
+      - Carrier Code (SCAC) - shipping line
+      - Shipping Line Carrier Code
+    value_patterns:
+      - 4-letter SCAC code (e.g., MAEU, MSCU)
+      - Full name (e.g., Maersk, MSC)
+    parsing_rules:
+      - Prefer SCAC code if available
+      - Map full names to SCAC via Carrier reference table
+      - Flag unknown carriers
+    data_type: string
+    confidence_threshold: 0.85
+  mbl_or_booking:
+    definition: Master Bill of Lading OR Booking Reference (at least one required)
+    header_synonyms:
+      mbl:
+        - MBL
+        - Master B/L
+        - Master BL
+        - M B/L
+        - Bill of Lading
+        - B/L
+        - MasterBillNumber
+      booking:
+        - Booking
+        - "Booking #"
+        - Booking Reference
+        - Booking Ref
+        - "Confirmation #"
+    parsing_rules:
+      - Accept either MBL or Booking
+      - If both present, use MBL as primary
+      - Store both in metadata if available
+    data_type: string
+    confidence_threshold: 0.8
+  pol:
+    definition: Port of Loading (origin port, 5-letter UNLOCODE)
+    header_synonyms:
+      - POL
+      - Port of Loading
+      - Load Port
+      - Origin Port
+      - Port of Lading
+      - Loading Port
+      - Departure Port
+      - Port of Loading (raw index 14)
+      - Export Departure Port
+      - Pol
+      - From (POL)
+      - The Port where the Cargo was Loaded
+    value_patterns:
+      - regex: ^[A-Z]{2}[A-Z0-9]{3}$
+        example: CNSHA (Shanghai)
+      - Full port name (e.g., 'Shanghai, China')
+    parsing_rules:
+      - Prefer UNLOCODE if available
+      - Map full names to UNLOCODE via Port reference table
+      - Extract from combined fields (e.g., 'Shanghai → Long Beach')
+    data_type: string
+    confidence_threshold: 0.85
+  pod:
+    definition: Port of Discharge (destination port, 5-letter UNLOCODE)
+    header_synonyms:
+      - POD
+      - Port of Discharge
+      - Discharge Port
+      - Destination Port
+      - Port of Destination
+      - Arrival Port
+      - Port of Discharge (raw index 15)
+      - POD (Port)
+      - Port of Unlading
+      - Pod
+      - To (POD)
+      - The Final Port of Discharge
+    value_patterns:
+      - regex: ^[A-Z]{2}[A-Z0-9]{3}$
+        example: USLGB (Long Beach)
+      - Full port name (e.g., 'Long Beach, CA')
+    parsing_rules:
+      - Prefer UNLOCODE if available
+      - Map full names to UNLOCODE via Port reference table
+      - Extract from combined fields
+    data_type: string
+    confidence_threshold: 0.85
+  etd:
+    definition: Estimated Departure from POL
+    header_synonyms:
+      - ETD
+      - Estimated Departure
+      - ETD POL
+      - POL ETD
+      - ETD (Original?)
+      - ETD (Original)
+      - Dep. Date
+    data_type: datetime
+    confidence_threshold: 0.9
+  atd:
+    definition: Actual Departure from POL
+    header_synonyms:
+      - ATD
+      - Actual Departure
+      - Actual Departure (ATD)
+      - Act Depart
+      - Actual Time of Departure (ATD)
+    data_type: datetime
+    confidence_threshold: 0.9
+  eta:
+    definition: Estimated Arrival at POD
+    header_synonyms:
+      - ETA
+      - Estimated Arrival
+      - ETA POD
+      - POD ETA
+      - Est. Arr.
+      - Est Arrival
+      - Estimated Time of Arrival (ETA)
+    data_type: datetime
+    confidence_threshold: 0.9
+  ata:
+    definition: Actual Arrival at POD
+    header_synonyms:
+      - ATA
+      - Actual Arrival
+      - ATA POD
+      - Arrival Date
+      - ATA (POD?)
+      - ATA (?)
+      - Confirmed Destination Port Arrival (ATA)
+    data_type: datetime
+    confidence_threshold: 0.9
+  shipment_reference:
+    definition: Internal Shipment ID
+    header_synonyms:
+      - Shipment ID
+      - SHIPMENT ID
+      - Shipment Ref
+      - Ref
+    data_type: string
+    confidence_threshold: 0.95
+  current_status:
+    definition: Current lifecycle stage of the container
+    header_synonyms:
+      - Status
+      - Current Status
+      - Container Status
+      - Stage
+      - Milestone
+      - Current Transport Stage
+    value_patterns:
+      - "TransitStage codes: BOOK, DEP, ARR, DIS, CUS, REL, OGF, DLV, EMP"
+      - Carrier-specific codes (needs normalization)
+    parsing_rules:
+      - Map carrier codes to TransitStage codes
+      - Use Auditor to verify status matches dates
+      - Flag if status conflicts with ATD/ATA
+    data_type: enum
+    confidence_threshold: 0.8
+optional_fields:
+  hbl:
+    definition: House Bill of Lading (freight forwarder's B/L)
+    header_synonyms:
+      - HBL
+      - House B/L
+      - House BL
+      - H B/L
+      - Forwarder B/L
+      - HBL (raw index 2)
+    data_type: string
+    confidence_threshold: 0.8
+  customer_po:
+    definition: Customer Purchase Order number
+    header_synonyms:
+      - PO
+      - "PO #"
+      - Purchase Order
+      - Customer PO
+      - PO Number
+      - CUSTOMER PO
+      - CUSTOMER_PO
+      - CUSTOMER PO (raw index 22)
+      - Invoice/PO Reference
+      - Customer PO (raw index 22)
+      - PO/Reference
+      - Cust Ref
+    data_type: string
+    confidence_threshold: 0.75
+  vessel_name:
+    definition: Name of the ocean vessel
+    header_synonyms:
+      - Vessel
+      - Vessel Name
+      - Ship
+      - Ship Name
+      - V/V
+      - Vsl Name
+    data_type: string
+    confidence_threshold: 0.7
+  voyage:
+    definition: Voyage number
+    header_synonyms:
+      - Voyage
+      - "Voyage #"
+      - Voyage Number
+      - Voy
+      - VOYAGE
+    data_type: string
+    confidence_threshold: 0.7
+  container_type:
+    definition: Container size and type (e.g., 40HC, 20GP)
+    header_synonyms:
+      - Type
+      - Container Type
+      - Size/Type
+      - Equipment Type
+      - SIZE
+      - Container Type (20GP,40GP,40HC)
+      - Typ
+    value_patterns:
+      - 20GP, 20ST, 40GP, 40HC, 40HQ, 45HC
+    data_type: string
+    confidence_threshold: 0.75
+  seal_number:
+    definition: Container seal number
+    header_synonyms:
+      - Seal
+      - "Seal #"
+      - Seal Number
+      - Customs Seal
+    data_type: string
+    confidence_threshold: 0.7
+  last_free_day:
+    definition: Last day to return container without demurrage charges
+    header_synonyms:
+      - LFD
+      - Last Free Day
+      - Free Time Ends
+      - Demurrage Starts
+    data_type: date
+    confidence_threshold: 0.8
+  discharge_date:
+    definition: Date container was discharged from vessel
+    header_synonyms:
+      - Discharge Date
+      - Discharged
+      - Off-Loaded
+      - Vessel Discharge
+    data_type: datetime
+    confidence_threshold: 0.85
+  customs_release_date:
+    definition: Date customs released the container
+    header_synonyms:
+      - Customs Release
+      - CBP Release
+      - Released
+      - Cleared
+    data_type: datetime
+    confidence_threshold: 0.85
+  gate_out_date:
+    definition: Date container left the terminal
+    header_synonyms:
+      - Gate Out
+      - Picked Up
+      - Out Gate
+      - Terminal Departure
+      - OGF DATE
+      - TRUCKER APPT
+      - Acutal Gateout Date
+    data_type: datetime
+    confidence_threshold: 0.85
+  delivery_date:
+    definition: Date container delivered to final destination
+    header_synonyms:
+      - Delivery Date
+      - Delivered
+      - Final Delivery
+      - Drop Off
+      - ACTUAL DEL DATE
+    data_type: datetime
+    confidence_threshold: 0.85
+  empty_return_date:
+    definition: Date empty container returned to carrier
+    header_synonyms:
+      - Empty Return
+      - Returned Empty
+      - MTY Return
+      - Container Returned
+      - EMPTY RETURN DATE
+      - EMPTY AVAIL DATE
+      - CNTR AVAIL
+      - Empty Return Date
+      - EReturn Date
+    data_type: datetime
+    confidence_threshold: 0.85
+  pieces:
+    definition: Number of pieces/packages in the container
+    header_synonyms:
+      - PCS
+      - Pieces
+      - Package Count
+      - Quantity
+      - Pack Qty
+      - Pieces Count
+      - Pieces Detail
+      - Shipment Pieces (Pallets)
+    value_patterns:
+      - regex: ^[0-9]+$
+    data_type: integer
+    confidence_threshold: 0.85
+  volume_cbm:
+    definition: Volume in Cubic Meters (CBM)
+    header_synonyms:
+      - CBM
+      - Volume
+      - Measurement
+      - VOL
+      - Cube
+      - Volume Detail
+      - Shipment Volume (M3)
+    value_patterns:
+      - regex: ^[0-9.]+$
+    data_type: float
+    confidence_threshold: 0.85
+  load_type:
+    definition: Container Load Type (FCL/LCL)
+    header_synonyms:
+      - Load Type
+      - FCL/LCL
+      - Service Mode
+      - Container Mode
+      - FCL
+      - LCL
+      - LOAD_TYPE
+      - LOAD TYPE
+      - Shipping Type (FCL, LCL, Air)
+      - Transport Mode (Ocean, Air, Ground)
+      - Status
+    value_patterns:
+      - FCL
+      - LCL
+    parsing_rules:
+      - Normalize to FCL or LCL
+    data_type: string
+    confidence_threshold: 0.8
+  service_type:
+    definition: Service contract type (e.g., CY/CY, DOOR/DOOR)
+    header_synonyms:
+      - Service Type
+      - Service
+      - Term
+      - Movement Type
+      - SVC Type
+      - Service Type (raw index 17)
+      - Service Code
+      - OCEAN
+      - SERVICE TYPE
+    value_patterns:
+      - CY/CY
+      - CFS/CFS
+      - DOOR/DOOR
+    data_type: string
+    confidence_threshold: 0.8
+  final_destination_eta:
+    definition: Estimated Arrival at Final Destination (if different from POD)
+    header_synonyms:
+      - Final Dest ETA
+      - ETA Final Destination
+      - ETA Place of Delivery
+      - Door ETA
+      - Final Destination ETA
+    data_type: datetime
+    confidence_threshold: 0.8
+  gross_weight:
+    definition: Total gross weight
+    header_synonyms:
+      - Gross Weight
+      - Weight
+      - WGT
+      - G.W.
+      - VGM
+      - Weight Detail
+      - Shipment Actual Weight (KG's)
+      - Wgt
+    data_type: float
+    confidence_threshold: 0.85
+  shipper:
+    definition: Party initiating shipment
+    header_synonyms:
+      - Shipper
+      - Vendor
+      - Supplier
+      - Exporter
+      - Shipper (raw index 7)
+      - SHIPPER
+      - VENDOR
+      - Shipper (raw index 0)
+      - VENDOR (raw index 7)
+      - ASC (TIANJIN) AUTO PARTS INC.
+      - Vendor/Shipper
+      - Shipper's Full Name
+    data_type: string
+    confidence_threshold: 0.8
+  consignee:
+    definition: Party receiving shipment
+    header_synonyms:
+      - Consignee
+      - Cnee
+      - Importer
+      - CONSIGNEE
+      - Consignee (raw index 8)
+      - Customer
+      - CUSTOMER
+      - Consigne's Full Name (Ship To)
+      - Ship to City
+    data_type: string
+    confidence_threshold: 0.8
+  final_destination:
+    definition: Final city/location of delivery
+    header_synonyms:
+      - Final Destination
+      - Final Dest
+      - Place of Delivery
+      - finalDestination
+      - FINAL DESTINATION
+      - Final Destination (raw index 9)
+      - FINAL DESTINATION (raw index 9)
+      - HOUSTON,TX
+    data_type: string
+    confidence_threshold: 0.8
+metadata_fields:
+  source_file:
+    definition: Original filename
+    parsing_rules:
+      - Store ImportLog.fileName
+    data_type: string
+    confidence_threshold: 1
+  source_row_id:
+    definition: RawRow.id UUID
+    parsing_rules:
+      - Link to RawRow table
+    data_type: uuid
+    confidence_threshold: 1
+  ingested_at:
+    definition: Timestamp of ingestion
+    parsing_rules:
+      - Current timestamp
+    data_type: datetime
+    confidence_threshold: 1
+learning_rules:
+  auto_add_synonyms: true
+  auto_add_value_patterns: true
+  auto_add_canonical_fields: false
+  confidence_decay: 0.95
+pending_fields:
+  - unmappedHeader: CNTR AVAIL
+    canonicalField: container_number
+    confidence: 0.7
+    reasoning: Header 'CNTR AVAIL' likely abbreviates 'Container Available'. Sample
+      values are numeric (e.g., 46029, 46030) which could be container numbers,
+      but they are shorter than standard container numbers (which are typically
+      11 characters). They might be internal IDs or availability references.
+      Data type is ambiguous. Confidence is low (<0.75), so no suggestion should
+      be made, but it's included here for transparency with low confidence.
+    action: IGNORE
+    timestamp: 2026-01-16T18:42:00.599Z
+  - unmappedHeader: OGF DATE
+    canonicalField: gate_out_date
+    confidence: 0.82
+    reasoning: Header 'OGF DATE' likely stands for 'Out Gate Final' or similar,
+      indicating a gate out event. Sample values are empty, but the header name
+      strongly suggests a date related to terminal departure, matching
+      'gate_out_date'. Confidence is medium due to common industry abbreviation.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T18:42:00.599Z
+  - unmappedHeader: TRUCKER APPT
+    canonicalField: gate_out_date
+    confidence: 0.78
+    reasoning: Header 'TRUCKER APPT' (Trucker Appointment) typically refers to a
+      scheduled time for truck pickup at a terminal, which is closely related to
+      'gate_out_date'. However, it's an appointment time, not necessarily the
+      actual gate out. Sample values are empty. Confidence is medium but
+      ambiguous.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T18:42:00.599Z
+  - unmappedHeader: EMPTY AVAIL DATE
+    canonicalField: empty_return_date
+    confidence: 0.75
+    reasoning: Header 'EMPTY AVAIL DATE' likely means 'Empty Available Date', which
+      could be the date an empty container is available for return, closely
+      related to 'empty_return_date'. However, it might be a distinct milestone
+      (availability vs. actual return). Sample values are empty. Confidence is
+      at the threshold; suggesting for human review.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T18:42:00.599Z
+  - unmappedHeader: VENDOR
+    canonicalField: business_unit
+    confidence: 0.78
+    reasoning: Header 'VENDOR' typically refers to a supplier or shipper (e.g.,
+      manufacturer). This is a party/entity field. Our canonical schema lacks a
+      'shipper' or 'vendor' field. The closest conceptual match is
+      'business_unit', which can represent an internal division or brand, but
+      may be used to track the vendor/supplier relationship. Sample values are
+      company names. Medium confidence due to semantic stretch.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T19:21:30.584Z
+  - unmappedHeader: TRUCKER APPT
+    canonicalField: gate_out_date
+    confidence: 0.8
+    reasoning: Header 'TRUCKER APPT' likely refers to a trucker appointment
+      date/time, which often corresponds to when a container is gated out for
+      pickup. The sample values are numeric (Excel date serial numbers),
+      confirming it's a date field. It is related to terminal departure events.
+      However, it could also align with 'delivery_date'. Given the context of
+      'appointment' at the terminal, 'gate_out_date' is the best match.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T19:25:32.739Z
+  - unmappedHeader: TRUCKER APPT
+    canonicalField: gate_out_date
+    confidence: 0.82
+    reasoning: Header suggests a trucker appointment time, which often correlates
+      with when a container is scheduled to be picked up from the terminal (gate
+      out). Sample values are numeric (likely Excel date serial numbers),
+      confirming it's a date/time field. While not a perfect semantic match,
+      it's a strong candidate for the event that triggers gate-out.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T19:37:38.571Z
+  - unmappedHeader: "FINAL DESTINATION "
+    canonicalField: final_destination_eta
+    confidence: 0.7
+    reasoning: Header 'FINAL DESTINATION' semantically relates to the
+      'final_destination_eta' canonical field, which implies a location and an
+      ETA. However, the sample values are city/state pairs (e.g., 'McAllen,
+      TX'), indicating a location only, not a date. The canonical field expects
+      an ETA. This is a partial match; the header might be better suited for a
+      'final_destination' field, but that is not in the canonical schema.
+      Confidence is medium-low due to data type mismatch.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-16T19:41:04.743Z
+  - unmappedHeader: HBL
+    canonicalField: hbl
+    confidence: 0.95
+    reasoning: Header 'HBL' is an exact match for the canonical field 'hbl' and is
+      already listed as a synonym. Its presence in the unmapped list suggests a
+      mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Service Type
+    canonicalField: service_type
+    confidence: 0.95
+    reasoning: Header 'Service Type' is an exact match for the canonical field
+      'service_type' and is already listed as a synonym. Its presence in the
+      unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Shipper
+    canonicalField: shipper
+    confidence: 0.95
+    reasoning: Header 'Shipper' is an exact match for the canonical field 'shipper'
+      and is already listed as a synonym. Its presence in the unmapped list
+      suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Consignee
+    canonicalField: consignee
+    confidence: 0.95
+    reasoning: Header 'Consignee' is an exact match for the canonical field
+      'consignee' and is already listed as a synonym. Its presence in the
+      unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Final Destination
+    canonicalField: final_destination
+    confidence: 0.95
+    reasoning: Header 'Final Destination' is an exact match for the canonical field
+      'final_destination' and is already listed as a synonym. Its presence in
+      the unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: STSN7264356
+    canonicalField: container_number
+    confidence: 0.85
+    reasoning: The header value 'STSN7264356' appears to be a specific container
+      number (starting with a 4-letter prefix and 7 digits). This is a data
+      value, not a header name, indicating a file where a container number was
+      placed in a header cell. It should be mapped to 'container_number'.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: OCEAN
+    canonicalField: service_type
+    confidence: 0.9
+    reasoning: "'OCEAN' is already listed as a synonym for 'service_type'. Its
+      presence in the unmapped list suggests a mapping failure, not a new
+      synonym."
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Customer PO
+    canonicalField: customer_po
+    confidence: 0.95
+    reasoning: Header 'Customer PO' is an exact match for the canonical field
+      'customer_po' and is already listed as a synonym. Its presence in the
+      unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: VENDOR
+    canonicalField: shipper
+    confidence: 0.95
+    reasoning: Header 'VENDOR' is already listed as a synonym for 'shipper'. Its
+      presence in the unmapped list suggests a mapping failure, not a new
+      synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: FINAL DESTINATION
+    canonicalField: final_destination
+    confidence: 0.95
+    reasoning: Header 'FINAL DESTINATION' is an exact match (case-insensitive) for
+      the canonical field 'final_destination' and is already listed as a
+      synonym. Its presence in the unmapped list suggests a mapping failure, not
+      a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: CUSTOMER PO
+    canonicalField: customer_po
+    confidence: 0.95
+    reasoning: Header 'CUSTOMER PO' is an exact match (case-insensitive) for the
+      canonical field 'customer_po' and is already listed as a synonym. Its
+      presence in the unmapped list suggests a mapping failure, not a new
+      synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Final Destination ETA
+    canonicalField: final_destination_eta
+    confidence: 0.95
+    reasoning: Header 'Final Destination ETA' is an exact match for the canonical
+      field 'final_destination_eta' and is already listed as a synonym. Its
+      presence in the unmapped list suggests a mapping failure, not a new
+      synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Load Type
+    canonicalField: load_type
+    confidence: 0.95
+    reasoning: Header 'Load Type' is an exact match for the canonical field
+      'load_type' and is already listed as a synonym. Its presence in the
+      unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: ETA
+    canonicalField: eta
+    confidence: 0.95
+    reasoning: Header 'ETA' is an exact match for the canonical field 'eta' and is
+      already listed as a synonym. Its presence in the unmapped list suggests a
+      mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: ATA
+    canonicalField: ata
+    confidence: 0.95
+    reasoning: Header 'ATA' is an exact match for the canonical field 'ata' and is
+      already listed as a synonym. Its presence in the unmapped list suggests a
+      mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: LFD
+    canonicalField: last_free_day
+    confidence: 0.95
+    reasoning: Header 'LFD' is an exact match for the canonical field
+      'last_free_day' and is already listed as a synonym. Its presence in the
+      unmapped list suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Seal
+    canonicalField: seal_number
+    confidence: 0.95
+    reasoning: Header 'Seal' is an exact match for the canonical field 'seal_number'
+      and is already listed as a synonym. Its presence in the unmapped list
+      suggests a mapping failure, not a new synonym.
+    action: VERIFY_MAPPING_LOGIC
+    timestamp: 2026-01-17T03:55:56.579Z
+  - unmappedHeader: Pallets
+    canonicalField: pieces
+    confidence: 0.8
+    reasoning: Header 'Pallets' could refer to a count of pallets, which is a unit
+      for 'pieces'. It is a plausible synonym, though not a direct semantic
+      match for all piece types. No sample values to contradict. Confidence is
+      medium as it might be a specific sub-type.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T03:59:12.136Z
+  - unmappedHeader: Reference
+    canonicalField: shipment_reference
+    confidence: 0.9
+    reasoning: Header 'Reference' is a generic term that commonly maps to a shipment
+      reference or ID. It is already listed as a synonym for
+      'shipment_reference' in the existing dictionary. No sample values to
+      contradict.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T03:59:12.136Z
+  - unmappedHeader: Reference
+    canonicalField: shipment_reference
+    confidence: 0.85
+    reasoning: Header 'Reference' is a generic term that could map to
+      'shipment_reference', which already has 'Ref' as a synonym. However, it
+      could also refer to other references (e.g., booking). Without sample
+      values, confidence is medium-high.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T04:04:49.424Z
+  - unmappedHeader: REFERENCE
+    canonicalField: shipment_reference
+    confidence: 0.85
+    reasoning: Header 'REFERENCE' is a common synonym for 'shipment_reference'. It
+      is not currently listed, but it is a strong semantic match. Sample values
+      are empty, but the header name is a strong indicator.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T04:10:52.317Z
+  - unmappedHeader: POD (Secondary)
+    canonicalField: pod
+    confidence: 0.8
+    reasoning: Header 'POD (Secondary)' contains 'POD', which is the primary acronym
+      for the canonical field 'pod'. The '(Secondary)' qualifier suggests it
+      might be an alternate port, but the core data type (port code) matches. It
+      is a reasonable synonym.
+    action: ADD_SYNONYM
+    timestamp: 2026-01-17T04:10:52.317Z
+  - unmappedHeader: Remaks
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
+      direct canonical field for general remarks or notes. The sample value 'On
+      time' is a status comment, but the canonical 'current_status' is for
+      structured stages, not free text notes. Best to ignore.
+    action: IGNORE
+    timestamp: 2026-01-17T05:10:14.882Z
+  - unmappedHeader: Notes/Comments
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Notes/Comments' is for general free-text annotations. There
+      is no direct canonical field for this. Sample value 'Priority' could be a
+      status or instruction, but it does not reliably map to a structured field
+      like 'current_status' or 'service_type'. Best to ignore.
+    action: IGNORE
+    timestamp: 2026-01-17T05:10:14.882Z
+  - unmappedHeader: Remaks
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
+      direct canonical field for general remarks or notes. The sample value 'On
+      time' is a textual comment. It should be ignored as it does not map to a
+      defined data field.
+    action: IGNORE
+    timestamp: 2026-01-17T05:14:20.990Z
+  - unmappedHeader: Notes/Comments
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Notes/Comments' is for general textual annotations. There is
+      no canonical field for free-form notes. The sample value 'Priority' is a
+      comment. It should be ignored.
+    action: IGNORE
+    timestamp: 2026-01-17T05:14:20.990Z
+  - unmappedHeader: Remaks
+    canonicalField: IGNORE
+    confidence: 0.85
+    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
+      direct canonical field for free-text notes or comments. The sample value
+      'On time' is a generic comment. This should be ignored or mapped to a
+      generic notes field if one existed, but it does not exist in the provided
+      canonical schema.
+    action: IGNORE
+    timestamp: 2026-01-17T05:23:47.648Z
+  - unmappedHeader: Notes/Comments
+    canonicalField: IGNORE
+    confidence: 0.85
+    reasoning: Header 'Notes/Comments' indicates free-text remarks. There is no
+      direct canonical field for this. The sample value 'Priority' is a generic
+      comment. This should be ignored as it does not map to a defined field.
+    action: IGNORE
+    timestamp: 2026-01-17T05:23:47.648Z
+  - unmappedHeader: Remaks
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
+      direct canonical field for general notes or comments. While
+      'Notes/Comments' might be a candidate, it is not in the canonical schema.
+      The sample value 'On time' is a generic comment. This should be ignored or
+      flagged for a separate 'notes' field if one is added later.
+    action: IGNORE
+    timestamp: 2026-01-17T05:25:45.840Z
+  - unmappedHeader: Notes/Comments
+    canonicalField: IGNORE
+    confidence: 0.9
+    reasoning: Header 'Notes/Comments' indicates a free-text field for remarks.
+      There is no direct canonical field for general notes. The sample value
+      'Priority' is a generic comment. This should be ignored or flagged for a
+      separate 'notes' field if one is added later.
+    action: IGNORE
+    timestamp: 2026-01-17T05:25:45.840Z
+version: 1.0.19
+last_updated: 2026-01-17
+total_fields: 29

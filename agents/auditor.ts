@@ -3,11 +3,14 @@ import { AuditorInput, AuditorOutput } from '../types/agents';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
-const AZURE_ENDPOINT = process.env.AZURE_AI_ENDPOINT || "";
-const AZURE_API_KEY = process.env.AZURE_AI_KEY || "";
+const prisma = new PrismaClient();
+
+const AZURE_ENDPOINT = (process.env.AZURE_AI_ENDPOINT || "").trim();
+const AZURE_API_KEY = (process.env.AZURE_AI_KEY || "").trim();
 // Use a faster/cheaper model for Auditor if available, otherwise same
-const AZURE_DEPLOYMENT = process.env.AZURE_AI_MODEL || "gpt-4o";
+const AZURE_DEPLOYMENT = (process.env.AZURE_AI_MODEL || "gpt-4o").trim();
 
 function getAIClient() {
     if (AZURE_ENDPOINT && AZURE_API_KEY) {
@@ -33,7 +36,7 @@ export async function runAuditor(input: AuditorInput): Promise<AuditorOutput> {
 
     const client = getAIClient();
     const systemPrompt = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/auditor-system.md'), 'utf-8');
-    let userPromptTemplate = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/auditor-user.md'), 'utf-8');
+    const userPromptTemplate = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/auditor-user.md'), 'utf-8');
 
     const currentPrompt = userPromptTemplate
         .replace('${containerNumber}', input.containerNumber)
@@ -55,10 +58,53 @@ export async function runAuditor(input: AuditorInput): Promise<AuditorOutput> {
         const content = response.choices[0].message.content;
         if (!content) throw new Error("No content from Auditor AI");
 
-        return JSON.parse(content) as AuditorOutput;
+
+        const result = JSON.parse(content) as AuditorOutput;
+
+        // Log to AgentProcessingLog (if not skipped)
+        if (!input.skipLogging) {
+            try {
+                await prisma.agentProcessingLog.create({
+                    data: {
+                        containerId: input.containerNumber,
+                        stage: 'AUDITOR',
+                        status: 'COMPLETED',
+                        timestamp: new Date(),
+                        findings: result.summary as any,
+                        discrepancies: (result.lost.length > 0 || result.wrong.length > 0 || result.unmapped.length > 0) ? {
+                            lost: result.lost,
+                            wrong: result.wrong,
+                            unmapped: result.unmapped
+                        } : undefined,
+                        output: (result.lost.length > 0 || result.wrong.length > 0) ? JSON.parse(JSON.stringify(result)) : { summary: 'No critical discrepancies' }
+                    }
+                });
+            } catch (logErr) {
+                console.error(`[Auditor] Failed to log processing event:`, logErr);
+            }
+        }
+
+        return result;
 
     } catch (err) {
         console.error(`[Auditor] Audit failed for ${input.containerNumber}:`, err);
+
+        // Try to log failure (if not skipped)
+        if (!input.skipLogging) {
+            try {
+                await prisma.agentProcessingLog.create({
+                    data: {
+                        containerId: input.containerNumber,
+                        stage: 'AUDITOR',
+                        status: 'FAILED',
+                        timestamp: new Date(),
+                        output: { error: String(err) }
+                    }
+                });
+            } catch {/* ignore */ }
+        }
+
         throw err;
     }
 }
+

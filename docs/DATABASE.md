@@ -1,98 +1,178 @@
-# Neo DB Architecture (Neon PostgreSQL)
+# 🗄️ Database Architecture
 
-The **Neo DB** is a 15-table PostgreSQL schema designed to provide a robust foundation for the Shipment Tracker. It moves beyond simple flat records to modeled relationships that accurately represent the complexity of global logistics.
+The Shipment Tracker uses a robust **15-table PostgreSQL schema** hosted on Neon. It is designed to handle high-fidelity logistics data, complex relationships between shipments and containers, and rich AI-generated insights.
 
-## Core Domain Models
+## 🔌 Infrastructure & Connection
+- **Database Provider**: [Neon](https://neon.tech) (PostgreSQL)
+- **Vercel Project**: `shipment-tracker`
+- **Vercel Organization**: `wlgranas-projects`
+- **Connection**: Managed via `DATABASE_URL` in Vercel Environment Variables.
+
+### 🔑 Connection Parameters
+| Parameter | Value |
+| :--- | :--- |
+| **Host** | `ep-small-voice-ahhy8aje-pooler.c-3.us-east-1.aws.neon.tech` |
+| **Database** | `neondb` |
+| **User** | `neondb_owner` |
+| **PSQL Command** | `psql 'postgres://neondb_owner:[PASSWORD]@ep-small-voice-ahhy8aje-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require'` |
+
+## 🏗️ Zero Data Loss (Hybrid Data Model)
+
+This system implements a **"Zero Data Loss"** philosophy. Unlike traditional ELT pipelines that discard unmapped columns, we preserve **100% of the raw input data**.
+
+### The "Hybrid" Approach
+Every `Container` and `Shipment` record stores data in two parallel layers:
+
+1.  **Structured Columns (The "Canonical" Layer)**
+    - High-confidence, standard logistics fields (e.g., `containerNumber`, `pol`, `atd`).
+    - Used for indexing, filtering, and standard reporting.
+    - **Recently Verified**: `pol`, `pod`, `mbl`, `aet`, `ata`, `grossWeight` are now persisted directly here.
+
+2.  **Metadata JSON (The "Preservation" Layer)**
+    - Stores the **entire raw row** from the source file.
+    - Stores the **AI's field mapping logic** (which column mapped to which field).
+    - Stores **Unmapped Fields** with AI-generated confidence scores.
+    - **Field Locking (`lockedFields`)**:
+        - A list of field names that have been manually edited by a user.
+        - **Critical Function**: The AI "Mission Oracle" and the ingestion pipeline check this list before updates. If a field is present here, the automation **skips** updating that specific field, preserving the user's manual "Source of Truth".
+
+> **Result**: The UI can display a unified view of "Official" database fields + "Inferred" raw data, ensuring users never see "N/A" when the data exists in the source file.
+
+---
+
+## 🌟 Core Entities
 
 ### `Shipment`
-Represents the commercial entity of moving goods.
-- **Key Fields**: `shipmentReference`, `hbl`, `mbl`, `bookingReference`, `consignee`, `aceEntryNumber`, `businessUnit`, `freightCost`, `shipmentVolume`.
-- **Purpose**: Tracks the "what" and "who" of the logistics transaction.
-- **New Fields**: `metadata` (JSON), `importLogId` (Lineage).
-  - `metadata.raw`: Original source row.
-  - `metadata.unmapped`: Fields not matching schema.
-  - `metadata.missing`: Required fields absent in source.
+The central entity representing a commercial booking.
+- **Key Fields**: `shipmentReference`, `mbl`, `hbl`, `businessUnit`, `freightCost`, `forwarder`
+- **Route Fields**: `pol`, `pod`, `destinationCity`
+- **Parties**: `shipper`, `consignee`
+- **Relationships**: One-to-Many with `ShipmentContainer`
 
 ### `Container`
-Represents the physical equipment.
-- **Key Fields**: `containerNumber`, `currentStatus` (e.g., CUS, ARR), `lastFreeDay`, `gateOutDate`, `emptyReturnDate`.
-- **Timestamps**: `createdAt` (Imported On), `updatedAt` (Last System Update).
-- **Purpose**: Tracks the "where" and "state" of the physical goods.
-- **Validation**: Linked to `TransitStage` enum table for status integrity.
-- **New Fields**: `metadata` (JSON), `importLogId`.
-  - `metadata.raw`: Original source row.
-  - `metadata.unmapped`: Fields not matching schema.
-  - `metadata.missing`: Required fields absent in source.
-
-### `RiskAssessment` (Mission Oracle)
-Stores AI-driven analysis of container progress and risk.
-- **Key Fields**: `riskScore` (0-100), `riskFactors` (JSON), `recommendations` (JSON).
-- **Purpose**: Persists the "thinking" of the Mission Oracle agent so analysis doesn't need to be re-run on every page load.
-
-### `ShipmentContainer` (Junction)
-Handles the Many-to-Many relationship between Shipments and Containers.
-- **Purpose**: Allows one shipment to have multiple containers, and (rarely) one container to contain consolidated shipments.
-
-## Event Sourcing & History
+Represents a physical shipping container.
+- **Key Fields**: `containerNumber`, `containerType`, `carrier`
+- **Status Fields**: `currentStatus` (e.g., 'DIS'), `lastFreeDay`, `pgaHold`
+- **Dates**: `etd`, `atd` (Actual Departure), `eta`, `ata` (Actual Arrival), `gateOutDate`
+- **AI Fields (New)**: 
+    - `aiOperationalStatus` (ENUM)
+    - `aiAttentionCategory` (ENUM)
+    - `aiUrgencyLevel` (ENUM)
+    - `aiDataConfidence` (ENUM)
+    - `aiStatusReason` (String)
+    - `aiAttentionHeadline` (String)
+    - `aiAssessment` (Full JSON Blob)
+- **Relationships**: Linked to `TransitStage`, `Shipment`, and `RiskAssessment`
 
 ### `ContainerEvent`
-The spine of the "Journey Timeline".
-- **Concept**: Every change in state is an event.
-- **Sources**: `ExcelImport`, `CarrierAPI`, `Manual`, `ACE`.
-- **Fields**: `eventDateTime`, `stageName`, `location`, `vessel`, `source`.
+An immutable record of a specific event in a container's journey.
+- **Key Fields**: `eventDateTime`, `stageName`, `location`, `source`
+- **Purpose**: Powers the "Mission Progress" timeline.
+- **Source**: Can be `FileImport` (batch) or `System` (manual/API).
 
-### `ImportLog` & `RawRow`
-Traceability for data ingestion.
-- **Purpose**: Tracks exactly which file (and row) an update came from.
-- **Key Feature**: Allows "undo" or audit of bad data sources.
-- **AI Integration**: Stores `aiAnalysis` (JSON) and `aiAnalyzedAt` for Mission Oracle insights.
+---
 
-### `ActivityLog`
-Forensic audit trail for user actions.
-- **Context**: "User X changed status from A to B".
-- **Fields**: `actor`, `action`, `detail`, `metadata`.
+## 🧠 AI & Intelligence Storage
 
-### `ACEStatusLog` (Compliance)
-Tracks US Customs (CBP) status updates via ACE (Automated Commercial Environment).
-- **Key Fields**: `aceDisposition`, `aceStatus`, `holdType`, `pgaAgency`.
-- **Purpose**: Critical for monitoring customs holds, releases, and exam status.
-- **Relationships**: Links to `Shipment` and `Container`.
+### `ImportLog`
+Stores the raw ingestion history and AI schema analysis.
+- **`fileName`**: Unique identifier for the upload.
+- **`forwarder`**: (New) The verified source/provider of the data file.
+- **`aiAnalysis` (JSON)**: Stores the AI-detected schema:
+    - **`columnMapping`**: Map of raw headers to canonical fields.
+    - **`unmappedFields`**: Detailed AI analysis of unknown columns:
+        ```json
+        {
+          "ACE Disposition": {
+            "potentialMeaning": "U.S. Customs ACE Disposition Code",
+            "suggestedCanonicalField": "aceDispositionCode",
+            "confidenceScore": 0.95,
+            "rawValue": "1C"
+          }
+        }
+        ```
 
-### `ShipmentEvent`
-High-level milestones for the commercial shipment.
-- **Examples**: `Booking Confirmed`, `BL Released`, `Customs Entry Filed`.
-- **Purpose**: Distinct from container-level physical moves; tracks document/financial progress.
+### `RiskAssessment`
+Stores the output of the "Mission Oracle" AI analysis.
+- **`riskScore`**: 0-100 integer representing shipment risk.
+- **`riskFactors` (JSON)**: Detailed breakdown of contributing factors (e.g., "Customs Hold", "Missing LFD").
+- **`recommendations` (JSON)**: AI-generated actionable steps for the user.
 
-## Operational Management
+### `AgentProcessingLog`
+The forensic audit trail for the AI ingestion pipeline.
+- **`stage`**: Enum (`ARCHIVIST`, `TRANSLATOR`, `PERSISTENCE`, `AUDITOR`).
+- **`status`**: `STARTED`, `COMPLETED`, `FAILED`.
+- **`confidence`**: Overall confidence score for the stage.
+- **`mappings` (JSON)**: Detailed field-level mapping reasoning (Translator).
+- **`discrepancies` (JSON)**: Data loss or errors detected by the Auditor.
+- **`dictionaryVersion`**: Version string of the dictionary used for translation.
+- **`timestamp`**: Exact time of execution.
 
-### `TransitStage`
-Configuration table for the logistics lifecycle.
-- **Examples**: `BOOK`, `DEP` (Departed), `ARR` (Arrived), `CUS` (Customs Hold).
-- **Control**: Defines logical order and target lead times.
+### `ImprovementJob` (New)
+Tracks the lifecycle of an autonomous batch improvement process.
+- **`importLogId`**: The batch being improved.
+- **`status`**: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`.
+- **`currentIteration`**: Number of times the loop has run (default max 3).
+- **`synonymsAdded`**: Count of new dictionary entries learned.
+- **`targetCaptureRate`**: The quality goal (default 0.95).
+- **`logs` (JSON)**: Detailed breakdown of what the Analyzer found and what the Updater changed.
 
-### `AttentionFlag`
-Exception management workflow.
-- **Priorities**: Critical, High, Normal.
-- **State**: Active vs Resolved.
+---
 
-### `StatusOverride`
-Context for manual interventions when the system state must be forced.
+## ⚙️ Reference Data
 
-## Data Configuration & Mapping
+- **`TransitStage`**: Configurable lifecycle stages (e.g., "Gate Out", "Vessel Departure").
+- **`Carrier`**: Carrier profiles with SCAC codes and tracking URLs.
+- **`Port`**: Global port data including default free-time rules.
+- **`CarrierFormat`**: "Self-Healing" schema registry. Automatically learns and caches new carrier layouts after successful processing to bypass AI detection in future dry runs.
 
-### `CarrierFormat`
-Defines how to parse Excel/CSV files from different carriers.
-- **Key Fields**: `columnMapping` (JSON), `formatType`, `sampleHeaders`.
-- **Purpose**: Allows the Ingestion Engine to handle diverse input formats without code changes.
+## 🛡️ Operational Tables
 
-### `DCSAEventMap`
-Standardizes carrier-specific event codes to our internal `TransitStage` and DCSA standards.
-- **Purpose**: Rosetta stone for translating "DISCHARGED" (MSC) vs "OFFLOA" (Maersk) into a unified `DIS` stage.
+- **`AttentionFlag`**: High-priority manual flags for executive review.
+- **`StatusOverride`**: Audit trail of manual status corrections.
+- **`ActivityLog`**: System-wide audit log of all user actions.
 
-## Reference Data
+## 🧩 AI Classification Enums
 
-- **`Carrier`**: Master list of shipping lines (MSC, Maersk, etc.) with API configs.
-- **`Port`**: World ports with geolocation and default demurrage rules.
-- **`Facility`**: Specific terminals or rail ramps within ports.
-- **`DemurrageRate`**: Rule engine for calculating financial exposure.
-- **`Forwarder`**: Directory of freight forwarders and brokers.
+The **Mission Oracle** uses strict enumerations to classify shipment status and urgency. These values are stored in the `classification` JSON object and mapped to `aiOperationalStatus`, `aiAttentionCategory`, etc.
+
+### `status.operational`
+Where the shipment **actually** is (Truth Engine determination):
+- `BOOKED`: Booking confirmed, nothing has moved yet
+- `PENDING_DEPARTURE`: At origin, waiting to load
+- `DEPARTED`: Left origin port, in transit
+- `IN_TRANSIT`: Confirmed moving, has tracking
+- `ARRIVING`: ETA within 72 hours
+- `ARRIVED`: Vessel at destination, not discharged
+- `DISCHARGED`: Off vessel, in terminal yard
+- `CUSTOMS_HOLD`: Held by CBP/PGA
+- `RELEASED`: Cleared customs, awaiting pickup
+- `OUT_FOR_DELIVERY`: In drayage to final destination
+- `DELIVERED`: At final destination
+- `RETURNED_EMPTY`: Container returned
+- `UNKNOWN`: Cannot determine from data
+
+### `status.confidence`
+- `VERIFIED`: Multiple sources confirm this status
+- `INFERRED`: Determined from partial data (e.g., ATD exists so must be in transit)
+- `STALE`: Data is old, status may have changed
+- `CONFLICTING`: Evidence contradicts database status
+- `INCOMPLETE`: Critical data missing to determine
+
+### `attention.category`
+- `ON_TRACK`: No issues, progressing normally
+- `DATA_CONFLICT`: Database status contradicts evidence
+- `MILESTONE_OVERDUE`: Expected event hasn't occurred
+- `DATA_STALE`: No updates in too long
+- `DEMURRAGE_RISK`: At or approaching LFD
+- `CUSTOMS_ACTION`: Customs hold or issue
+- `CARRIER_ISSUE`: Carrier-side problem
+- `DOCUMENTATION`: Missing/incorrect docs
+- `PICKUP_READY`: Cleared and waiting
+
+### `attention.urgency`
+- `CRITICAL`: Today (money being lost, customs hold)
+- `HIGH`: Within 48 hours
+- `MEDIUM`: This week
+- `LOW`: Monitor
+- `NONE`: No action needed

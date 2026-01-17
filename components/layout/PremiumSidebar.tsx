@@ -41,22 +41,22 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
     };
 
     return (
-        <aside className="w-72 bg-slate-900 text-white flex flex-col shrink-0 transition-all duration-300 h-screen sticky top-0">
-            <div className="p-8 pb-4">
+        <aside className="w-72 bg-slate-900 text-white flex flex-col shrink-0 transition-all duration-300 h-screen sticky top-0" suppressHydrationWarning>
+            <div className="p-8 pb-4" suppressHydrationWarning>
                 <div className="flex items-center gap-2 mb-2">
-                    <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center transform rotate-3">
+                    <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center transform rotate-3" suppressHydrationWarning>
                         <Truck className="h-5 w-5 text-white" />
                     </div>
                     <h1 className="text-xl font-black tracking-tight italic">FBG <span className="text-blue-500">Container Tracker</span></h1>
                 </div>
             </div>
 
-            <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-2">Operational Cockpit</div>
+            <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto" suppressHydrationWarning>
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-2" suppressHydrationWarning>Operational Cockpit</div>
 
                 {/* All Shipments */}
                 <Link href="/dashboard?tab=containers" className="block w-full">
-                    <div className={cn(
+                    <div suppressHydrationWarning className={cn(
                         "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
                         isActive('/dashboard', 'containers')
                             ? "bg-blue-600 shadow-lg shadow-blue-900/50 text-white"
@@ -96,7 +96,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
 
                 {/* Import Manifest (Ingestion) */}
                 <Link href="/ingestion" className="block w-full">
-                    <div className={cn(
+                    <div suppressHydrationWarning className={cn(
                         "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
                         isActive('/ingestion')
                             ? "bg-blue-600 shadow-lg shadow-blue-900/50 text-white"
@@ -111,7 +111,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
 
                 {/* Import History */}
                 <Link href="/import-history" className="block w-full">
-                    <div className={cn(
+                    <div suppressHydrationWarning className={cn(
                         "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
                         isActive('/import-history')
                             ? "bg-blue-600 shadow-lg shadow-blue-900/50 text-white"
@@ -123,6 +123,8 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                         </div>
                     </div>
                 </Link>
+
+
 
                 {/* Data Entry (Manual) - HIDDEN
                 <Link href="/dashboard?tab=manual" className="block w-full">
@@ -140,11 +142,41 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                 </Link>
                 */}
 
-                <div className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-2">System</div>
+                <div className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-2" suppressHydrationWarning>System</div>
+
+                {/* Simulation Dashboard */}
+                <Link href="/simulation" className="block w-full">
+                    <div suppressHydrationWarning className={cn(
+                        "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
+                        isActive('/simulation')
+                            ? "bg-purple-600 shadow-lg shadow-purple-900/50 text-white"
+                            : "hover:bg-white/5 text-slate-400 hover:text-white"
+                    )}>
+                        <div className="flex items-center gap-3">
+                            <Bot className={cn("h-5 w-5", isActive('/simulation') ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                            <span className="font-bold text-sm tracking-wide">Simulation</span>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Training Dashboard */}
+                <Link href="/training" className="block w-full">
+                    <div suppressHydrationWarning className={cn(
+                        "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
+                        isActive('/training')
+                            ? "bg-emerald-600 shadow-lg shadow-emerald-900/50 text-white"
+                            : "hover:bg-white/5 text-slate-400 hover:text-white"
+                    )}>
+                        <div className="flex items-center gap-3">
+                            <LayoutDashboard className={cn("h-5 w-5", isActive('/training') ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                            <span className="font-bold text-sm tracking-wide">Engine Trainer</span>
+                        </div>
+                    </div>
+                </Link>
 
                 {/* About / Help */}
                 <Link href="/about" className="block w-full">
-                    <div className={cn(
+                    <div suppressHydrationWarning className={cn(
                         "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
                         isActive('/about')
                             ? "bg-blue-600 shadow-lg shadow-blue-900/50 text-white"
@@ -159,7 +191,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
 
                 <div className="pl-4 space-y-1 mt-2">
                     <Link href="/about/agents" className="block w-full">
-                        <div className={cn(
+                        <div suppressHydrationWarning className={cn(
                             "w-full text-left px-5 py-3 rounded-xl flex items-center justify-between group transition-all duration-200",
                             isActive('/about/agents')
                                 ? "bg-white/10 text-white"
@@ -173,7 +205,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                     </Link>
 
                     <Link href="/about/exceptions" className="block w-full">
-                        <div className={cn(
+                        <div suppressHydrationWarning className={cn(
                             "w-full text-left px-5 py-3 rounded-xl flex items-center justify-between group transition-all duration-200",
                             isActive('/about/exceptions')
                                 ? "bg-white/10 text-white"
@@ -188,6 +220,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                 </div>
             </div>
 
+            {/* Pilot Mode Banner - Hidden
             <div className="p-6 border-t border-white/5 mx-4">
                 <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-4 text-white shadow-lg overflow-hidden relative">
                     <div className="relative z-10">
@@ -201,6 +234,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
                 </div>
             </div>
+            */}
         </aside>
     );
 }

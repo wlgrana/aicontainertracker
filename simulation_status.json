@@ -1,0 +1,216 @@
+{
+  "step": "IDLE",
+  "progress": 0,
+  "message": "Simulation Stopped",
+  "filename": "test_vendor_nightmare.xlsx",
+  "rowCount": 0,
+  "agentData": {
+    "archivist": {
+      "filename": "test_vendor_nightmare.xlsx",
+      "rowCount": 5,
+      "headers": [
+        "Container_No",
+        "From (POL)",
+        "To (POD)",
+        "Est Arrival",
+        "Act Depart",
+        "Vsl Name",
+        "Notes/Comments"
+      ],
+      "sampleRow": {
+        "Container_No": "MSCU1234567",
+        "From (POL)": "CNNYC",
+        "To (POD)": "USLGB",
+        "Est Arrival": "2023-10-15",
+        "Act Depart": "2023-09-01",
+        "Vsl Name": "Gulsun",
+        "Notes/Comments": "Priority"
+      }
+    },
+    "translator": {
+      "mappedCount": 0,
+      "confidence": {
+        "overallScore": 0.8,
+        "summary": "Heuristic Fallback Generated",
+        "totalFields": 7,
+        "highConfidence": 6,
+        "mediumConfidence": 0,
+        "lowConfidence": 0,
+        "flaggedForReview": 0
+      },
+      "sampleContainer": {
+        "rawRowId": "1e3715a9-5e2a-44f4-b215-988e372cde6b",
+        "fields": {
+          "container_number": {
+            "value": "MSCU1234567",
+            "originalValue": "MSCU1234567",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          },
+          "pol": {
+            "value": "CNNYC",
+            "originalValue": "CNNYC",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          },
+          "pod": {
+            "value": "USLGB",
+            "originalValue": "USLGB",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          },
+          "eta": {
+            "value": "2023-10-15",
+            "originalValue": "2023-10-15",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          },
+          "atd": {
+            "value": "2023-09-01",
+            "originalValue": "2023-09-01",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          },
+          "vessel_name": {
+            "value": "Gulsun",
+            "originalValue": "Gulsun",
+            "confidence": 1,
+            "source": "heuristic",
+            "transformation": "direct"
+          }
+        },
+        "meta": {
+          "Notes/Comments": "Priority"
+        },
+        "overallConfidence": 0.85,
+        "flagsForReview": []
+      },
+      "schemaMapping": {
+        "fieldMappings": {
+          "containerNumber": {
+            "sourceHeader": "Container_No",
+            "targetField": "containerNumber",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          },
+          "pol": {
+            "sourceHeader": "From (POL)",
+            "targetField": "pol",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          },
+          "pod": {
+            "sourceHeader": "To (POD)",
+            "targetField": "pod",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          },
+          "eta": {
+            "sourceHeader": "Est Arrival",
+            "targetField": "eta",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          },
+          "atd": {
+            "sourceHeader": "Act Depart",
+            "targetField": "atd",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          },
+          "vesselName": {
+            "sourceHeader": "Vsl Name",
+            "targetField": "vesselName",
+            "confidence": 1,
+            "transformationType": "direct",
+            "notes": "Heuristic Match"
+          }
+        },
+        "unmappedSourceFields": [
+          {
+            "sourceHeader": "Notes/Comments",
+            "sampleValue": null,
+            "suggestedField": null,
+            "confidence": 0,
+            "potentialMeaning": "Unknown"
+          }
+        ],
+        "missingSchemaFields": [
+          "currentStatus",
+          "currentLocation",
+          "carrier",
+          "finalDestination",
+          "ata",
+          "etd",
+          "finalDestinationEta",
+          "lastFreeDay",
+          "emptyReturnDate",
+          "gateOutDate",
+          "pieces",
+          "grossWeight",
+          "volumeCbm",
+          "sealNumber",
+          "containerType",
+          "mbl",
+          "hbl",
+          "shipmentReference",
+          "consignee",
+          "shipper",
+          "customerPo"
+        ],
+        "detectedForwarder": "Unknown"
+      },
+      "schemaStats": {
+        "sourceColumns": 7,
+        "schemaFields": 26,
+        "mapped": 6,
+        "unmapped": 1,
+        "missing": 21
+      }
+    },
+    "auditor": {
+      "verifiedCount": 0,
+      "discrepancyCount": 5,
+      "sampleAnalysis": {
+        "container": "UNKNOWN_1",
+        "raw": {},
+        "db": {
+          "metadata": {}
+        },
+        "unmapped": [
+          "Notes/Comments"
+        ],
+        "captureRate": 0,
+        "proposedPatches": {
+          "Notes/Comments": "metadata.notes"
+        }
+      },
+      "patchedCount": 1
+    }
+  },
+  "timestamp": 1768628229750,
+  "metrics": {
+    "source": {
+      "filename": "test_vendor_nightmare.xlsx",
+      "totalRows": 5,
+      "totalCols": 7
+    },
+    "baseline": {},
+    "final": {},
+    "improvement": {},
+    "translation": {
+      "mapped": 0,
+      "confidence": 0.8,
+      "unmappedFields": 1
+    }
+  }
+}

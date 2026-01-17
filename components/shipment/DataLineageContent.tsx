@@ -1,13 +1,44 @@
 "use client";
 
 import React from 'react';
-import { Database, FileText, Activity, Layers, Clock, ShieldCheck } from "lucide-react";
+import { Database, FileText, Activity, Layers, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 interface DataLineageContentProps {
     data: any;
+}
+
+// Helper to strip AI metadata from unmapped fields for cleaner display
+function sanitizeMetadata(metadata: any) {
+    if (!metadata) return null;
+
+    // Deep clone to avoid mutating state
+    const clean = JSON.parse(JSON.stringify(metadata));
+
+    // Sanitize unmappedFields if they exist
+    if (clean.mapping && clean.mapping.unmappedFields) {
+        const sanitizedUnmapped: any = {};
+        Object.entries(clean.mapping.unmappedFields).forEach(([key, value]: [string, any]) => {
+            // If value is our AI object format with rawValue, extract just the raw value
+            if (value && typeof value === 'object' && 'rawValue' in value) {
+                sanitizedUnmapped[key] = value.rawValue;
+            } else {
+                // Otherwise keep as is (it might be a direct value already)
+                sanitizedUnmapped[key] = value;
+            }
+        });
+        clean.mapping.unmappedFields = sanitizedUnmapped;
+    }
+
+    // Explicitly keep only the requested top-level keys
+    // "the raw import data should just be the data from the ingestion nothing else"
+    return {
+        raw: clean.raw,
+        mapping: clean.mapping,
+        lastAudit: clean.lastAudit
+    };
 }
 
 export default function DataLineageContent({ data }: DataLineageContentProps) {
@@ -83,7 +114,63 @@ export default function DataLineageContent({ data }: DataLineageContentProps) {
                 </Card>
             </div>
 
-            {/* 2. Raw JSON Viewers */}
+            {/* 1b. Unmapped Data Report */}
+            {data.metadata?.lastAudit?.unmappedFields?.length > 0 && data.rawRowData && Array.isArray(data.metadata.lastAudit.unmappedFields) && (
+                <Card className="bg-amber-50 border-amber-200 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" /> Unmapped Source Data
+                                </CardTitle>
+                                <CardDescription className="text-amber-700 text-xs mt-1">
+                                    The following columns were present in the source file but not mapped to the database.
+                                </CardDescription>
+                            </div>
+                            <div className="flex gap-4 text-xs">
+                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
+                                    <span className="font-bold text-slate-700">{Object.keys(data.rawRowData).length}</span>
+                                    <span className="text-[10px] text-slate-500 uppercase">Total Source Columns</span>
+                                </div>
+                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
+                                    <span className="font-bold text-emerald-600">{Object.keys(data.rawRowData).length - data.metadata.lastAudit.unmappedFields.length}</span>
+                                    <span className="text-[10px] text-slate-500 uppercase">Mapped</span>
+                                </div>
+                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
+                                    <span className="font-bold text-amber-600">{data.metadata.lastAudit.unmappedFields.length}</span>
+                                    <span className="text-[10px] text-amber-600/70 uppercase">Orphaned</span>
+                                </div>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="bg-white rounded-md border border-amber-100 overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-amber-100/50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left font-bold text-amber-900 border-b border-amber-100 text-xs uppercase tracking-wider">Source Column</th>
+                                        <th className="px-4 py-2 text-left font-bold text-amber-900 border-b border-amber-100 text-xs uppercase tracking-wider">Original Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.metadata.lastAudit.unmappedFields.map((field: string) => {
+                                        const val = data.rawRowData[field];
+                                        return (
+                                            <tr key={field} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                                                <td className="px-4 py-2 font-mono text-xs text-slate-600 truncate max-w-[200px] font-bold">{field}</td>
+                                                <td className="px-4 py-2 font-mono text-xs text-slate-800 truncate max-w-[300px] break-all">{val !== undefined && val !== null ? String(val) : <span className="text-slate-300 italic">null</span>}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* 2. Raw JSON Viewers */
+            }
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                 {/* AI Analysis */}
@@ -118,7 +205,7 @@ export default function DataLineageContent({ data }: DataLineageContentProps) {
                     <CardContent>
                         <ScrollArea className="h-[400px] w-full rounded-md border border-slate-800 bg-slate-950/50 p-4">
                             <pre className="text-xs font-mono text-blue-400/90 whitespace-pre-wrap">
-                                {data.metadata ? JSON.stringify(data.metadata, null, 2) : "// No Raw Metadata found"}
+                                {data.metadata ? JSON.stringify(sanitizeMetadata(data.metadata), null, 2) : "// No Raw Metadata found"}
                             </pre>
                         </ScrollArea>
                     </CardContent>

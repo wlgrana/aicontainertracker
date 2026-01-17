@@ -1,0 +1,15 @@
+{
+  "benchmarkFiles": [
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\testdata\\test_vendor_messy.xlsx",
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\testdata\\test_vendor_minimal.xlsx",
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\testdata\\test_vendor_nightmare.xlsx",
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\testdata\\test_vendor_standard.xlsx",
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\testdata\\test_vendor_verbose.xlsx"
+  ],
+  "maxIterations": 50,
+  "targetCoverage": 0.85,
+  "targetOverallScore": 0.85,
+  "outputDir": "artifacts/runs",
+  "useIsolatedDB": true,
+  "rowLimit": 10
+}

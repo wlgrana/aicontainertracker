@@ -99,9 +99,14 @@ export async function getDashboardData(
                 where.hasException = true;
             } else if (status === 'in_transit') {
                 // filter for active shipments (not delivered/completed)
-                where.currentStatus = {
-                    notIn: ['DEL', 'DELIVERED', 'COMPLETED', 'MTY', 'RET', 'EMPTY_RETURN']
-                };
+                // Explicitly include NULL (unknown) status as active, as 'notIn' excludes nulls
+                if (!where.AND) where.AND = [];
+                where.AND.push({
+                    OR: [
+                        { currentStatus: { notIn: ['DEL', 'DELIVERED', 'COMPLETED', 'MTY', 'RET', 'EMPTY_RETURN'] } },
+                        { currentStatus: null }
+                    ]
+                });
             } else {
                 where.currentStatus = status;
             }
@@ -228,6 +233,7 @@ export async function getDashboardData(
                 demurrageExposure: true,
                 aiOperationalStatus: true, // NEW
                 aiAttentionCategory: true, // NEW
+                businessUnit: true, // NEW: Ensure we fetch this!
                 shipmentContainers: {
                     include: {
                         shipment: {
@@ -273,7 +279,7 @@ export async function getDashboardData(
             }
 
             // Extract extended fields
-            const businessUnit = c.shipmentContainers?.[0]?.shipment?.businessUnit || "Unassigned";
+            const businessUnit = c.businessUnit || c.shipmentContainers?.[0]?.shipment?.businessUnit || "Unassigned";
             const freightCost = c.shipmentContainers?.[0]?.shipment?.freightCost || 0;
             const riskAssessment = c.riskAssessment || null;
 
@@ -320,7 +326,7 @@ export async function getDashboardData(
 
 export async function getContainerDetails(id: string) {
     if (!id) return null;
-    return await prisma.container.findUnique({
+    const container = await prisma.container.findUnique({
         where: { containerNumber: id },
         include: {
             events: {
@@ -351,6 +357,27 @@ export async function getContainerDetails(id: string) {
             stage: true
         }
     });
+
+    if (!container) return null;
+
+    // Fetch Raw Row Data if linked
+    let rawRowData = null;
+    const meta = container.metadata as any;
+    if (meta && meta._internal && meta._internal.rawRowId) {
+        const rawRow = await prisma.rawRow.findUnique({
+            where: { id: meta._internal.rawRowId }
+        });
+        if (rawRow && rawRow.data) {
+            try {
+                rawRowData = JSON.parse(rawRow.data);
+            } catch (e) { }
+        }
+    }
+
+    return {
+        ...container,
+        rawRowData // Attach raw data for lineage view
+    };
 }
 
 export async function getTransitStages() {

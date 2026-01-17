@@ -1,0 +1,22 @@
+{
+  "iteration": 1,
+  "scores": {
+    "coverage": 0.8,
+    "required_field_fill": 0.65,
+    "optional_field_fill": 0.0625,
+    "avg_confidence": 0.6799999999999998,
+    "overall_score": 0.6692499999999999
+  },
+  "metrics": {
+    "total_rows": 25,
+    "valid_records": 20,
+    "rows_with_errors": 25,
+    "unmapped_headers": 33,
+    "low_confidence_mappings": 5
+  },
+  "improvements": {
+    "synonyms_added": 0,
+    "pending_fields": 0
+  },
+  "stopped": false
+}

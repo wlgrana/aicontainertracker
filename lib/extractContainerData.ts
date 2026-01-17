@@ -102,7 +102,7 @@ export function extractContainerData(container: any): ExtractedContainerData {
         const suggestedField = aiAnalysis.suggestedCanonicalField;
 
         // Try to match by suggested field or by field name
-        let definition = suggestedField ?
+        const definition = suggestedField ?
             FIELD_REGISTRY.find(d => d.canonicalField === suggestedField) :
             findFieldDefinition(fieldName);
 

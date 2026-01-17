@@ -1,0 +1,11 @@
+{
+  "benchmarkFiles": [
+    "C:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\uploads\\First Brands Wkly Report 1.13.xlsx"
+  ],
+  "maxIterations": 50,
+  "targetCoverage": 0.85,
+  "targetOverallScore": 0.85,
+  "outputDir": "artifacts/runs",
+  "useIsolatedDB": true,
+  "rowLimit": 10
+}

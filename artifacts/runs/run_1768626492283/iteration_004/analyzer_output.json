@@ -1,0 +1,236 @@
+{
+  "suggestions": [
+    {
+      "unmappedHeader": "Cust Ref",
+      "canonicalField": "customer_po",
+      "confidence": 0.95,
+      "reasoning": "Header 'Cust Ref' is a common abbreviation for 'Customer Reference' and the sample value 'PO-1001' matches the pattern for a Purchase Order number. This synonym is already listed in the existing synonyms for 'customer_po'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "CNTR ID",
+      "canonicalField": "container_number",
+      "confidence": 0.95,
+      "reasoning": "Header 'CNTR ID' is a clear abbreviation for 'Container Identification'. The sample value 'MSCU-123456-7' is a standard container number format. This synonym is already listed in the existing synonyms for 'container_number'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Pol",
+      "canonicalField": "pol",
+      "confidence": 0.95,
+      "reasoning": "Header 'Pol' is a direct, case-variant match for the canonical field 'pol'. The sample value 'Shanghai' is a port name. This synonym is already listed in the existing synonyms for 'pol'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Pod",
+      "canonicalField": "pod",
+      "confidence": 0.95,
+      "reasoning": "Header 'Pod' is a direct, case-variant match for the canonical field 'pod'. The sample value 'Long Beach' is a port name. This synonym is already listed in the existing synonyms for 'pod'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Est. Arr.",
+      "canonicalField": "eta",
+      "confidence": 0.95,
+      "reasoning": "Header 'Est. Arr.' is a clear abbreviation for 'Estimated Arrival'. The sample value '10/15/23' is a date format, matching the expected data type for ETA. This synonym is already listed in the existing synonyms for 'eta'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Dep. Date",
+      "canonicalField": "etd",
+      "confidence": 0.95,
+      "reasoning": "Header 'Dep. Date' is a clear abbreviation for 'Departure Date'. The sample value '09/01/23' is a date format, matching the expected data type for ETD. This synonym is already listed in the existing synonyms for 'etd'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Vessel",
+      "canonicalField": "vessel_name",
+      "confidence": 0.95,
+      "reasoning": "Header 'Vessel' is a direct match for the canonical field 'vessel_name'. The sample value 'MSC GULSUN' is a vessel name. This synonym is already listed in the existing synonyms for 'vessel_name'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Remaks",
+      "canonicalField": null,
+      "confidence": 0,
+      "reasoning": "Header 'Remaks' appears to be a typo for 'Remarks'. The canonical schema does not have a 'remarks' or 'notes' field. The sample value 'On time' is a comment. No suitable canonical field exists.",
+      "action": "IGNORE"
+    },
+    {
+      "unmappedHeader": "Status",
+      "canonicalField": "load_type",
+      "confidence": 0.85,
+      "reasoning": "Header 'Status' is ambiguous. The sample value 'FCL' is a load type (Full Container Load), not a shipment status. The existing synonyms for 'load_type' already include 'Status' as a synonym, indicating this mapping is intended for this specific context.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Container#",
+      "canonicalField": "container_number",
+      "confidence": 0.95,
+      "reasoning": "Header 'Container#' is a common abbreviation for 'Container Number'. The sample value 'MSCU1234567' is a container number. This synonym is already listed in the existing synonyms for 'container_number'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Typ",
+      "canonicalField": "container_type",
+      "confidence": 0.95,
+      "reasoning": "Header 'Typ' is a common abbreviation for 'Type'. The sample value '40HC' is a standard container type. This synonym is already listed in the existing synonyms for 'container_type'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Wgt",
+      "canonicalField": "gross_weight",
+      "confidence": 0.95,
+      "reasoning": "Header 'Wgt' is a common abbreviation for 'Weight'. The sample value '12000' is a numeric weight. This synonym is already listed in the existing synonyms for 'gross_weight'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Container_No",
+      "canonicalField": "container_number",
+      "confidence": 0.95,
+      "reasoning": "Header 'Container_No' is a clear variant of 'Container Number'. The sample value 'MSCU1234567' is a container number. This synonym is already listed in the existing synonyms for 'container_number'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "From (POL)",
+      "canonicalField": "pol",
+      "confidence": 0.95,
+      "reasoning": "Header 'From (POL)' explicitly indicates the Port of Loading. The sample value 'CNNYC' is a port code. This synonym is already listed in the existing synonyms for 'pol'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "To (POD)",
+      "canonicalField": "pod",
+      "confidence": 0.95,
+      "reasoning": "Header 'To (POD)' explicitly indicates the Port of Discharge. The sample value 'USLGB' is a port code. This synonym is already listed in the existing synonyms for 'pod'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Est Arrival",
+      "canonicalField": "eta",
+      "confidence": 0.95,
+      "reasoning": "Header 'Est Arrival' is a clear match for 'Estimated Arrival'. The sample value '2023-10-15' is a date. This synonym is already listed in the existing synonyms for 'eta'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Act Depart",
+      "canonicalField": "atd",
+      "confidence": 0.95,
+      "reasoning": "Header 'Act Depart' is a clear abbreviation for 'Actual Departure'. The sample value '2023-09-01' is a date. This synonym is already listed in the existing synonyms for 'atd'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Vsl Name",
+      "canonicalField": "vessel_name",
+      "confidence": 0.95,
+      "reasoning": "Header 'Vsl Name' is a common abbreviation for 'Vessel Name'. The sample value 'Gulsun' is a vessel name. This synonym is already listed in the existing synonyms for 'vessel_name'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Notes/Comments",
+      "canonicalField": null,
+      "confidence": 0,
+      "reasoning": "Header 'Notes/Comments' indicates a free-text field for remarks. The canonical schema does not have a 'notes' or 'comments' field. The sample value 'Priority' is a comment. No suitable canonical field exists.",
+      "action": "IGNORE"
+    },
+    {
+      "unmappedHeader": "Business Unit",
+      "canonicalField": "business_unit",
+      "confidence": 0.95,
+      "reasoning": "Header 'Business Unit' is an exact match for the canonical field. The sample value 'Global Parts' is a business unit name. This synonym is already listed in the existing synonyms for 'business_unit'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Container Number",
+      "canonicalField": "container_number",
+      "confidence": 0.95,
+      "reasoning": "Header 'Container Number' is an exact match for the canonical field. The sample value 'MSCU1234567' is a container number. This synonym is already listed in the existing synonyms for 'container_number'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Origin Port",
+      "canonicalField": "pol",
+      "confidence": 0.95,
+      "reasoning": "Header 'Origin Port' is a clear synonym for Port of Loading. The sample value 'CNNYC' is a port code. This synonym is already listed in the existing synonyms for 'pol'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Destination Port",
+      "canonicalField": "pod",
+      "confidence": 0.95,
+      "reasoning": "Header 'Destination Port' is a clear synonym for Port of Discharge. The sample value 'USLGB' is a port code. This synonym is already listed in the existing synonyms for 'pod'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "ETA",
+      "canonicalField": "eta",
+      "confidence": 0.95,
+      "reasoning": "Header 'ETA' is a direct match for the canonical field. The sample value '2023-10-15' is a date. This synonym is already listed in the existing synonyms for 'eta'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "ETD",
+      "canonicalField": "etd",
+      "confidence": 0.95,
+      "reasoning": "Header 'ETD' is a direct match for the canonical field. The sample value '2023-09-01' is a date. This synonym is already listed in the existing synonyms for 'etd'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Carrier",
+      "canonicalField": "carrier",
+      "confidence": 0.95,
+      "reasoning": "Header 'Carrier' is an exact match for the canonical field. The sample value 'MSC' is a carrier code. This synonym is already listed in the existing synonyms for 'carrier'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "The Unique Identification Number of the Shipping Container",
+      "canonicalField": "container_number",
+      "confidence": 0.95,
+      "reasoning": "Header is a verbose description of a container number. The sample value 'MSCU1234567' is a container number. This synonym is already listed in the existing synonyms for 'container_number'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "The Port where the Cargo was Loaded",
+      "canonicalField": "pol",
+      "confidence": 0.95,
+      "reasoning": "Header is a verbose description of the Port of Loading. The sample value 'CNNYC' is a port code. This synonym is already listed in the existing synonyms for 'pol'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "The Final Port of Discharge",
+      "canonicalField": "pod",
+      "confidence": 0.95,
+      "reasoning": "Header is a verbose description of the Port of Discharge. The sample value 'USLGB' is a port code. This synonym is already listed in the existing synonyms for 'pod'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Estimated Time of Arrival (ETA)",
+      "canonicalField": "eta",
+      "confidence": 0.95,
+      "reasoning": "Header is the full name of ETA. The sample value '2023-10-15' is a date. This synonym is already listed in the existing synonyms for 'eta'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Actual Time of Departure (ATD)",
+      "canonicalField": "atd",
+      "confidence": 0.95,
+      "reasoning": "Header is the full name of ATD. The sample value '2023-09-01' is a date. This synonym is already listed in the existing synonyms for 'atd'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Shipping Line Carrier Code",
+      "canonicalField": "carrier",
+      "confidence": 0.95,
+      "reasoning": "Header is a descriptive synonym for 'carrier'. The sample value 'MSCU' is a carrier prefix. This synonym is already listed in the existing synonyms for 'carrier'.",
+      "action": "ADD_SYNONYM"
+    },
+    {
+      "unmappedHeader": "Current Transport Stage",
+      "canonicalField": "current_status",
+      "confidence": 0.95,
+      "reasoning": "Header 'Current Transport Stage' is a descriptive synonym for shipment status. The sample value 'Ocean Transit' describes a status/milestone. This synonym is already listed in the existing synonyms for 'current_status'.",
+      "action": "ADD_SYNONYM"
+    }
+  ],
+  "summary": "Analyzed 33 unmapped headers. Found 30 strong matches (already present in the synonym dictionaries), 1 ambiguous match ('Status' to 'load_type' with context), and 2 items with no canonical match ('Remaks', 'Notes/Comments')."
+}

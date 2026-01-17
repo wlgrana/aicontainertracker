@@ -1,0 +1,185 @@
+# Business Unit Dictionary for First Brands Group
+# Format: canonical_name → synonyms + fuzzy variants
+
+canonical_units:
+  FRAM:
+    synonyms:
+      - "FRAM"
+      - "Fram"
+      - "FRAM Filtration"
+      - "FRAM Group"
+    fuzzy_variants:
+      - "SRAM"          # OCR error
+      - "FRAN"          # Typo
+      - "FRAH"          # OCR error
+    confidence_threshold: 0.85
+    
+  AUTOLITE:
+    synonyms:
+      - "AUTOLITE"
+      - "Autolite"
+      - "Auto-Lite"
+      - "AUTOLITE Spark Plugs"
+    fuzzy_variants:
+      - "AUTOLITE"
+      - "AUTO LITE"
+    confidence_threshold: 0.85
+    
+  CHAMPION:
+    synonyms:
+      - "CHAMPION"
+      - "Champion"
+      - "CHAMPION Spark Plugs"
+    fuzzy_variants:
+      - "CHAMPLON"      # OCR error
+      - "CHANPION"      # Typo
+    confidence_threshold: 0.85
+    
+  TRICO:
+    synonyms:
+      - "TRICO"
+      - "Trico"
+      - "TRICO Wiper"
+    fuzzy_variants:
+      - "TR1CO"         # OCR error
+      - "TRIC0"         # OCR error
+    confidence_threshold: 0.85
+    
+  CARDONE:
+    synonyms:
+      - "CARDONE"
+      - "Cardone"
+      - "A1 CARDONE"
+      - "A1 Cardone"
+    fuzzy_variants:
+      - "CARD0NE"       # OCR error
+      - "CARDOINE"      # Typo
+    confidence_threshold: 0.85
+    
+  CARTER:
+    synonyms:
+      - "CARTER"
+      - "Carter"
+      - "CARTER Fuel"
+    fuzzy_variants:
+      - "CARTER"
+      - "CATER"         # Typo
+    confidence_threshold: 0.85
+    
+  CENTRIC:
+    synonyms:
+      - "CENTRIC"
+      - "Centric"
+      - "CENTRIC Parts"
+    fuzzy_variants:
+      - "CENTR1C"       # OCR error
+      - "CENTRJC"       # OCR error
+    confidence_threshold: 0.85
+    
+  RAYBESTOS:
+    synonyms:
+      - "RAYBESTOS"
+      - "Raybestos"
+      - "RAYBESTOS Brakes"
+    fuzzy_variants:
+      - "RAYREST0S"     # OCR error
+      - "RAYBEST0S"     # OCR error
+    confidence_threshold: 0.85
+    
+  ANCO:
+    synonyms:
+      - "ANCO"
+      - "Anco"
+      - "ANCO Wiper"
+    fuzzy_variants:
+      - "ANC0"          # OCR error
+      - "ANCD"          # OCR error
+    confidence_threshold: 0.85
+    
+  BENDIX:
+    synonyms:
+      - "BENDIX"
+      - "Bendix"
+      - "BENDIX Brakes"
+    fuzzy_variants:
+      - "BEND1X"        # OCR error
+      - "BENDLX"        # OCR error
+    confidence_threshold: 0.85
+    
+  BECK_ARNLEY:
+    synonyms:
+      - "BECK/ARNLEY"
+      - "BECK ARNLEY"
+      - "Beck/Arnley"
+      - "Beck Arnley"
+      - "BECK-ARNLEY"
+    fuzzy_variants:
+      - "BECK ARNELY"   # Typo
+      - "BECK/ARNEY"    # Typo
+    confidence_threshold: 0.85
+    
+  WAGNER:
+    synonyms:
+      - "WAGNER"
+      - "Wagner"
+      - "WAGNER Brakes"
+    fuzzy_variants:
+      - "WAGNER"
+      - "WAGHER"        # Typo
+    confidence_threshold: 0.85
+    
+  FIRST_BRANDS_GROUP:
+    synonyms:
+      - "FIRST BRANDS GROUP"
+      - "First Brands Group"
+      - "FIRST BRANDS"
+      - "First Brands"
+      - "FBG"
+      - "FBL"
+      - "FIRST BRANDS LOGISTICS"
+    fuzzy_variants:
+      - "FlRST BRANDS"  # OCR error (l → I)
+      - "FIRST BRAND"   # Missing S
+    confidence_threshold: 0.80
+
+  HORIZON:
+    synonyms:
+      - "HORIZON"
+      - "Horizon"
+      - "HORIZON GLOBAL"
+      - "HORIZON GLOBAL AMERICAS INC"
+      - "Horizon Global"
+    fuzzy_variants:
+      - "HORIZON GLBL"
+    confidence_threshold: 0.85
+
+# Legacy / Historical BUs (low priority)
+legacy_units:
+  DELPHI_AFTERMARKET:
+    synonyms:
+      - "DELPHI AFTERMARKET"
+      - "Delphi Aftermarket"
+      - "DELPHI"
+    confidence_threshold: 0.85
+    notes: "Legacy brand, acquired by other companies"
+    
+  DORMAN:
+    synonyms:
+      - "DORMAN"
+      - "Dorman"
+      - "DORMAN Products"
+    confidence_threshold: 0.85
+    notes: "Legacy brand, no longer part of First Brands"
+
+# AI Learning Rules
+learning_rules:
+  auto_add_synonyms: true           # AI can add new synonyms if confidence ≥ 0.90
+  auto_add_fuzzy_variants: true     # AI can add OCR/typo variants if confidence ≥ 0.85
+  auto_add_canonical: false         # AI CANNOT add new canonical BUs
+  unknown_threshold: 0.70           # Below this, return "Unknown"
+  manual_review_threshold: 0.85     # Between 0.70-0.85, flag for manual review
+
+# Metadata
+version: "1.0.0"
+last_updated: "2026-01-16"
+total_canonical_units: 14

@@ -34,7 +34,7 @@ export async function runOracleChat(
     const client = getAIClient();
 
     // Load system prompt and hydrate with context
-    let systemPromptRaw = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/oracle-system.md'), 'utf-8');
+    const systemPromptRaw = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/oracle-system.md'), 'utf-8');
 
     // Simple handlebars-style replacement
     const hydratedPrompt = systemPromptRaw
@@ -128,9 +128,9 @@ export async function runOracleChat(
     return {
         role: 'assistant',
         content: msg.content || '',
-        toolCalls: msg.tool_calls?.map(tc => ({
-            name: tc.function.name,
-            arguments: JSON.parse(tc.function.arguments),
+        toolCalls: msg.tool_calls?.map((tc: any) => ({
+            name: tc.function?.name || '',
+            arguments: JSON.parse(tc.function?.arguments || '{}'),
             id: tc.id
         }))
     };

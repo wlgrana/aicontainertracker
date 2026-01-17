@@ -381,11 +381,7 @@ export function ContainerInventory({
                                                         )}>
                                                             {c.aiOperationalStatus.replace('_', ' ')}
                                                         </span>
-                                                        {c.aiAttentionCategory && c.aiAttentionCategory !== 'ON_TRACK' && (
-                                                            <span className="text-[9px] font-bold text-slate-400 mt-0.5">
-                                                                {c.aiAttentionCategory.replace('_', ' ')}
-                                                            </span>
-                                                        )}
+
                                                     </div>
                                                 ) : (
                                                     <span className={cn("text-[10px] font-black uppercase tracking-widest", finalStatusColor)}>

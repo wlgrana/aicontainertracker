@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { OracleChat } from './OracleChat';
 import Link from 'next/link';
 import DataLineageContent from './DataLineageContent';
+import { AgentProcessingTimeline } from './AgentProcessingTimeline';
 
 interface ContainerDetailViewProps {
     initialData: any;
@@ -52,16 +53,25 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
         const note = formData.get('note') as string;
         if (!note) return;
 
-        const currentNotes = data.notes ? data.notes + "\n" + note : note;
-        // Also simpler: standard addNote action usually appends
         const result = await addNote(data.containerNumber, note);
 
         if (result.success) {
             toast.success("Note added");
+
+            const newLog = {
+                id: 'temp-' + Date.now(),
+                action: 'Note Added',
+                detail: note,
+                createdAt: new Date().toISOString(),
+                actor: 'Current User',
+                source: 'Manual'
+            };
+
             setData((prev: any) => ({
                 ...prev,
-                notes: currentNotes // Optimistic, ideally fetch fresh
+                activityLogs: [newLog, ...(prev.activityLogs || [])]
             }));
+
             router.refresh();
             (document.getElementById('note-form') as HTMLFormElement)?.reset();
         } else {
@@ -297,21 +307,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                 </div>
             </header>
 
-            {/* 2. ATTENTION BANNER */}
-            {hasIssues && (
-                <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-amber-900">
-                            <AlertTriangle className="h-5 w-5 text-amber-600" />
-                            <span className="font-bold">Attention Required:</span>
-                            <span className="font-medium">{issueText}</span>
-                        </div>
-                        <Button size="sm" variant="outline" className="border-amber-300 hover:bg-amber-100 text-amber-900">
-                            Resolve
-                        </Button>
-                    </div>
-                </div>
-            )}
+            {/* 2. ATTENTION BANNER REMOVED */}
 
             <main className="flex-1 max-w-7xl mx-auto w-full p-6 space-y-8">
 
@@ -328,7 +324,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                                 </Button>
                             </CardHeader>
                             <CardContent className="pt-4 grid grid-cols-2 gap-y-4 gap-x-6">
-                                {card.fields.map(field => {
+                                {card.fields.map((field: any) => {
                                     const value = getValue(field.key);
                                     const display = formatValue(field.key, value);
 
@@ -369,56 +365,29 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                     </form>
 
                     <div className="space-y-3">
-                        {data.notes ? (
-                            data.notes.split('\n').map((note: string, i: number) => (
-                                <div key={i} className="text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 text-slate-700">
-                                    {note}
-                                </div>
-                            ))
+                        {data.activityLogs?.filter((log: any) => log.action === 'Note Added').length > 0 ? (
+                            data.activityLogs
+                                .filter((log: any) => log.action === 'Note Added')
+                                .map((log: any) => (
+                                    <div key={log.id} className="text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 text-slate-700">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="font-semibold text-xs text-indigo-600">{log.actor || 'User'}</span>
+                                            <span className="text-[10px] text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        {log.detail}
+                                    </div>
+                                ))
                         ) : (
                             <div className="text-sm text-slate-400 italic text-center py-4">No notes recorded.</div>
                         )}
                     </div>
                 </div>
 
-                {/* 5. EVENT HISTORY */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Event History</h3>
-                        <Button variant="ghost" size="sm" className="text-xs hover:bg-white">+ Add Event</Button>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
-                                <tr>
-                                    <th className="px-6 py-3">Date/Time</th>
-                                    <th className="px-6 py-3">Event</th>
-                                    <th className="px-6 py-3">Location</th>
-                                    <th className="px-6 py-3">Source</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {data.events && data.events.length > 0 ? (
-                                    data.events.map((ev: any) => (
-                                        <tr key={ev.id} className="hover:bg-slate-50/50">
-                                            <td className="px-6 py-3 font-mono text-slate-600">
-                                                {new Date(ev.eventDateTime).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-3 font-medium text-slate-900">{ev.stageName}</td>
-                                            <td className="px-6 py-3 text-slate-600">{ev.location || "--"}</td>
-                                            <td className="px-6 py-3">
-                                                <Badge variant="secondary" className="text-[10px] h-5">{ev.source}</Badge>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic">No events recorded.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+
+
+                {/* 5. AGENT PROCESSING TIMELINE (Replaces Event History) */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
+                    <AgentProcessingTimeline containerId={data.containerNumber} />
                 </div>
 
                 {/* 6. DATA LINEAGE & AUDIT LOG */}

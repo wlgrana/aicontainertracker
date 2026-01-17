@@ -6,6 +6,7 @@ export interface ArchivistInput {
     filePath: string;
     fileName: string;
     uploadedBy?: string;
+    rowLimit?: number;
 }
 
 export interface ArchivistOutput {
@@ -45,6 +46,7 @@ export interface TranslatorOutput {
     containers: MappedContainer[];
     events: MappedEvent[];
     confidenceReport: ConfidenceReport;
+    dictionaryVersion?: string;
 }
 
 export interface SchemaMapping {
@@ -73,6 +75,7 @@ export interface UnmappedField {
 export interface MappedContainer {
     rawRowId: string;
     fields: Record<string, MappedValue>;
+    meta?: Record<string, any>;
     overallConfidence: number;
     flagsForReview: string[];
 }
@@ -119,6 +122,7 @@ export interface AuditorInput {
         mapping: Record<string, any>;
     };
     databaseRow: Record<string, any>;
+    skipLogging?: boolean; // If true, skips DB logging (useful for pre-import audits)
 }
 
 export interface AuditorOutput {
@@ -258,3 +262,32 @@ export interface ToolCall {
     arguments: Record<string, any>;
     result?: any;
 }
+
+// ============================================
+// IMPROVEMENT ANALYZER TYPES
+// ============================================
+
+export interface AnalyzerInput {
+    unmappedItems: Array<{
+        header: string;
+        sampleValues: any[];
+        frequency: number;
+    }>;
+    context: {
+        importLogId?: string;
+    };
+}
+
+export interface AnalyzerSuggestion {
+    unmappedHeader: string;
+    canonicalField: string;
+    confidence: number;
+    reasoning: string;
+    action: 'ADD_SYNONYM' | 'IGNORE' | 'FLAG';
+}
+
+export interface AnalyzerOutput {
+    suggestions: AnalyzerSuggestion[];
+    summary: string;
+}
+

@@ -28,7 +28,7 @@ export function getDirectorState(container: any): DirectorState {
     const lfdDate = container.lastFreeDay ? new Date(container.lastFreeDay) : null;
     const lfdValid = !!lfdDate && !isNaN(lfdDate.getTime());
 
-    let demurrage: DirectorState['demurrage'] = {
+    const demurrage: DirectorState['demurrage'] = {
         total: 0,
         daysOverdue: 0,
         dailyRate: 150,

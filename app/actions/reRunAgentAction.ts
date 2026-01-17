@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { runTranslator } from "@/agents/translator";
 import { runAuditor } from "@/agents/auditor";
-import { persistMappedData, applyAuditorCorrections, updateContainerAuditMeta } from "@/lib/import-orchestrator";
+import { persistMappedData, applyAuditorCorrections, updateContainerAuditMeta } from "@/lib/persistence";
 import { AuditorOutput, AuditorInput } from '@/types/agents';
 import { revalidatePath } from "next/cache";
 
@@ -85,7 +85,7 @@ export async function runAgentAudit(containerNumber: string) {
 
         // 4. Run Translator (to get Intended Mapping)
         console.log(`[Action] Re-running Translator for mapping context...`);
-        let translatorOutput = await runTranslator({
+        const translatorOutput = await runTranslator({
             importLogId: rawRow.importLogId,
             headers: headers,
             rawRows: [{

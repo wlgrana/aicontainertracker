@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 
-const apiKey = process.env.AZURE_AI_KEY;
-const baseURL = process.env.AZURE_AI_ENDPOINT;
-const modelName = process.env.AZURE_AI_MODEL || "DeepSeek-V3.2";
+const apiKey = (process.env.AZURE_AI_KEY || "").trim();
+const baseURL = (process.env.AZURE_AI_ENDPOINT || "").trim();
+const modelName = (process.env.AZURE_AI_MODEL || "DeepSeek-V3.2").trim();
 
 if (!apiKey || !baseURL) {
     console.warn("AZURE_AI_KEY or AZURE_AI_ENDPOINT is not set.");
@@ -33,4 +33,6 @@ export async function generateAIResponse(prompt: string, temperature: number = 0
 export const highThink = (prompt: string) => generateAIResponse(prompt, 0.2);
 export const mediumThink = (prompt: string) => generateAIResponse(prompt, 0.4);
 export const lowThink = (prompt: string) => generateAIResponse(prompt, 0.7);
+export const aiHighThink = client;
+
 

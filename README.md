@@ -11,7 +11,11 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Forwarder Attribution**: Strict lineage tracking linking every shipment to its data provider.
 - **Smart Filtering**: Advanced filtering by Forwarder, Business Unit, and Operational Status.
 
-### 2. **Deep Container Intelligence (New)**
+### 2. **Deep Container Intelligence & Simulation (New)**
+- **Simulation Mode**: A developer-focused "Transparent AI" dashboard (`/simulation`) that visualizes the entire ingestion pipeline step-by-step.
+    - **Step-by-Step Execution**: Manually trigger Archivist, Translator, Auditor, Importer, and Learner agents.
+    - **Variable Batch Size**: Control upload limits (10, 25, 100, 1k rows) for rapid testing.
+    - **Live Logs**: Downloadable full execution logs for forensic debugging.
 - **AI-Driven Narrative**: The Container Details page answers ONE question at a time in priority order:
     1.  **What's wrong?** (Status Banner)
     2.  **What do I need to do?** (Recommended Actions)
@@ -21,6 +25,7 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Shipment Snapshot**: Two-column reference card with essential Identity, Routing, Timeline, and Parties data.
 - **Data Quality Alerts**: Specific flags for missing or conflicting data (e.g., "Status shows BOOKED but ATD is past").
 - **Operational Status Classification**: AI-driven "Truth Engine" that determines the *actual* status (e.g., IN_TRANSIT) by analyzing conflicting signals (ATD, Dates, Status Codes) rather than trusting a single field.
+- **Agent Processing Timeline**: A forensic audit trail visualizing every step of the AI ingestion pipeline (Archivist → Translator → Validation). Displays confidence scores, exact field mappings, and any data discrepancies preventing "black box" confusion.
 
 ### 3. **AI-Driven Data Ingestion Architecture (4-Agent System)**
 The system uses a robust 4-agent architecture to ensure "Zero Data Loss" and high-fidelity data mapping.
@@ -45,7 +50,13 @@ The system uses a robust 4-agent architecture to ensure "Zero Data Loss" and hig
 #### **Ingestion Flow**
 `Excel File` -> **Archivist** (Raw Storage) -> **Translator** (Mapping) -> **Auditor** (Validation Loop) -> `Database (Structured)`
 
-### 4. **Manual Intervention Tools**
+### 4. **Self-Improving Ingestion Engine (New)**
+The system now features an autonomous improvement loop that can iterate on data parsing rules without human intervention.
+- **Mechanism**: Orchestrates the agents in a loop (Translator -> Auditor -> Analyzer -> Updater).
+- **Goal**: Achieves >90% coverage and accuracy by automatically updating internal dictionaries (`business_units.yml`, `container_ontology.yml`).
+- **Docs**: [Self-Improving Engine](./docs/SELF_IMPROVING_ENGINE.md)
+
+### 5. **Manual Intervention Tools**
 - **Protocol Override**: Force update container status when automated feeds lag.
 - **Exception Resolution**: Formalized workflow for clearing holds.
 - **Priority Flagging**: Tag containers for executive attention.
@@ -96,9 +107,17 @@ The system uses a robust 4-agent architecture to ensure "Zero Data Loss" and hig
 
 The application is deployed to Vercel using the **Vercel CLI** (direct-to-production deployment).
 
-- **Production URL**: [https://shipment-tracker-7lqcxvljr-wlgranas-projects.vercel.app](https://shipment-tracker-7lqcxvljr-wlgranas-projects.vercel.app)
-- **Inspect URL**: [https://vercel.com/wlgranas-projects/shipment-tracker/3qLFvHZf](https://vercel.com/wlgranas-projects/shipment-tracker/3qLFvHZf)
+- **Project Name**: `shipment-tracker`
+- **Organization**: `wlgranas-projects`
+- **Production URL**: [https://shipment-tracker.vercel.app](https://shipment-tracker.vercel.app)
+- **Dashboard**: [https://vercel.com/wlgranas-projects/shipment-tracker](https://vercel.com/wlgranas-projects/shipment-tracker)
 - **Env Variables**: Requires `DATABASE_URL` (Neon), `AZURE_AI_ENDPOINT`, `AZURE_AI_KEY`, and `AZURE_AI_MODEL`.
+
+### 🔌 Neon Database Details
+- **Host**: `ep-small-voice-ahhy8aje-pooler.c-3.us-east-1.aws.neon.tech`
+- **Database**: `neondb`
+- **User**: `neondb_owner`
+- **Connection String**: `postgres://neondb_owner:******@ep-small-voice-ahhy8aje-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require`
 
 1. **Install Vercel CLI**: `npm i -g vercel`
 2. **Pull Environment Settings**: `vercel env pull`
@@ -107,7 +126,7 @@ The application is deployed to Vercel using the **Vercel CLI** (direct-to-produc
 ## 🤖 Agent Audit
 
 For a detailed breakdown of the AI agents, their prompts, and invocation flows, please refer to:
-[AGENTS_AUDIT.md](./AGENTS_AUDIT.md)
+[AGENTS_AUDIT.md](./docs/AGENTS_AUDIT.md)
 
 ## 🧹 Maintenance
 

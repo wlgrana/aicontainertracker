@@ -10,7 +10,10 @@ import {
     BrainCircuit,
     FileSearch,
     Code,
-    Terminal
+    Terminal,
+    Archive,
+    Languages,
+    MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,137 +30,90 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const aiAgents = [
     {
-        name: "Schema Detector",
-        purpose: "Identifies column layouts & unmapped data",
-        icon: Microscope,
+        name: "Archivist",
+        purpose: "The \"Librarian\" - Raw Ingestion & Traceability",
+        icon: Archive,
+        thinking: "NONE (Programmatic)",
+        status: "Active & Integrated",
+        gradient: "from-slate-500 to-slate-600",
+        steps: [
+            "Ingests raw Excel files",
+            "Captures every row as-is (Zero Data Loss)",
+            "Creates initial Import Log",
+            "Ensures full traceability"
+        ],
+        prompt: `N/A - Pure TypeScript Logic.
+
+The Archivist is a deterministic agent responsible for the raw ingestion of data. It ensures that 100% of the source data is preserved in the 'RawRow' tables before any AI processing occurs.`,
+        when: "Step 1 of Import Pipeline"
+    },
+    {
+        name: "Translator",
+        purpose: "The \"Mapper\" - Schema Detection & Normalization",
+        icon: Languages,
         thinking: "HIGH",
         status: "Active & Integrated",
         gradient: "from-blue-500 to-indigo-600",
         steps: [
-            "Analyzes raw Excel headers",
-            "Identifies Carrier/Forwarder identity",
-            "Maps columns to canonical schema",
-            "Proposes meaning for unmapped fields"
+            "Analyzes headers to detect schema",
+            "Performs complex data transformation",
+            "Generates normalized Container records",
+            "Derives ContainerEvent history"
         ],
-        prompt: `You are a logistics data expert. Analyze these Excel headers and sample rows to create a schema mapping.
+        prompt: `You are the Translator Agent for a logistics shipment tracking system. Your job is to map raw Excel data to a structured database schema and generate container events.
 
-HEADERS: [...]
-SAMPLE DATA: [...]
-CANONICAL FIELDS: shipment_reference, container_number, ...
-
-Your Goal:
-1. Identify the Carrier or Forwarder if possible.
-2. Map the provided HEADERS to the CANONICAL FIELDS.
-3. IMPORTANT: For EVERY header that CANNOT be mapped to a canonical field, you MUST provide an "unmappedField" analysis.
-
-For Unmapped Fields, analyze:
-- potentialMeaning: A clear description of field context
-- suggestedCanonicalField: A camelCase field name
-- confidenceScore: How confident you are (0-1.0)
-- dataType: string, number, date, currency`,
-        when: "Runs continuously during file ingestion"
+## YOUR RESPONSIBILITIES
+1. **Schema Detection**: Analyze headers to identify the data source (forwarder/carrier) and create field mappings
+2. **Data Transformation**: Convert raw values to proper types (especially Excel serial dates)
+3. **Event Generation**: Extract milestone events from date fields and status codes
+4. **Confidence Scoring**: Rate each mapping's reliability`,
+        when: "Step 2 of Import Pipeline (Batch)"
     },
     {
-        name: "Data Normalizer",
-        purpose: "Standardizes carrier events & statuses",
-        icon: Cpu,
-        thinking: "LOW",
+        name: "Auditor",
+        purpose: "The \"Reconciler\" - Data Integrity Verification",
+        icon: Shield,
+        thinking: "HIGH",
         status: "Active & Integrated",
         gradient: "from-emerald-500 to-teal-600",
         steps: [
-            "Normalizes status raw text to codes",
-            "Aligns ISO timestamps",
-            "Cleanses container numbers",
-            "Validates numeric occurrences"
+            "Reviews post-persistence data",
+            "Compares raw Excel vs Database",
+            "Identifies lost data or mapping errors",
+            "Flags logical inconsistencies"
         ],
-        prompt: `Map this logistics status text "\${status}" to EXACTLY one of these standard codes:
-BOOK, CEP, CGI, STUF, LOA, DEP, TS1, TSD, TSL, TS1D,
-ARR, DIS, INSP, CUS, REL, AVL, CGO, OFD, DEL, STRP, RET.
+        prompt: `You are the Auditor Agent for a logistics data system. Your job is to verify that raw import data was correctly transferred to the database.
 
-Return ONLY the code.`,
-        when: "Executes per-row during processing"
+## THE PROBLEM YOU SOLVE
+The Translator creates a mapping from raw Excel fields to database columns. But sometimes:
+1. Mapped fields don't actually get populated (data is LOST)
+2. Date conversions go wrong (data is WRONG)
+3. Valuable data has no database column (data is UNMAPPED)
+
+You catch all of these.`,
+        when: "Step 6 of Import Pipeline (Post-Persistence)"
     },
     {
-        name: "Exception Classifier",
-        purpose: "Flags operational risks & anomalies",
-        icon: Target,
-        thinking: "MEDIUM",
-        status: "Active & Integrated",
-        gradient: "from-amber-500 to-orange-600",
-        steps: [
-            "Detects incorrect status sequences",
-            "Identifies missing ETAs when ETD passed",
-            "Flag's unusual delays at specific stages",
-            "Assigns ownership (Freight vs Distribution)"
-        ],
-        prompt: `Analyze this container data for any operational exceptions or anomalies:
-CONTAINER: {...}
-NOW: 2024-03-20T10:00:00Z
-
-Look for:
-- Incorrect status sequences
-- Missing ETA when ETD passed
-- Unusual delays at any stage
-
-Return ONLY a JSON object:
-{ "isException": boolean, "type": "string", "owner": "string", "reason": "string" }`,
-        when: "Daily 6AM sync + Post-Import"
-    },
-    {
-        name: "Mission Oracle (Container)",
-        purpose: "Risk Assessment & Future Prediction",
-        icon: BrainCircuit,
+        name: "Oracle Chat",
+        purpose: "The \"Assistant\" - Interactive Intelligence",
+        icon: BrainCircuit, // or MessageSquare
         thinking: "HIGH",
         status: "Active & Integrated",
         gradient: "from-violet-600 to-purple-600",
         steps: [
-            "Calculates 0-100 Risk Score",
-            "Predicts next 24-48h outcomes",
-            "Audits data integrity (Warning vs Critical)",
-            "Synthesizes unmapped data insights"
+            "Answers user queries about status",
+            "Provide context on data sources",
+            "Executes tools (Notes, Status Updates)",
+            "Proactive anomaly highlighting"
         ],
-        prompt: `You are the "Mission Oracle", an advanced logistics risk engine.
-Analyze this container shipment.
+        prompt: `You are the Oracle, an intelligent logistics assistant for the Shipment Tracker system.
 
-STRUCTURED DATA: {...}
-UNMAPPED / AI-INFERRED DATA: {...}
-
-TASK:
-1. Assess the risk level (0-100) and identify key risk factors.
-   CRITICAL RULE: If status is 'DEL', 'DELIVERED', or 'COMPLETED', Risk Score MUST be 0-10.
-2. Check for discrepancies between structured data and inferred data.
-3. Generate a "Prediction" for the next 24-48 hours.
-4. Generate a "Projected Outcome" (Final delivery success/delay).
-5. PERFORM A DATA INTEGRITY AUDIT (Check for logical inconsistencies).`,
-        when: "On-Demand (User Request) + Batch Analysis"
-    },
-    {
-        name: "Mission Oracle (Import)",
-        purpose: "Batch Intelligence & Financial Summary",
-        icon: FileSearch,
-        thinking: "HIGH",
-        status: "Active & Integrated",
-        gradient: "from-pink-500 to-rose-600",
-        steps: [
-            "Aggregates financial exposure (Demurrage)",
-            "Detects batch-wide anomalies",
-            "Scored Data Quality & Completeness",
-            "Identifies systemic carrier issues"
-        ],
-        prompt: `You are Mission Oracle, an AI logistics intelligence analyst.
-
-IMPORT SUMMARY:
-- File: ...
-- Containers: ... (Demurrage Risk, Customs Holds, etc.)
-- Financial Data (Avg Freight, Outliers)
-
-YOUR TASK:
-Analyze this data and provide actionable intelligence. Focus on:
-1. What needs URGENT attention
-2. Financial anomalies that need verification
-3. Data quality issues affecting operations
-4. Operational patterns and insights`,
-        when: "Triggered upon Import Completion"
+## YOUR CAPABILITIES
+1. **Answer Questions**: Explain container status, timeline, risks, and data
+2. **Provide Context**: Explain where data came from and confidence levels
+3. **Execute Actions**: Use tools to modify data when requested
+4. **Proactive Insights**: Highlight risks, anomalies, or items needing attention`,
+        when: "On-Demand (User Interaction)"
     }
 ];
 

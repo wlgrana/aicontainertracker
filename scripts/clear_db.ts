@@ -26,6 +26,17 @@ async function clearDatabase() {
     console.log("Deleting ShipmentEvent...");
     await prisma.shipmentEvent.deleteMany({});
 
+    console.log("Deleting ImprovementJob...");
+    try {
+        await prisma.$executeRawUnsafe(`DELETE FROM "ImprovementJob";`);
+    } catch { }
+
+    // 1.5 Delete Agent Logs (New)
+    console.log("Deleting AgentProcessingLog...");
+    try {
+        await prisma.$executeRawUnsafe(`DELETE FROM "AgentProcessingLog";`);
+    } catch { }
+
     // 2. Delete main entities
     console.log("Deleting Container...");
     await prisma.container.deleteMany({});

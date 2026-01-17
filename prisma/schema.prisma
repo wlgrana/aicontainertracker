@@ -31,6 +31,7 @@ model ImportLog {
   rawRows         RawRow[]
   shipments       Shipment[]
   shipmentEvents  ShipmentEvent[]
+  improvementJobs ImprovementJob[]
 }
 
 model RawRow {
@@ -173,6 +174,7 @@ model Container {
   aiStatusReason      String?
   aiUrgencyLevel      String?
   deliveryDate        DateTime?
+  finalDestination    String?
   finalDestinationEta DateTime?
   hbl                 String?
   loadType            String?
@@ -190,6 +192,7 @@ model Container {
   riskAssessment      RiskAssessment?
   shipmentContainers  ShipmentContainer[]
   statusOverrides     StatusOverride[]
+  agentProcessingLogs AgentProcessingLog[]
 }
 
 model ShipmentContainer {
@@ -406,6 +409,7 @@ model StatusOverride {
   container       Container @relation(fields: [containerNumber], references: [containerNumber])
 }
 
+
 model RiskAssessment {
   id              String    @id @default(uuid())
   containerId     String    @unique
@@ -414,4 +418,120 @@ model RiskAssessment {
   recommendations String
   lastUpdated     DateTime  @default(now())
   container       Container @relation(fields: [containerId], references: [containerNumber])
+}
+
+model AgentProcessingLog {
+  id                    String   @id @default(uuid())
+  containerId           String
+  container             Container @relation(fields: [containerId], references: [containerNumber])
+  
+  stage                 AgentStage
+  status                ProcessingStatus
+  timestamp             DateTime
+  durationMs            Int?
+  
+  // Generic agent data
+  input                 Json?
+  output                Json?
+  confidence            Float?
+  
+  // Translator-specific
+  mappings              Json?
+  unmappedFields        Json?
+  dictionaryVersion     String?
+  
+  // Auditor-specific
+  findings              Json?
+  discrepancies         Json?
+  
+  // Future use
+  improvementsSuggested Json?
+  improvementsApplied   Json?
+  
+  // Reference to full logs in artifacts/
+  artifactPath          String?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([containerId])
+  @@index([stage])
+  @@index([timestamp])
+}
+
+enum AgentStage {
+  ARCHIVIST
+  TRANSLATOR
+  PERSISTENCE
+  AUDITOR
+  IMPROVEMENT_ANALYZER
+}
+
+enum ProcessingStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum ContainerEventType {
+  BOOK
+  DEP
+  ARR
+  DIS
+  CUS
+  REL
+  OGF
+  DLV
+  EMP
+  ARCH_CAP
+  TRANS_START
+  TRANS_DONE
+  PERSIST_DONE
+  AUDIT_START
+  AUDIT_DONE
+  IMPROVEMENT_ITERATION
+}
+
+
+model ImprovementJob {
+  id                    String    @id @default(uuid())
+  importLogId           String?
+  importLog             ImportLog? @relation(fields: [importLogId], references: [fileName])
+  
+  status                JobStatus  @default(QUEUED)
+  currentIteration      Int        @default(0)
+  maxIterations         Int        @default(3)
+  targetCaptureRate     Float      @default(0.95)
+  
+  totalContainers       Int        @default(0)
+  containersProcessed   Int        @default(0)
+  
+  initialCaptureRate    Float?
+  currentCaptureRate    Float?
+  finalCaptureRate      Float?
+  
+  synonymsAdded         Int        @default(0)
+  
+  startedAt             DateTime?
+  completedAt           DateTime?
+  estimatedCompletionAt DateTime?
+
+  progress              Int        @default(0)
+  improvementsApplied   Json?
+
+  logs                  Json?      // Iteration-by-iteration details
+  error                 String?
+  
+  createdAt             DateTime   @default(now())
+  
+  @@index([importLogId])
+  @@index([status])
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
