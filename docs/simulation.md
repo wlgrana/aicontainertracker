@@ -66,3 +66,18 @@ To verify runs and troubleshoot issues without relying on the UI console, we hav
 **Symptoms**: Imported containers showed `null` for all fields.
 **Cause**: `transformRow` utility expected Array input but received Key-Value Objects.
 **Fix**: Updated `lib/transformation-engine.ts` to handle both formats.
+
+## Environment Compatibility
+
+### Vercel / Serverless Deployments
+The **Simulation Engine** (`/simulation`) is architected for **local demonstration only**. It relies on:
+1.  **Persistent Filesystem**: To store state (`simulation_status.json`), log archives (`logs/`), and temporary artifacts (`temp_translation.json`) between steps.
+2.  **Child Processes**: To spawn long-running TypeScript scripts (`step1_...ts`) that execute the heavy AI agent logic independently of the HTTP request cycle.
+
+These features are **incompatible** with Vercel's serverless environment (Read-Only filesystem, no background process persistence).
+
+**Behavior on Vercel**:
+*   The "Start Simulation" and "Upload File" endpoints (`api/simulation/control`, `api/upload`) are **protected**.
+*   They will return a `200 OK` with `success: false` and a descriptive message.
+*   The UI will display an alert: *"Simulation Engine is meant for local demonstration only..."*
+*   **Operational Dashboard**: The rest of the application (Dashboard, Container Details, Search) functions normally on Vercel using the production database.
