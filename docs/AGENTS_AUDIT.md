@@ -82,18 +82,20 @@ You are the Oracle, an intelligent logistics assistant for the Shipment Tracker 
 ```
 
 
-### 5. Improvement Analyzer (The "Optimizer")
+### 5. Learner (The "Optimizer")
 *   **File**: `agents/improvement-analyzer.ts`
 *   **Function**: `runImprovementAnalyzer(input)`
-*   **Role**: **AI (High Reasoning)**. Analyzes Auditor reports to identify systematic mapping errors and suggests dictionary updates (e.g., new synonyms).
-*   **Invocation**: `agents/improvement-orchestrator.ts`.
+*   **Role**: **AI (High Reasoning)**. 
+    1. **Gap Analysis**: Analyzes unmapped headers stored in metadata.
+    2. **Reinforcement Learning**: Consumes "Auto-Patches" from the Auditor to learn from validated corrections.
+*   **Invocation**: `scripts/step5_learner.ts` (Step 5).
 *   **Model**: High Reasoning (GPT-4o / DeepSeek).
 
 ### 6. Dictionary Updater (The "Scribe")
 *   **File**: `agents/dictionary-updater.ts`
 *   **Function**: `updateDictionaries(improvements, path)`
 *   **Role**: **Heuristic/Rule-based**. Applies approved changes to the persistent YAML dictionaries (`business_units.yml`, `container_ontology.yml`).
-*   **Invocation**: `agents/improvement-orchestrator.ts`.
+*   **Invocation**: `scripts/step5_learner.ts`.
 
 ### 7. Improvement Orchestrator (The "Conductor")
 *   **File**: `agents/improvement-orchestrator.ts`

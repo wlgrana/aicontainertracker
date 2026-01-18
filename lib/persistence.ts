@@ -1,8 +1,6 @@
-
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 import { TranslatorOutput, AuditorOutput } from '@/types/agents';
 
-const prisma = new PrismaClient();
 
 function safeDate(val: any): Date | null {
     if (!val) return null;

@@ -4,7 +4,7 @@ import { runImprovementAnalyzer } from '@/agents/improvement-analyzer';
 import { updateDictionaries } from '@/agents/dictionary-updater';
 import { runTranslator } from '@/agents/translator';
 import { runAuditor } from '@/agents/auditor';
-import { persistMappedData, updateContainerAuditMeta, applyAuditorCorrections } from '@/lib/import-orchestrator';
+import { persistMappedData, updateContainerAuditMeta, applyAuditorCorrections } from '@/lib/persistence';
 import { AuditorInput, AuditorOutput } from '@/types/agents';
 
 const prisma = new PrismaClient();

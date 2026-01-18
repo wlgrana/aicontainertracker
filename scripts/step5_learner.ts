@@ -3,7 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import { updateStatus, getActiveFilename } from './simulation-utils';
 import { runImprovementAnalyzer } from '../agents/improvement-analyzer';
 import { updateDictionaries } from '../agents/dictionary-updater';
-import { AnalyzerInput } from '../types/agents';
+import { AnalyzerInput, AnalyzerSuggestion, AnalyzerOutput } from '../types/agents';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
@@ -58,7 +60,33 @@ async function main() {
 
         console.log(`[Learner] Found ${unmappedItems.length} unmapped headers.`);
 
-        if (unmappedItems.length === 0) {
+        // 2b. Check for Auto-Patched Fields from Auditor (Quality Gate Learning)
+        const auditorPatches: AnalyzerSuggestion[] = [];
+        const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+
+        if (fs.existsSync(ARTIFACT_PATH)) {
+            try {
+                const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf-8'));
+                if (artifact.schemaMapping && artifact.schemaMapping.fieldMappings) {
+                    for (const [key, mapping] of Object.entries(artifact.schemaMapping.fieldMappings) as [string, any][]) {
+                        if (mapping.notes && mapping.notes.includes('Auto-patched')) {
+                            console.log(`[Learner] Discovered successful patch: '${key}' -> '${mapping.targetField}'`);
+                            auditorPatches.push({
+                                unmappedHeader: key,
+                                canonicalField: mapping.targetField,
+                                confidence: 0.99,
+                                reasoning: "Validated by Auditor Auto-Patching",
+                                action: "ADD_SYNONYM"
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("[Learner] Failed to read auditor patches:", e);
+            }
+        }
+
+        if (unmappedItems.length === 0 && auditorPatches.length === 0) {
             updateStatus({
                 step: 'IMPROVEMENT_REVIEW',
                 progress: 100,
@@ -67,7 +95,7 @@ async function main() {
                     learner: {
                         scoreImprovement: 0,
                         newSynonyms: [],
-                        analysisSummary: "No unmapped fields found."
+                        analysisSummary: "No unmapped fields or patches found."
                     }
                 }
             });
@@ -75,27 +103,49 @@ async function main() {
             return;
         }
 
-        // 3. Run AI Analysis
-        updateStatus({ step: 'IMPROVEMENT', progress: 60, message: `Analyzing ${unmappedItems.length} unknown fields...` });
+        let totalSynonymsAdded = 0;
+        let allDetails: any[] = [];
+        let summary = "Analysis Complete";
 
-        const analyzerInput: AnalyzerInput = {
-            unmappedItems: unmappedItems,
-            context: { importLogId: FILENAME }
-        };
+        // 3a. Process Auditor Patches Immediately
+        if (auditorPatches.length > 0) {
+            console.log(`[Learner] Reinforcing ${auditorPatches.length} proven patches into dictionary...`);
+            const patchOutput: AnalyzerOutput = {
+                suggestions: auditorPatches,
+                summary: "Reinforcing Audit Patterns"
+            };
+            const patchResult = await updateDictionaries(patchOutput);
+            totalSynonymsAdded += patchResult.synonymsAdded;
+            allDetails.push(...patchResult.details);
+            summary += `; Reinforced ${patchResult.synonymsAdded} patterns from Auditor.`;
+        }
 
-        const analysis = await runImprovementAnalyzer(analyzerInput);
+        // 3b. Run AI Analysis on remaining unmapped items
+        if (unmappedItems.length > 0) {
+            updateStatus({ step: 'IMPROVEMENT', progress: 60, message: `Analyzing ${unmappedItems.length} unknown fields...` });
 
-        // 4. Update Dictionaries
-        updateStatus({ step: 'IMPROVEMENT', progress: 80, message: 'Updating Knowledge Base...' });
-        const updateResult = await updateDictionaries(analysis);
+            const analyzerInput: AnalyzerInput = {
+                unmappedItems: unmappedItems,
+                context: { importLogId: FILENAME }
+            };
+
+            const analysis = await runImprovementAnalyzer(analyzerInput);
+
+            // 4. Update Dictionaries
+            updateStatus({ step: 'IMPROVEMENT', progress: 80, message: 'Updating Knowledge Base...' });
+            const aiResult = await updateDictionaries(analysis);
+            totalSynonymsAdded += aiResult.synonymsAdded;
+            allDetails.push(...aiResult.details);
+            summary += `; AI learned ${aiResult.synonymsAdded} new synonyms.`;
+        }
 
         // 5. Final Report
-        const message = updateResult.synonymsAdded > 0
-            ? `Learned ${updateResult.synonymsAdded} new synonyms!`
+        const message = totalSynonymsAdded > 0
+            ? `Learned ${totalSynonymsAdded} new synonyms!`
             : `Analysis complete. No confident updates found.`;
 
         console.log(`[Learner] LOOP CLOSED. Knowledge updated. Ready for re-ingestion.`);
-        if (updateResult.synonymsAdded > 0) {
+        if (totalSynonymsAdded > 0) {
             console.log(`[Learner] To verify, click "Re-run" on Step 2 (Translator). It should now auto-map these fields.`);
         }
 
@@ -105,15 +155,15 @@ async function main() {
             message: message,
             agentData: {
                 learner: {
-                    scoreImprovement: 0.0, // Calculated on next run
-                    newSynonyms: updateResult.details,
-                    analysisSummary: analysis.summary
+                    scoreImprovement: 0.0,
+                    newSynonyms: allDetails,
+                    analysisSummary: summary
                 }
             }
         });
 
         console.log("STEP 5 Complete.");
-        console.log("Learnings:", JSON.stringify(updateResult, null, 2));
+        console.log("Learnings:", JSON.stringify({ synonymsAdded: totalSynonymsAdded, details: allDetails }, null, 2));
 
     } catch (error) {
         console.error("Step 5 Failed:", error);
@@ -125,3 +175,4 @@ async function main() {
 }
 
 main();
+

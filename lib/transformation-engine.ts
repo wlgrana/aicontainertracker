@@ -45,6 +45,9 @@ export function transformRow(rawData: any[], headers: string[], mapping: any) {
 
     // Helper to get value by header name
     const getValue = (headerName: string) => {
+        if (!Array.isArray(rawData)) {
+            return rawData[headerName];
+        }
         const idx = headers.indexOf(headerName);
         if (idx === -1) return undefined;
         return rawData[idx];

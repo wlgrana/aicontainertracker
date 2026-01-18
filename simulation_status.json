@@ -2,215 +2,87 @@
   "step": "IDLE",
   "progress": 0,
   "message": "Simulation Stopped",
-  "filename": "test_vendor_nightmare.xlsx",
+  "filename": "Horizon Tracking Report.xlsx",
   "rowCount": 0,
   "agentData": {
     "archivist": {
-      "filename": "test_vendor_nightmare.xlsx",
-      "rowCount": 5,
+      "filename": "Horizon Tracking Report.xlsx",
+      "rowCount": 176,
       "headers": [
-        "Container_No",
-        "From (POL)",
-        "To (POD)",
-        "Est Arrival",
-        "Act Depart",
-        "Vsl Name",
-        "Notes/Comments"
+        "SHIPMENT ID",
+        "Status",
+        "CONSIGNEE",
+        "VENDOR",
+        "CONTAINER",
+        "SIZE",
+        "SEAL",
+        "PCS",
+        "CBM",
+        "WGT",
+        "HBL",
+        "MBL",
+        "CUSTOMER PO",
+        "CARRIER",
+        "SERV TYPE\r\nAWS / MLB",
+        "ETD POL",
+        "POL",
+        "ETA POD",
+        "POD",
+        "FINAL DESTINATION",
+        "FINAL DEST ETA",
+        "ATD",
+        "ATA POD",
+        "CNTR AVAIL",
+        "OGF DATE",
+        "TRUCKER APPT",
+        "ACTUAL DEL DATE",
+        "EMPTY AVAIL DATE",
+        "EMPTY RETURN DATE",
+        "LFD"
       ],
       "sampleRow": {
-        "Container_No": "MSCU1234567",
-        "From (POL)": "CNNYC",
-        "To (POD)": "USLGB",
-        "Est Arrival": "2023-10-15",
-        "Act Depart": "2023-09-01",
-        "Vsl Name": "Gulsun",
-        "Notes/Comments": "Priority"
+        "SHIPMENT ID": "S25030127446",
+        "Status": "BCN",
+        "CONSIGNEE": "HORIZON GLOBAL AMERICAS INC",
+        "VENDOR": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
+        "CONTAINER": "TCNU3094950",
+        "SIZE": "40HC",
+        "SEAL": "YMAT099440",
+        "PCS": 128,
+        "CBM": 16.05,
+        "WGT": 4955,
+        "HBL": "YMJAW232595336B",
+        "MBL": "YMJAW232595336",
+        "CUSTOMER PO": 4500033779,
+        "CARRIER": "YMJA",
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "ETD POL": 45719,
+        "POL": "Ningbo, CN",
+        "ETA POD": 45733.17569444444,
+        "POD": "Los Angeles, CA",
+        "FINAL DESTINATION": "Edgerton, KS",
+        "FINAL DEST ETA": 45747,
+        "ATD": 45719.229166666664,
+        "ATA POD": 45733.17569444444,
+        "CNTR AVAIL": 45743,
+        "OGF DATE": 45744.63125,
+        "TRUCKER APPT": 45747,
+        "ACTUAL DEL DATE": 45747,
+        "EMPTY AVAIL DATE": 45750.46319444444,
+        "EMPTY RETURN DATE": 45750.46319444444,
+        "LFD": 45745
       }
-    },
-    "translator": {
-      "mappedCount": 0,
-      "confidence": {
-        "overallScore": 0.8,
-        "summary": "Heuristic Fallback Generated",
-        "totalFields": 7,
-        "highConfidence": 6,
-        "mediumConfidence": 0,
-        "lowConfidence": 0,
-        "flaggedForReview": 0
-      },
-      "sampleContainer": {
-        "rawRowId": "1e3715a9-5e2a-44f4-b215-988e372cde6b",
-        "fields": {
-          "container_number": {
-            "value": "MSCU1234567",
-            "originalValue": "MSCU1234567",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          },
-          "pol": {
-            "value": "CNNYC",
-            "originalValue": "CNNYC",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          },
-          "pod": {
-            "value": "USLGB",
-            "originalValue": "USLGB",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          },
-          "eta": {
-            "value": "2023-10-15",
-            "originalValue": "2023-10-15",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          },
-          "atd": {
-            "value": "2023-09-01",
-            "originalValue": "2023-09-01",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          },
-          "vessel_name": {
-            "value": "Gulsun",
-            "originalValue": "Gulsun",
-            "confidence": 1,
-            "source": "heuristic",
-            "transformation": "direct"
-          }
-        },
-        "meta": {
-          "Notes/Comments": "Priority"
-        },
-        "overallConfidence": 0.85,
-        "flagsForReview": []
-      },
-      "schemaMapping": {
-        "fieldMappings": {
-          "containerNumber": {
-            "sourceHeader": "Container_No",
-            "targetField": "containerNumber",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          },
-          "pol": {
-            "sourceHeader": "From (POL)",
-            "targetField": "pol",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          },
-          "pod": {
-            "sourceHeader": "To (POD)",
-            "targetField": "pod",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          },
-          "eta": {
-            "sourceHeader": "Est Arrival",
-            "targetField": "eta",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          },
-          "atd": {
-            "sourceHeader": "Act Depart",
-            "targetField": "atd",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          },
-          "vesselName": {
-            "sourceHeader": "Vsl Name",
-            "targetField": "vesselName",
-            "confidence": 1,
-            "transformationType": "direct",
-            "notes": "Heuristic Match"
-          }
-        },
-        "unmappedSourceFields": [
-          {
-            "sourceHeader": "Notes/Comments",
-            "sampleValue": null,
-            "suggestedField": null,
-            "confidence": 0,
-            "potentialMeaning": "Unknown"
-          }
-        ],
-        "missingSchemaFields": [
-          "currentStatus",
-          "currentLocation",
-          "carrier",
-          "finalDestination",
-          "ata",
-          "etd",
-          "finalDestinationEta",
-          "lastFreeDay",
-          "emptyReturnDate",
-          "gateOutDate",
-          "pieces",
-          "grossWeight",
-          "volumeCbm",
-          "sealNumber",
-          "containerType",
-          "mbl",
-          "hbl",
-          "shipmentReference",
-          "consignee",
-          "shipper",
-          "customerPo"
-        ],
-        "detectedForwarder": "Unknown"
-      },
-      "schemaStats": {
-        "sourceColumns": 7,
-        "schemaFields": 26,
-        "mapped": 6,
-        "unmapped": 1,
-        "missing": 21
-      }
-    },
-    "auditor": {
-      "verifiedCount": 0,
-      "discrepancyCount": 5,
-      "sampleAnalysis": {
-        "container": "UNKNOWN_1",
-        "raw": {},
-        "db": {
-          "metadata": {}
-        },
-        "unmapped": [
-          "Notes/Comments"
-        ],
-        "captureRate": 0,
-        "proposedPatches": {
-          "Notes/Comments": "metadata.notes"
-        }
-      },
-      "patchedCount": 1
     }
   },
-  "timestamp": 1768628229750,
+  "timestamp": 1768696027115,
   "metrics": {
     "source": {
-      "filename": "test_vendor_nightmare.xlsx",
-      "totalRows": 5,
-      "totalCols": 7
+      "filename": "Horizon Tracking Report.xlsx",
+      "totalRows": 176,
+      "totalCols": 30
     },
     "baseline": {},
     "final": {},
-    "improvement": {},
-    "translation": {
-      "mapped": 0,
-      "confidence": 0.8,
-      "unmappedFields": 1
-    }
+    "improvement": {}
   }
 }

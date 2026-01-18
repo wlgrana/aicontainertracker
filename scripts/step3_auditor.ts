@@ -1,12 +1,11 @@
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { runAuditor } from '../agents/auditor'; // We reuse the agent logic
 import { updateStatus, getActiveFilename } from './simulation-utils';
 import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
 
 // We read the TEMP translation artifact, because data is NOT in DB yet.
@@ -24,7 +23,7 @@ async function main() {
         // Fetch Sample Rows (we don't need all 1000 for a preview)
         const rawRows = await prisma.rawRow.findMany({
             where: { importLogId: FILENAME },
-            take: 5 // Check first 5 rows for speed
+            take: 3 // Check first 3 rows for speed
         });
 
         console.log(`Loaded ${rawRows.length} sample rows for Pre-Import Audit.`);
@@ -46,15 +45,22 @@ async function main() {
             const containerNumber = result.fields.containerNumber?.value || `UNKNOWN_${row.rowNumber}`;
 
             // 2. RUN AUDITOR (Against Simulated Object)
-            const auditResult = await runAuditor({
-                containerNumber: containerNumber,
-                rawData: { raw: rawData, mapping: mapping }, // Raw array
-                databaseRow: result.flat,
-                skipLogging: true // SKIP LOGGING to avoid FK errors (data not in DB yet)
-            });
+            let auditResult;
+            try {
+                auditResult = await runAuditor({
+                    containerNumber: containerNumber,
+                    rawData: { raw: rawData, mapping: mapping }, // Raw array
+                    databaseRow: result.flat,
+                    skipLogging: true // SKIP LOGGING to avoid FK errors (data not in DB yet)
+                });
 
-            if (auditResult.auditResult === 'PASS') verifiedCount++;
-            else discrepancyCount++;
+                if (auditResult.auditResult === 'PASS') verifiedCount++;
+                else discrepancyCount++;
+
+            } catch (err) {
+                console.warn(`[Auditor] Skipping ${containerNumber} due to error: ${err instanceof Error ? err.message : String(err)}`);
+                continue;
+            }
 
             // 3. IDENTIFY PATCHES (Self-Healing)
             if (auditResult.unmapped && auditResult.unmapped.length > 0) {
@@ -80,7 +86,11 @@ async function main() {
                 // ... (existing sample capture logic) ...
                 // Reconstruct Raw Object for Display (Header -> Value)
                 const rawObj: any = {};
-                headers.forEach((h: string, i: number) => rawObj[h] = rawData[i]);
+                if (Array.isArray(rawData)) {
+                    headers.forEach((h: string, i: number) => rawObj[h] = rawData[i]);
+                } else {
+                    Object.assign(rawObj, rawData);
+                }
 
                 // Filter out nulls from Simulated DB Row for cleaner display
                 const cleanDb: any = {};

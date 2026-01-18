@@ -16,10 +16,12 @@ function runScript(scriptName: string): Promise<void> {
     return new Promise((resolve, reject) => {
         log(`>>> STARTING SCRIPT: ${scriptName}`);
 
-        const child = spawn('npx.cmd', ['tsx', `scripts/${scriptName}`], {
+        const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+        const child = spawn(process.execPath, [tsxPath, `scripts/${scriptName}`], {
             cwd: process.cwd(),
-            shell: true,
-            stdio: ['ignore', 'pipe', 'pipe']
+            shell: false,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true
         });
 
         child.stdout.on('data', (data) => {

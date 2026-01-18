@@ -4,7 +4,7 @@
 
 The Self-Improving Ingestion Engine is an autonomous subsystem that leverages the existing 4-agent architecture (Archivist, Translator, Auditor, Oracle) to iterate on data ingestion parsing rules without human intervention. The engine uses an improvement loop to achieve high data coverage and accuracy by updating internal dictionaries.
 
-**Core Principle**: Orchestrate existing agents, don't replace them. Use the Auditor's output as the improvement signal.
+**Core Principle**: Orchestrate existing agents, don't replace them. Use the Auditor's output patches and Analyzer's suggestions as the improvement signal.
 
 ---
 
@@ -151,7 +151,8 @@ These metrics drive the "Quality Badges" (Excellent, Good, Needs Improvement, Po
 To ensure high data availability even when AI makes mistakes, the system employs several layers of "Safety Nets":
 
 1.  **Auditor Auto-Patching**: 
-    - Before import, the Auditor scans random rows. If it sees a column like `ETD_DATE` is unmapped but matches `etd`, it *patches* the mapping instructions instantly.
+    - Before import, the Auditor scans random rows. If it sees a column like `Remaks` is unmapped but matches `metadata.remarks`, it *patches* the mapping instructions instantly.
+    - **Learner Reinforcement**: In Step 5, the Learner detects this patch and *permanently* adds "Remaks" -> `metadata.remarks` to the dictionary, so Step 2 (Translator) handles it correctly next time.
     
 2.  **Heuristic Fallbacks**:
     - **Business Unit**: If the `Business Unit` column is missing or empty, the Importer automatically derives it from the `Consignee` name (e.g., "HORIZON GLOBAL" -> "Horizon Global").

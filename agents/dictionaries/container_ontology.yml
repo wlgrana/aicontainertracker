@@ -479,6 +479,15 @@ optional_fields:
       - HOUSTON,TX
     data_type: string
     confidence_threshold: 0.8
+  metadata.remarks:
+    definition: General remarks or notes stored in metadata
+    header_synonyms:
+      - Remarks
+      - Notes
+      - Comments
+      - Remaks
+    data_type: string
+    confidence_threshold: 0.8
 metadata_fields:
   source_file:
     definition: Original filename
@@ -569,7 +578,7 @@ pending_fields:
   - unmappedHeader: TRUCKER APPT
     canonicalField: gate_out_date
     confidence: 0.82
-    reasoning: Header suggests a trucker appointment time, which often correlates
+    reasoning: Header suggests a trucker appointment time, which often corresponds
       with when a container is scheduled to be picked up from the terminal (gate
       out). Sample values are numeric (likely Excel date serial numbers),
       confirming it's a date/time field. While not a perfect semantic match,
@@ -772,15 +781,6 @@ pending_fields:
       is a reasonable synonym.
     action: ADD_SYNONYM
     timestamp: 2026-01-17T04:10:52.317Z
-  - unmappedHeader: Remaks
-    canonicalField: IGNORE
-    confidence: 0.9
-    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
-      direct canonical field for general remarks or notes. The sample value 'On
-      time' is a status comment, but the canonical 'current_status' is for
-      structured stages, not free text notes. Best to ignore.
-    action: IGNORE
-    timestamp: 2026-01-17T05:10:14.882Z
   - unmappedHeader: Notes/Comments
     canonicalField: IGNORE
     confidence: 0.9
@@ -790,15 +790,6 @@ pending_fields:
       like 'current_status' or 'service_type'. Best to ignore.
     action: IGNORE
     timestamp: 2026-01-17T05:10:14.882Z
-  - unmappedHeader: Remaks
-    canonicalField: IGNORE
-    confidence: 0.9
-    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
-      direct canonical field for general remarks or notes. The sample value 'On
-      time' is a textual comment. It should be ignored as it does not map to a
-      defined data field.
-    action: IGNORE
-    timestamp: 2026-01-17T05:14:20.990Z
   - unmappedHeader: Notes/Comments
     canonicalField: IGNORE
     confidence: 0.9
@@ -807,16 +798,6 @@ pending_fields:
       comment. It should be ignored.
     action: IGNORE
     timestamp: 2026-01-17T05:14:20.990Z
-  - unmappedHeader: Remaks
-    canonicalField: IGNORE
-    confidence: 0.85
-    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
-      direct canonical field for free-text notes or comments. The sample value
-      'On time' is a generic comment. This should be ignored or mapped to a
-      generic notes field if one existed, but it does not exist in the provided
-      canonical schema.
-    action: IGNORE
-    timestamp: 2026-01-17T05:23:47.648Z
   - unmappedHeader: Notes/Comments
     canonicalField: IGNORE
     confidence: 0.85
@@ -825,16 +806,6 @@ pending_fields:
       comment. This should be ignored as it does not map to a defined field.
     action: IGNORE
     timestamp: 2026-01-17T05:23:47.648Z
-  - unmappedHeader: Remaks
-    canonicalField: IGNORE
-    confidence: 0.9
-    reasoning: Header 'Remaks' appears to be a typo for 'Remarks'. There is no
-      direct canonical field for general notes or comments. While
-      'Notes/Comments' might be a candidate, it is not in the canonical schema.
-      The sample value 'On time' is a generic comment. This should be ignored or
-      flagged for a separate 'notes' field if one is added later.
-    action: IGNORE
-    timestamp: 2026-01-17T05:25:45.840Z
   - unmappedHeader: Notes/Comments
     canonicalField: IGNORE
     confidence: 0.9
@@ -844,6 +815,6 @@ pending_fields:
       separate 'notes' field if one is added later.
     action: IGNORE
     timestamp: 2026-01-17T05:25:45.840Z
-version: 1.0.19
+version: 1.0.21
 last_updated: 2026-01-17
 total_fields: 29

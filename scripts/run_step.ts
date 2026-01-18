@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const step = process.argv[2];
-const LOG_FILE = path.join(process.cwd(), 'simulation_logs.txt');
+const LOG_FILE = path.join(process.cwd(), 'logs', 'simulation.log');
 
 const scriptMap: Record<string, string> = {
     '1': 'scripts/step1_archivist.ts',
@@ -26,9 +26,12 @@ try {
     fs.appendFileSync(LOG_FILE, banner);
 } catch (e) { }
 
-const child = spawn('npx', ['tsx', script, ...process.argv.slice(3).map(a => `"${a}"`)], {
-    shell: true,
-    stdio: 'pipe'
+
+const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+const child = spawn(process.execPath, [tsxPath, script, ...process.argv.slice(3)], {
+    shell: false,
+    stdio: 'pipe',
+    windowsHide: true
 });
 
 child.stdout.on('data', d => {

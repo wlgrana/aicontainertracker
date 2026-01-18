@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
@@ -10,21 +10,27 @@ const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
 export async function POST(req: Request) {
     const { action, filename, containerLimit } = await req.json();
 
+
     const spawnStep = (stepArgs: string[]) => {
         if (fs.existsSync(PID_FILE)) {
             try {
                 const oldPid = fs.readFileSync(PID_FILE, 'utf-8').trim();
-                if (oldPid) spawn('taskkill', ['/PID', oldPid, '/F', '/T'], { stdio: 'ignore' }).unref();
+                // Use a simpler kill mechanism or just try-catch
+                if (oldPid) process.kill(Number(oldPid), 'SIGKILL');
             } catch (e) { }
             try { fs.unlinkSync(PID_FILE); } catch (e) { }
         }
 
         console.log("Spawning step:", stepArgs);
-        const child = spawn('npx', ['tsx', 'scripts/run_step.ts', ...stepArgs], {
+
+        // Use node directly to avoid shell popups on Windows
+        const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+        const child = spawn(process.execPath, [tsxPath, 'scripts/run_step.ts', ...stepArgs], {
             cwd: process.cwd(),
             detached: true,
-            stdio: 'ignore',
-            shell: true
+            stdio: 'ignore', // 'ignore' is crucial for detached on Windows to not pop up
+            shell: false,     // Disable shell to prevent cmd.exe popup
+            windowsHide: true // Explicitly hide window
         });
 
         if (child.pid) fs.writeFileSync(PID_FILE, String(child.pid));
@@ -33,8 +39,8 @@ export async function POST(req: Request) {
 
     if (action === 'start') {
         const args = ['1'];
-        if (filename) args.push(`"${filename}"`);
-        else args.push(`"Horizon Tracking Report.xlsx"`); // Default filename required if we want to pass a 3rd arg
+        if (filename) args.push(filename);
+        else args.push('Horizon Tracking Report.xlsx'); // No quotes needed for shell: false
 
         // Pass limit as 3rd arg
         if (containerLimit) args.push(`${containerLimit}`);
@@ -55,6 +61,14 @@ export async function POST(req: Request) {
             console.error("Failed to reset status on start:", e);
         }
 
+        if (filename || containerLimit) {
+            const logPath = path.join(process.cwd(), 'logs', 'simulation.log');
+            if (fs.existsSync(logPath)) {
+                const archivePath = path.join(process.cwd(), 'logs', `simulation_${Date.now()}.log`);
+                try { fs.renameSync(logPath, archivePath); } catch (e) { }
+            }
+        }
+
         spawnStep(args);
         return NextResponse.json({ success: true, message: `Simulation Started (Step 1) with ${filename || 'default'}` });
     }
@@ -67,22 +81,32 @@ export async function POST(req: Request) {
         } catch (e) { }
 
         if (currentStep === 'ARCHIVIST_COMPLETE') {
+            const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'TRANSLATOR', message: 'Starting Translator...' };
+            try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['2']);
             return NextResponse.json({ success: true, message: 'Proceeding to Step 2...' });
         }
         if (currentStep === 'TRANSLATOR_REVIEW') {
+            const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'AUDITOR', message: 'Starting Auditor...' };
+            try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['3']);
             return NextResponse.json({ success: true, message: 'Proceeding to Ingestion (Step 3)...' });
         }
         if (currentStep === 'TRANSLATOR_COMPLETE') {
+            const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'AUDITOR', message: 'Starting Auditor...' };
+            try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['3']);
             return NextResponse.json({ success: true, message: 'Proceeding to Import (Step 3)...' });
         }
         if (currentStep === 'IMPORT_COMPLETE') {
+            const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'IMPROVEMENT', message: 'Starting Improvement...' };
+            try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['5']);
             return NextResponse.json({ success: true, message: 'Proceeding to Improvement (Step 5)...' });
         }
         if (currentStep === 'AUDITOR_COMPLETE') {
+            const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'IMPORT', message: 'Starting Import...' };
+            try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['4']);
             return NextResponse.json({ success: true, message: 'Proceeding to Step 4...' });
         }
@@ -118,11 +142,17 @@ export async function POST(req: Request) {
         if (fs.existsSync(PID_FILE)) {
             try {
                 const pid = fs.readFileSync(PID_FILE, 'utf-8').trim();
-                if (pid) spawn('taskkill', ['/PID', pid, '/F', '/T'], { stdio: 'ignore' }).unref();
+                if (pid) process.kill(Number(pid), 'SIGKILL');
             } catch (e) { }
             try { fs.unlinkSync(PID_FILE); } catch (e) { }
         }
-        spawn('npx', ['tsx', 'scripts/clear_only.ts'], { shell: true, detached: true, stdio: 'ignore' }).unref();
+        const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+        spawn(process.execPath, [tsxPath, 'scripts/clear_only.ts'], {
+            detached: true,
+            stdio: 'ignore',
+            shell: false,
+            windowsHide: true
+        }).unref();
         try { fs.writeFileSync(STATUS_FILE, JSON.stringify({ step: 'IDLE', progress: 0, message: 'Database Cleared' }, null, 2)); } catch (e) { }
         return NextResponse.json({ success: true, message: 'Clearing Database...' });
     }
@@ -131,7 +161,7 @@ export async function POST(req: Request) {
         if (fs.existsSync(PID_FILE)) {
             try {
                 const pid = fs.readFileSync(PID_FILE, 'utf-8').trim();
-                if (pid) spawn('taskkill', ['/PID', pid, '/F', '/T'], { stdio: 'ignore' }).unref();
+                if (pid) process.kill(Number(pid), 'SIGKILL');
             } catch (e) { }
             try { fs.unlinkSync(PID_FILE); } catch (e) { }
         }

@@ -1,59 +1,213 @@
 {
   "schemaMapping": {
     "fieldMappings": {
+      "shipmentReference": {
+        "sourceHeader": "SHIPMENT ID",
+        "targetField": "shipmentReference",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "currentStatus": {
+        "sourceHeader": "Status",
+        "targetField": "currentStatus",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "consignee": {
+        "sourceHeader": "CONSIGNEE",
+        "targetField": "consignee",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "shipper": {
+        "sourceHeader": "VENDOR",
+        "targetField": "shipper",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
       "containerNumber": {
-        "sourceHeader": "Container_No",
+        "sourceHeader": "CONTAINER",
         "targetField": "containerNumber",
         "confidence": 1,
         "transformationType": "direct",
         "notes": "Heuristic Match"
       },
+      "containerType": {
+        "sourceHeader": "SIZE",
+        "targetField": "containerType",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "sealNumber": {
+        "sourceHeader": "SEAL",
+        "targetField": "sealNumber",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "pieces": {
+        "sourceHeader": "PCS",
+        "targetField": "pieces",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "volumeCbm": {
+        "sourceHeader": "CBM",
+        "targetField": "volumeCbm",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "grossWeight": {
+        "sourceHeader": "WGT",
+        "targetField": "grossWeight",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "hbl": {
+        "sourceHeader": "HBL",
+        "targetField": "hbl",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "mbl": {
+        "sourceHeader": "MBL",
+        "targetField": "mbl",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "customerPo": {
+        "sourceHeader": "CUSTOMER PO",
+        "targetField": "customerPo",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "carrier": {
+        "sourceHeader": "CARRIER",
+        "targetField": "carrier",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "etd": {
+        "sourceHeader": "ETD POL",
+        "targetField": "etd",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
       "pol": {
-        "sourceHeader": "From (POL)",
+        "sourceHeader": "POL",
         "targetField": "pol",
         "confidence": 1,
         "transformationType": "direct",
         "notes": "Heuristic Match"
       },
-      "pod": {
-        "sourceHeader": "To (POD)",
-        "targetField": "pod",
-        "confidence": 1,
-        "transformationType": "direct",
-        "notes": "Heuristic Match"
-      },
       "eta": {
-        "sourceHeader": "Est Arrival",
+        "sourceHeader": "ETA POD",
         "targetField": "eta",
         "confidence": 1,
         "transformationType": "direct",
         "notes": "Heuristic Match"
       },
+      "pod": {
+        "sourceHeader": "POD",
+        "targetField": "pod",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "finalDestination": {
+        "sourceHeader": "FINAL DESTINATION",
+        "targetField": "finalDestination",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "finalDestinationEta": {
+        "sourceHeader": "FINAL DEST ETA",
+        "targetField": "finalDestinationEta",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
       "atd": {
-        "sourceHeader": "Act Depart",
+        "sourceHeader": "ATD",
         "targetField": "atd",
         "confidence": 1,
         "transformationType": "direct",
         "notes": "Heuristic Match"
       },
-      "vesselName": {
-        "sourceHeader": "Vsl Name",
-        "targetField": "vesselName",
+      "ata": {
+        "sourceHeader": "ATA POD",
+        "targetField": "ata",
         "confidence": 1,
         "transformationType": "direct",
         "notes": "Heuristic Match"
       },
-      "Notes/Comments": {
-        "sourceHeader": "Notes/Comments",
-        "targetField": "metadata.notes",
-        "confidence": 0.95,
-        "transformationType": "semantic",
-        "notes": "Auto-patched by Auditor (Quality Gate)"
+      "emptyReturnDate": {
+        "sourceHeader": "CNTR AVAIL",
+        "targetField": "emptyReturnDate",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "gateOutDate": {
+        "sourceHeader": "OGF DATE",
+        "targetField": "gateOutDate",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "deliveryDate": {
+        "sourceHeader": "ACTUAL DEL DATE",
+        "targetField": "deliveryDate",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
+      },
+      "lastFreeDay": {
+        "sourceHeader": "LFD",
+        "targetField": "lastFreeDay",
+        "confidence": 1,
+        "transformationType": "direct",
+        "notes": "Heuristic Match"
       }
     },
     "unmappedSourceFields": [
       {
-        "sourceHeader": "Notes/Comments",
+        "sourceHeader": "SERV TYPE\r\nAWS / MLB",
+        "sampleValue": null,
+        "suggestedField": null,
+        "confidence": 0,
+        "potentialMeaning": "Unknown"
+      },
+      {
+        "sourceHeader": "TRUCKER APPT",
+        "sampleValue": null,
+        "suggestedField": null,
+        "confidence": 0,
+        "potentialMeaning": "Unknown"
+      },
+      {
+        "sourceHeader": "EMPTY AVAIL DATE",
+        "sampleValue": null,
+        "suggestedField": null,
+        "confidence": 0,
+        "potentialMeaning": "Unknown"
+      },
+      {
+        "sourceHeader": "EMPTY RETURN DATE",
         "sampleValue": null,
         "suggestedField": null,
         "confidence": 0,
@@ -65,261 +219,976 @@
   },
   "containers": [
     {
-      "rawRowId": "1e3715a9-5e2a-44f4-b215-988e372cde6b",
+      "rawRowId": "cbca8ee8-008d-40e0-b0dd-8af24237d6a9",
       "fields": {
+        "shipment_reference": {
+          "value": "S25030127446",
+          "originalValue": "S25030127446",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "current_status": {
+          "value": "BCN",
+          "originalValue": "BCN",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "consignee": {
+          "value": "HORIZON GLOBAL AMERICAS INC",
+          "originalValue": "HORIZON GLOBAL AMERICAS INC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "shipper": {
+          "value": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
+          "originalValue": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
         "container_number": {
-          "value": "MSCU1234567",
-          "originalValue": "MSCU1234567",
+          "value": "TCNU3094950",
+          "originalValue": "TCNU3094950",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "container_type": {
+          "value": "40HC",
+          "originalValue": "40HC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "seal_number": {
+          "value": "YMAT099440",
+          "originalValue": "YMAT099440",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pieces": {
+          "value": 128,
+          "originalValue": 128,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "volume_cbm": {
+          "value": 16.05,
+          "originalValue": 16.05,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gross_weight": {
+          "value": 4955,
+          "originalValue": 4955,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "hbl": {
+          "value": "YMJAW232595336B",
+          "originalValue": "YMJAW232595336B",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "mbl_or_booking": {
+          "value": "YMJAW232595336",
+          "originalValue": "YMJAW232595336",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "customer_po": {
+          "value": 4500033779,
+          "originalValue": 4500033779,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "carrier": {
+          "value": "YMJA",
+          "originalValue": "YMJA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "etd": {
+          "value": 45719,
+          "originalValue": 45719,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "pol": {
-          "value": "CNNYC",
-          "originalValue": "CNNYC",
-          "confidence": 1,
-          "source": "heuristic",
-          "transformation": "direct"
-        },
-        "pod": {
-          "value": "USLGB",
-          "originalValue": "USLGB",
+          "value": "Ningbo, CN",
+          "originalValue": "Ningbo, CN",
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "eta": {
-          "value": "2023-10-15",
-          "originalValue": "2023-10-15",
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "Los Angeles, CA",
+          "originalValue": "Los Angeles, CA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination": {
+          "value": "Edgerton, KS",
+          "originalValue": "Edgerton, KS",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination_eta": {
+          "value": 45747,
+          "originalValue": 45747,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "atd": {
-          "value": "2023-09-01",
-          "originalValue": "2023-09-01",
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
-        "vessel_name": {
-          "value": "Gulsun",
-          "originalValue": "Gulsun",
+        "ata": {
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "empty_return_date": {
+          "value": 45743,
+          "originalValue": 45743,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gate_out_date": {
+          "value": 45744.63125,
+          "originalValue": 45744.63125,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "delivery_date": {
+          "value": 45747,
+          "originalValue": 45747,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "last_free_day": {
+          "value": 45745,
+          "originalValue": 45745,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         }
       },
       "meta": {
-        "Notes/Comments": "Priority"
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "TRUCKER APPT": 45747,
+        "EMPTY AVAIL DATE": 45750.46319444444,
+        "EMPTY RETURN DATE": 45750.46319444444
       },
       "overallConfidence": 0.85,
       "flagsForReview": []
     },
     {
-      "rawRowId": "02500e32-fd41-434c-96d3-1390a4e8dd4d",
+      "rawRowId": "ab485d24-3cc7-4f97-b5bb-33d945331206",
       "fields": {
+        "shipment_reference": {
+          "value": "S25030127318",
+          "originalValue": "S25030127318",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "current_status": {
+          "value": "BCN",
+          "originalValue": "BCN",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "consignee": {
+          "value": "HORIZON GLOBAL AMERICAS INC",
+          "originalValue": "HORIZON GLOBAL AMERICAS INC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "shipper": {
+          "value": "NINGBO YINZHOU HENGYU AUTO PARTS MANUFACTURER",
+          "originalValue": "NINGBO YINZHOU HENGYU AUTO PARTS MANUFACTURER",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
         "container_number": {
-          "value": "MAEU9876543",
-          "originalValue": "MAEU9876543",
+          "value": "TLLU2370021",
+          "originalValue": "TLLU2370021",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "container_type": {
+          "value": "20GP",
+          "originalValue": "20GP",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "seal_number": {
+          "value": "YMAT112918",
+          "originalValue": "YMAT112918",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pieces": {
+          "value": 336,
+          "originalValue": 336,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "volume_cbm": {
+          "value": 8.49,
+          "originalValue": 8.49,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gross_weight": {
+          "value": 2473.8,
+          "originalValue": 2473.8,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "hbl": {
+          "value": "YMJAW232595336C",
+          "originalValue": "YMJAW232595336C",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "mbl_or_booking": {
+          "value": "YMJAW232595336",
+          "originalValue": "YMJAW232595336",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "customer_po": {
+          "value": 4500028563,
+          "originalValue": 4500028563,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "carrier": {
+          "value": "YMJA",
+          "originalValue": "YMJA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "etd": {
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "pol": {
-          "value": "CNSHA",
-          "originalValue": "CNSHA",
-          "confidence": 1,
-          "source": "heuristic",
-          "transformation": "direct"
-        },
-        "pod": {
-          "value": "USLAX",
-          "originalValue": "USLAX",
+          "value": "Ningbo, CN",
+          "originalValue": "Ningbo, CN",
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "eta": {
-          "value": "2023-10-20",
-          "originalValue": "2023-10-20",
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "Los Angeles, CA",
+          "originalValue": "Los Angeles, CA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination": {
+          "value": "Edgerton, KS",
+          "originalValue": "Edgerton, KS",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination_eta": {
+          "value": 45747,
+          "originalValue": 45747,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "atd": {
-          "value": "2023-09-05",
-          "originalValue": "2023-09-05",
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
-        "vessel_name": {
-          "value": "Alabama",
-          "originalValue": "Alabama",
+        "ata": {
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "empty_return_date": {
+          "value": 45743,
+          "originalValue": 45743,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gate_out_date": {
+          "value": 45744.544444444444,
+          "originalValue": 45744.544444444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "delivery_date": {
+          "value": 45747,
+          "originalValue": 45747,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "last_free_day": {
+          "value": 45745,
+          "originalValue": 45745,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         }
       },
       "meta": {
-        "Notes/Comments": ""
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "TRUCKER APPT": 45747,
+        "EMPTY AVAIL DATE": 45749.41458333333,
+        "EMPTY RETURN DATE": 45749.41458333333
       },
       "overallConfidence": 0.85,
       "flagsForReview": []
     },
     {
-      "rawRowId": "61837411-20b1-44f5-9cab-d758d1125148",
+      "rawRowId": "f03ad64a-c839-45c4-9299-da06652b8ede",
       "fields": {
+        "shipment_reference": {
+          "value": "S25030127445",
+          "originalValue": "S25030127445",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "current_status": {
+          "value": "BCN",
+          "originalValue": "BCN",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "consignee": {
+          "value": "HORIZON GLOBAL AMERICAS INC",
+          "originalValue": "HORIZON GLOBAL AMERICAS INC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "shipper": {
+          "value": "ZHEJIANG RUNVA MECHANICAL & ELECTRICAL CO LTD",
+          "originalValue": "ZHEJIANG RUNVA MECHANICAL & ELECTRICAL CO LTD",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
         "container_number": {
-          "value": "CMAU1122334",
-          "originalValue": "CMAU1122334",
+          "value": "TCNU3094950",
+          "originalValue": "TCNU3094950",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "container_type": {
+          "value": "40HC",
+          "originalValue": "40HC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "seal_number": {
+          "value": "YMAT099440",
+          "originalValue": "YMAT099440",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pieces": {
+          "value": 420,
+          "originalValue": 420,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "volume_cbm": {
+          "value": 31.03,
+          "originalValue": 31.03,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gross_weight": {
+          "value": 14476,
+          "originalValue": 14476,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "hbl": {
+          "value": "YMJAW232595336A",
+          "originalValue": "YMJAW232595336A",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "mbl_or_booking": {
+          "value": "YMJAW232595336",
+          "originalValue": "YMJAW232595336",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "customer_po": {
+          "value": 4500028571,
+          "originalValue": 4500028571,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "carrier": {
+          "value": "YMJA",
+          "originalValue": "YMJA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "etd": {
+          "value": 45719,
+          "originalValue": 45719,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "pol": {
-          "value": "CNNING",
-          "originalValue": "CNNING",
-          "confidence": 1,
-          "source": "heuristic",
-          "transformation": "direct"
-        },
-        "pod": {
-          "value": "USSAV",
-          "originalValue": "USSAV",
+          "value": "Ningbo, CN",
+          "originalValue": "Ningbo, CN",
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "eta": {
-          "value": "2023-11-01",
-          "originalValue": "2023-11-01",
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "Los Angeles, CA",
+          "originalValue": "Los Angeles, CA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination": {
+          "value": "Edgerton, KS",
+          "originalValue": "Edgerton, KS",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination_eta": {
+          "value": 45747,
+          "originalValue": 45747,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "atd": {
-          "value": "2023-09-10",
-          "originalValue": "2023-09-10",
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
-        "vessel_name": {
-          "value": "Marco Polo",
-          "originalValue": "Marco Polo",
+        "ata": {
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "empty_return_date": {
+          "value": 45743,
+          "originalValue": 45743,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gate_out_date": {
+          "value": 45744.63125,
+          "originalValue": 45744.63125,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "delivery_date": {
+          "value": 45747,
+          "originalValue": 45747,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "last_free_day": {
+          "value": 45745,
+          "originalValue": 45745,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         }
       },
       "meta": {
-        "Notes/Comments": "Do not stack"
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "TRUCKER APPT": 45747,
+        "EMPTY AVAIL DATE": 45750.46319444444,
+        "EMPTY RETURN DATE": 45750.46319444444
       },
       "overallConfidence": 0.85,
       "flagsForReview": []
     },
     {
-      "rawRowId": "6a7588d0-22b8-41f5-90f8-9578fd2fa9a7",
+      "rawRowId": "ad58c947-8044-49ee-b431-cd79d9df24d5",
       "fields": {
+        "shipment_reference": {
+          "value": "S25030127319",
+          "originalValue": "S25030127319",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "current_status": {
+          "value": "BCN",
+          "originalValue": "BCN",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "consignee": {
+          "value": "HORIZON GLOBAL AMERICAS INC",
+          "originalValue": "HORIZON GLOBAL AMERICAS INC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "shipper": {
+          "value": "HANGZHOU SANSHANG IMPORT AND EXPORT CO LTD",
+          "originalValue": "HANGZHOU SANSHANG IMPORT AND EXPORT CO LTD",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
         "container_number": {
-          "value": "COSU5566778",
-          "originalValue": "COSU5566778",
+          "value": "TLLU2370021",
+          "originalValue": "TLLU2370021",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "container_type": {
+          "value": "20GP",
+          "originalValue": "20GP",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "seal_number": {
+          "value": "YMAT112918",
+          "originalValue": "YMAT112918",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pieces": {
+          "value": 2829,
+          "originalValue": 2829,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "volume_cbm": {
+          "value": 13.22,
+          "originalValue": 13.22,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gross_weight": {
+          "value": 8757,
+          "originalValue": 8757,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "hbl": {
+          "value": "YMJAW232595336D",
+          "originalValue": "YMJAW232595336D",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "mbl_or_booking": {
+          "value": "YMJAW232595336",
+          "originalValue": "YMJAW232595336",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "customer_po": {
+          "value": "4500033217, 4500033777",
+          "originalValue": "4500033217, 4500033777",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "carrier": {
+          "value": "YMJA",
+          "originalValue": "YMJA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "etd": {
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "pol": {
-          "value": "CNYANT",
-          "originalValue": "CNYANT",
-          "confidence": 1,
-          "source": "heuristic",
-          "transformation": "direct"
-        },
-        "pod": {
-          "value": "USNYC",
-          "originalValue": "USNYC",
+          "value": "Ningbo, CN",
+          "originalValue": "Ningbo, CN",
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "eta": {
-          "value": "2023-10-30",
-          "originalValue": "2023-10-30",
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "Los Angeles, CA",
+          "originalValue": "Los Angeles, CA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination": {
+          "value": "Edgerton, KS",
+          "originalValue": "Edgerton, KS",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination_eta": {
+          "value": 45747,
+          "originalValue": 45747,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "atd": {
-          "value": "2023-09-15",
-          "originalValue": "2023-09-15",
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
-        "vessel_name": {
-          "value": "Shipping",
-          "originalValue": "Shipping",
+        "ata": {
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "empty_return_date": {
+          "value": 45743,
+          "originalValue": 45743,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gate_out_date": {
+          "value": 45744.544444444444,
+          "originalValue": 45744.544444444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "delivery_date": {
+          "value": 45747,
+          "originalValue": 45747,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "last_free_day": {
+          "value": 45745,
+          "originalValue": 45745,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         }
       },
       "meta": {
-        "Notes/Comments": "Fragile"
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "TRUCKER APPT": 45747,
+        "EMPTY AVAIL DATE": 45749.41458333333,
+        "EMPTY RETURN DATE": 45749.41458333333
       },
       "overallConfidence": 0.85,
       "flagsForReview": []
     },
     {
-      "rawRowId": "8a4f1f21-44ad-4fef-92cd-8697fc02c0ad",
+      "rawRowId": "735f1a45-a828-4922-932f-38e9d8cd6bf7",
       "fields": {
+        "shipment_reference": {
+          "value": "S25030127447",
+          "originalValue": "S25030127447",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "current_status": {
+          "value": "RTN",
+          "originalValue": "RTN",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "consignee": {
+          "value": "HORIZON GLOBAL AMERICAS INC",
+          "originalValue": "HORIZON GLOBAL AMERICAS INC",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "shipper": {
+          "value": "ZHEJIANG RUNVA MECHANICAL & ELECTRICAL CO LTD",
+          "originalValue": "ZHEJIANG RUNVA MECHANICAL & ELECTRICAL CO LTD",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
         "container_number": {
-          "value": "ONEU9988776",
-          "originalValue": "ONEU9988776",
+          "value": "YMMU4115920",
+          "originalValue": "YMMU4115920",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "container_type": {
+          "value": "40GP",
+          "originalValue": "40GP",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "seal_number": {
+          "value": "YMAT112947",
+          "originalValue": "YMAT112947",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pieces": {
+          "value": 900,
+          "originalValue": 900,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "volume_cbm": {
+          "value": 52.7,
+          "originalValue": 52.7,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gross_weight": {
+          "value": 19499,
+          "originalValue": 19499,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "hbl": {
+          "value": "YMJAW232595337",
+          "originalValue": "YMJAW232595337",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "mbl_or_booking": {
+          "value": "YMJAW232595337",
+          "originalValue": "YMJAW232595337",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "customer_po": {
+          "value": "4500028010,4500029098,4500029753,4500030136",
+          "originalValue": "4500028010,4500029098,4500029753,4500030136",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "carrier": {
+          "value": "YMJA",
+          "originalValue": "YMJA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "etd": {
+          "value": 45719,
+          "originalValue": 45719,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "pol": {
-          "value": "JPTOK",
-          "originalValue": "JPTOK",
-          "confidence": 1,
-          "source": "heuristic",
-          "transformation": "direct"
-        },
-        "pod": {
-          "value": "USSEA",
-          "originalValue": "USSEA",
+          "value": "Ningbo, CN",
+          "originalValue": "Ningbo, CN",
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "eta": {
-          "value": "10/12/2023",
-          "originalValue": "10/12/2023",
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "pod": {
+          "value": "Los Angeles, CA",
+          "originalValue": "Los Angeles, CA",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination": {
+          "value": "Edgerton, KS",
+          "originalValue": "Edgerton, KS",
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "final_destination_eta": {
+          "value": 45747,
+          "originalValue": 45747,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
         "atd": {
-          "value": "09/02/2023",
-          "originalValue": "09/02/2023",
+          "value": 45719.229166666664,
+          "originalValue": 45719.229166666664,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         },
-        "vessel_name": {
-          "value": "Apus",
-          "originalValue": "Apus",
+        "ata": {
+          "value": 45733.17569444444,
+          "originalValue": 45733.17569444444,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "empty_return_date": {
+          "value": 45744,
+          "originalValue": 45744,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "gate_out_date": {
+          "value": 45745.518055555556,
+          "originalValue": 45745.518055555556,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "delivery_date": {
+          "value": 45747,
+          "originalValue": 45747,
+          "confidence": 1,
+          "source": "heuristic",
+          "transformation": "direct"
+        },
+        "last_free_day": {
+          "value": 45746,
+          "originalValue": 45746,
           "confidence": 1,
           "source": "heuristic",
           "transformation": "direct"
         }
       },
       "meta": {
-        "Notes/Comments": "Check seal"
+        "SERV TYPE\r\nAWS / MLB": "MLB",
+        "TRUCKER APPT": 45747,
+        "EMPTY AVAIL DATE": 45750.44236111111,
+        "EMPTY RETURN DATE": 45750.44236111111
       },
       "overallConfidence": 0.85,
       "flagsForReview": []
@@ -329,8 +1198,8 @@
   "confidenceReport": {
     "overallScore": 0.8,
     "summary": "Heuristic Fallback Generated",
-    "totalFields": 7,
-    "highConfidence": 6,
+    "totalFields": 30,
+    "highConfidence": 26,
     "mediumConfidence": 0,
     "lowConfidence": 0,
     "flaggedForReview": 0
@@ -339,6 +1208,6 @@
   "_meta": {
     "isSample": true,
     "sampleSize": 5,
-    "totalAvailableRows": 5
+    "totalAvailableRows": 176
   }
 }

@@ -1,12 +1,11 @@
 
-import { PrismaClient } from '@prisma/client';
-import { persistMappedData } from '../lib/import-orchestrator';
+import { prisma } from '../lib/prisma';
+import { persistMappedData } from '../lib/persistence';
 import { updateStatus, getActiveFilename } from './simulation-utils';
 import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
 const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
 
@@ -79,7 +78,7 @@ async function main() {
             // AUTO-MAP ServiceType (often missed by generic semantic mapper)
             if (!result.fields.serviceType?.value) {
                 // Check if any raw header contains "SERV TYPE" or "AWS"
-                const servHeader = headers.find(h => h.toUpperCase().includes('SERV TYPE') || h.toUpperCase().includes('AWS'));
+                const servHeader = headers.find((h: string) => h.toUpperCase().includes('SERV TYPE') || h.toUpperCase().includes('AWS'));
                 if (servHeader && rawData[headers.indexOf(servHeader)]) {
                     result.fields.serviceType = {
                         value: rawData[headers.indexOf(servHeader)],
@@ -142,8 +141,8 @@ async function main() {
         });
         const avg = (totalFieldsPopulated / MAPPED_CONTAINERS.length).toFixed(1);
 
-        // CLEANUP
-        try { fs.unlinkSync(ARTIFACT_PATH); } catch (e) { }
+        // CLEANUP (DISABLED: Step 5 needs this artifact to learn from Auditor patches)
+        // try { fs.unlinkSync(ARTIFACT_PATH); } catch (e) { }
 
         // Show 5 Sample Rows
         console.log("\n>>> IMPORT SAMPLE (5 Rows) <<<");

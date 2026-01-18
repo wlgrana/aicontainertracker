@@ -1,5 +1,7 @@
 
-import { PrismaClient } from '@prisma/client';
+
+
+
 import { TranslatorInput, TranslatorOutput } from '../types/agents';
 import OpenAI from 'openai';
 import * as fs from 'fs';
@@ -32,7 +34,6 @@ const AZURE_API_KEY = (process.env.AZURE_AI_KEY || "").trim();
 const AZURE_DEPLOYMENT = (process.env.AZURE_AI_MODEL || "gpt-4o").trim();
 
 function getAIClient() {
-    // ... (same implementation)
     try {
         if (AZURE_ENDPOINT && AZURE_API_KEY) {
             const baseURL = AZURE_ENDPOINT.includes('/v1')
@@ -49,8 +50,6 @@ function getAIClient() {
     } catch (e) { console.warn("AI Client Init Failed"); }
     return null;
 }
-
-const prisma = new PrismaClient();
 
 function normalizeHeader(h: string): string {
     return h.toLowerCase().replace(/[^a-z0-9]/g, '');

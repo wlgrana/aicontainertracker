@@ -3,9 +3,8 @@ import { AuditorInput, AuditorOutput } from '../types/agents';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 const AZURE_ENDPOINT = (process.env.AZURE_AI_ENDPOINT || "").trim();
 const AZURE_API_KEY = (process.env.AZURE_AI_KEY || "").trim();
@@ -45,15 +44,18 @@ export async function runAuditor(input: AuditorInput): Promise<AuditorOutput> {
         .replace('${JSON.stringify(databaseRow, null, 2)}', JSON.stringify(input.databaseRow, null, 2));
 
     try {
-        const response = await client.chat.completions.create({
-            model: AZURE_DEPLOYMENT,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: currentPrompt }
-            ],
-            temperature: 0.1, // Very low temp for strict verification
-            response_format: { type: 'json_object' }
-        });
+        const response = await Promise.race([
+            client.chat.completions.create({
+                model: AZURE_DEPLOYMENT,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: currentPrompt }
+                ],
+                temperature: 0.1, // Very low temp for strict verification
+                response_format: { type: 'json_object' }
+            }),
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auditor AI Timeout")), 15000))
+        ]);
 
         const content = response.choices[0].message.content;
         if (!content) throw new Error("No content from Auditor AI");
@@ -71,11 +73,11 @@ export async function runAuditor(input: AuditorInput): Promise<AuditorOutput> {
                         status: 'COMPLETED',
                         timestamp: new Date(),
                         findings: result.summary as any,
-                        discrepancies: (result.lost.length > 0 || result.wrong.length > 0 || result.unmapped.length > 0) ? {
+                        discrepancies: ((result.lost.length > 0 || result.wrong.length > 0 || result.unmapped.length > 0) ? {
                             lost: result.lost,
                             wrong: result.wrong,
                             unmapped: result.unmapped
-                        } : undefined,
+                        } : undefined) as any,
                         output: (result.lost.length > 0 || result.wrong.length > 0) ? JSON.parse(JSON.stringify(result)) : { summary: 'No critical discrepancies' }
                     }
                 });

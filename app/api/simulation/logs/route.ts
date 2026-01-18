@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 export async function GET() {
-    const filePath = path.join(process.cwd(), 'simulation_logs.txt');
+    const filePath = path.join(process.cwd(), 'logs', 'simulation.log');
     if (!fs.existsSync(filePath)) {
         return NextResponse.json({ logs: 'Waiting for log stream generation...' });
     }

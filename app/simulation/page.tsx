@@ -3,15 +3,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Loader2, Database, BrainCircuit, Zap, Terminal, ChevronDown, ChevronUp, Play, Square, Trash2, FileSpreadsheet, Languages, ShieldCheck, Search, ArrowRight, RotateCcw, Download, Upload } from 'lucide-react';
+import { CheckCircle2, Loader2, Database, BrainCircuit, Zap, Terminal, ChevronDown, ChevronUp, Play, Square, Trash2, FileSpreadsheet, Languages, ShieldCheck, Search, ArrowRight, RotateCcw, Download, Upload, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SimulationPage() {
     const [status, setStatus] = useState<any>(null);
-    const [logs, setLogs] = useState<string>('');
-    const [showLogs, setShowLogs] = useState(false);
+    const [logFiles, setLogFiles] = useState<any[]>([]);
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
-    const logEndRef = useRef<HTMLDivElement>(null);
 
     // Header/Upload State
     const [selectedFile, setSelectedFile] = useState<string>("Horizon Tracking Report.xlsx");
@@ -51,24 +49,11 @@ export default function SimulationPage() {
     const [stepTimes, setStepTimes] = useState<Record<string, { end: number, duration: number }>>({});
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (showLogs) {
-            fetch('/api/simulation/logs').then(r => r.json()).then(d => setLogs(d.logs));
-            interval = setInterval(() => {
-                fetch('/api/simulation/logs').then(r => r.json()).then(d => setLogs(d.logs));
-            }, 3000);
-        }
-        return () => clearInterval(interval);
-    }, [showLogs]);
-
-    useEffect(() => {
-        if (logEndRef.current && showLogs) {
-            logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [logs, showLogs]);
+        fetch('/api/simulation/logs/list').then(r => r.json()).then(d => setLogFiles(d.files || [])).catch(console.error);
+    }, []);
 
     const [containerLimit, setContainerLimit] = useState<string>("all");
-    const [autoRun, setAutoRun] = useState(false);
+    const [autoRun, setAutoRun] = useState(true);
 
     // Auto-Run Logic
     useEffect(() => {
@@ -499,28 +484,28 @@ export default function SimulationPage() {
                         renderDetails={(data: any) => (
                             <div className="space-y-4 mt-3 bg-slate-50 p-4 rounded-md border border-slate-100">
 
-                                {/* AUDITOR SUMMARY STATS */}
-                                <div className="grid grid-cols-4 gap-4 mb-4">
-                                    <div className="bg-white p-3 rounded border border-slate-200 text-center">
-                                        <div className="text-xs text-slate-400 uppercase font-bold">Total Fields</div>
-                                        <div className="text-xl font-black text-slate-700">{data.verifiedCount + data.discrepancyCount}</div>
-                                    </div>
-                                    <div className="bg-white p-3 rounded border border-slate-200 text-center">
-                                        <div className="text-xs text-green-600 uppercase font-bold">Exact Matches</div>
-                                        <div className="text-xl font-black text-green-600">{data.verifiedCount}</div>
-                                    </div>
-                                    <div className="bg-white p-3 rounded border border-slate-200 text-center">
-                                        <div className="text-xs text-amber-500 uppercase font-bold">Discrepancies</div>
-                                        <div className="text-xl font-black text-amber-500">{data.discrepancyCount}</div>
-                                    </div>
-                                    <div className="bg-white p-3 rounded border border-slate-200 text-center">
-                                        <div className="text-xs text-blue-500 uppercase font-bold">Quality Score</div>
-                                        <div className="text-xl font-black text-blue-500">{(data.sampleAnalysis?.captureRate * 100).toFixed(0)}%</div>
-                                    </div>
-                                </div>
 
                                 {data.sampleAnalysis ? (
                                     <div className="space-y-4">
+                                        {/* AUDITOR SUMMARY STATS */}
+                                        <div className="grid grid-cols-4 gap-4 mb-4">
+                                            <div className="bg-white p-3 rounded border border-slate-200 text-center">
+                                                <div className="text-xs text-slate-400 uppercase font-bold">Total Fields</div>
+                                                <div className="text-xl font-black text-slate-700">{data.verifiedCount + data.discrepancyCount}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded border border-slate-200 text-center">
+                                                <div className="text-xs text-green-600 uppercase font-bold">Exact Matches</div>
+                                                <div className="text-xl font-black text-green-600">{data.verifiedCount}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded border border-slate-200 text-center">
+                                                <div className="text-xs text-amber-500 uppercase font-bold">Discrepancies</div>
+                                                <div className="text-xl font-black text-amber-500">{data.discrepancyCount}</div>
+                                            </div>
+                                            <div className="bg-white p-3 rounded border border-slate-200 text-center">
+                                                <div className="text-xs text-blue-500 uppercase font-bold">Quality Score</div>
+                                                <div className="text-xl font-black text-blue-500">{(data.sampleAnalysis?.captureRate * 100).toFixed(0)}%</div>
+                                            </div>
+                                        </div>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <Badge variant="outline" className="bg-white">
@@ -803,36 +788,60 @@ export default function SimulationPage() {
                     )}
                 </div>
 
-                <div className="pt-8">
-                    <Button variant="outline" className="w-full flex items-center justify-between p-6 h-auto border-slate-200 hover:bg-white hover:shadow-lg transition-all" onClick={() => setShowLogs(!showLogs)}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-100 rounded-lg"><Terminal className="w-5 h-5 text-slate-600" /></div>
-                            <div className="text-left">
-                                <div className="font-bold text-slate-900">Backend Execution Logs</div>
-                                <div className="text-xs text-slate-500 font-medium">View live terminal output from the agent cluster</div>
+                <div className="pt-8 mb-12">
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardContent className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2.5 bg-slate-100 rounded-lg border border-slate-200"><FileText className="w-5 h-5 text-slate-600" /></div>
+                                <div className="text-left">
+                                    <h3 className="font-bold text-slate-900 text-lg">Simulation Logs</h3>
+                                    <p className="text-sm text-slate-500 font-medium">Download full execution logs for forensic analysis and debugging.</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-auto"
+                                    onClick={() => fetch('/api/simulation/logs/list').then(r => r.json()).then(d => setLogFiles(d.files || []))}
+                                >
+                                    <RotateCcw className="w-4 h-4 mr-2" /> Refresh
+                                </Button>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <a
-                                href="/api/simulation/logs/download"
-                                download="simulation_logs.txt"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-xs flex items-center gap-1 text-slate-500 hover:text-blue-600 px-3 py-1.5 rounded-md bg-slate-50 border border-slate-200 transition-colors z-10"
-                            >
-                                <Download className="w-3.5 h-3.5" />
-                                <span className="font-medium">Download Logs</span>
-                            </a>
-                            {showLogs ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                        </div>
-                    </Button>
-                    {showLogs && (
-                        <div className="mt-4 bg-slate-900 rounded-xl overflow-hidden shadow-2xl animate-in slide-in-from-top-4 fade-in duration-300">
-                            <div className="p-4 font-mono text-xs text-green-400 h-96 overflow-y-auto w-full whitespace-pre-wrap">
-                                {logs || "Connecting to log stream..."}
-                                <div ref={logEndRef} />
+                            <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                {logFiles.length > 0 ? logFiles.map((f, i) => (
+                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-white hover:shadow-md hover:border-blue-100 transition-all group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-700 font-mono group-hover:text-blue-700 transition-colors">{f.name}</div>
+                                                <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                                    <span>{(f.size / 1024).toFixed(1)} KB</span>
+                                                    <span>•</span>
+                                                    <span>{new Date(f.time).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={`/api/simulation/logs/download?filename=${f.name}`}
+                                            download={f.name}
+                                            className="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                                        >
+                                            <Download className="w-3.5 h-3.5" /> Download
+                                        </a>
+                                    </div>
+                                )) : (
+                                    <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 mb-2">
+                                            <Search className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-500">No logs found</div>
+                                        <p className="text-xs text-slate-400 mt-1">Run a simulation to generate logs.</p>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
