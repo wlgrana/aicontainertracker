@@ -139,20 +139,7 @@ function DashboardContent() {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-6 pr-6 border-r border-slate-100">
-                        <div className="text-right">
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Exceptions</div>
-                            <div className={cn("text-lg font-black uppercase tracking-tight", attentionCount > 0 ? "text-red-500" : "text-emerald-500")}>
-                                {attentionCount} Active
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Demurrage Exposure</div>
-                            <div className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                                {stats && stats.totalDemurrage > 0 ? `$${stats.totalDemurrage.toLocaleString()}` : "$0"}
-                            </div>
-                        </div>
-                    </div>
+
                     <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
                         <Bell className="h-5 w-5 text-slate-500" />
                     </div>
