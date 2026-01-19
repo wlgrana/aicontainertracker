@@ -74,7 +74,11 @@ export function transformRow(rawData: any[], headers: string[], mapping: any) {
     if (headers.length > 0) {
         headers.forEach((h: string, i: number) => {
             if (!mappedHeaders.has(h)) {
-                meta[h] = rawData[i];
+                if (Array.isArray(rawData)) {
+                    meta[h] = rawData[i];
+                } else {
+                    meta[h] = rawData[h];
+                }
             }
         });
     } else {

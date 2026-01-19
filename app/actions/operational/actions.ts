@@ -32,12 +32,19 @@ export async function overrideStatus(containerNumber: string, newStatus: string,
             }
         });
 
+        // 1b. Lock the status field so AI doesn't revert it
+        const meta = (container.metadata as any) || {};
+        const lockedFields = new Set<string>(meta.lockedFields || []);
+        lockedFields.add('currentStatus');
+        const updatedMeta = { ...meta, lockedFields: Array.from(lockedFields) };
+
         // 2. Update the main Container record
         await prisma.container.update({
             where: { containerNumber },
             data: {
                 currentStatus: newStatus,
-                statusLastUpdated: new Date()
+                statusLastUpdated: new Date(),
+                metadata: updatedMeta
             }
         });
 
@@ -233,10 +240,11 @@ export async function updateContainer(containerNumber: string, data: any) {
         const lockedFields = new Set<string>(meta.lockedFields || []);
 
         // 2. Identify fields being updated and lock them
-        // We lock ALL fields passed in, even if they belong to Shipment, so persistence knows to skip them.
+        // We lock ALL fields passed in. If they are shipment fields, we strip the prefix for the lock registry.
         Object.keys(data).forEach(field => {
             if (data[field] !== undefined) {
-                lockedFields.add(field);
+                const lockKey = field.startsWith('shipment.') ? field.split('.')[1] : field;
+                lockedFields.add(lockKey);
             }
         });
 
@@ -247,37 +255,51 @@ export async function updateContainer(containerNumber: string, data: any) {
 
         // 3. Separate Data: Container vs Shipment
         // 'finalDestination' is on Shipment. 'businessUnit' is on BOTH (sync them).
-        const containerFields = { ...data };
+        const containerFields: any = {};
         const shipmentFields: any = {};
 
-        if ('finalDestination' in data) {
-            shipmentFields.finalDestination = data.finalDestination;
-            delete containerFields.finalDestination; // Not on Container model
-        }
+        // Define fields that ALWAYS belong to Shipment (even if not prefixed)
+        const shipmentOnlyFields = ['poNumber', 'customerPo', 'shipper', 'consignee', 'bookingDate', 'finalDestination', 'shipmentReference'];
+
+        Object.keys(data).forEach(key => {
+            const value = data[key];
+            if (value === undefined) return;
+
+            if (key.startsWith('shipment.')) {
+                const rawKey = key.split('.')[1];
+                shipmentFields[rawKey] = value;
+            } else if (shipmentOnlyFields.includes(key)) {
+                shipmentFields[key] = value;
+            } else {
+                containerFields[key] = value;
+            }
+        });
 
         // businessUnit is on both, so keep in containerFields AND add to shipmentFields
-        if ('businessUnit' in data) {
-            shipmentFields.businessUnit = data.businessUnit;
+        if (containerFields.businessUnit) {
+            shipmentFields.businessUnit = containerFields.businessUnit;
         }
 
-        // Handle other widespread Shipment fields that might be edited
-        const shipmentOnlyFields = ['poNumber', 'customerPo', 'shipper', 'consignee', 'bookingDate'];
-        shipmentOnlyFields.forEach(field => {
-            if (field in data) {
-                shipmentFields[field] = data[field];
-                delete containerFields[field]; // Remove from container update if present
-            }
-        });
-
         // 4. Update Container
-        await prisma.container.update({
-            where: { containerNumber },
-            data: {
-                ...containerFields,
-                metadata: updatedMeta,
-                statusLastUpdated: new Date() // Mark as touched
-            }
-        });
+        if (Object.keys(containerFields).length > 0) {
+            await prisma.container.update({
+                where: { containerNumber },
+                data: {
+                    ...containerFields,
+                    metadata: updatedMeta,
+                    statusLastUpdated: new Date() // Mark as touched
+                }
+            });
+        } else {
+            // Even if only updating shipment, we should update metadata (locks) on container
+            await prisma.container.update({
+                where: { containerNumber },
+                data: {
+                    metadata: updatedMeta,
+                    statusLastUpdated: new Date()
+                }
+            });
+        }
 
         // 5. Update Linked Shipments (if applicable)
         if (Object.keys(shipmentFields).length > 0 && currentContainer.shipmentContainers.length > 0) {
@@ -304,6 +326,67 @@ export async function updateContainer(containerNumber: string, data: any) {
         return { success: true };
     } catch (e: any) {
         console.error("Manual Update Failed:", e);
+        return { success: false, error: e.message };
+    }
+}
+
+
+/**
+ * Accepts a specific AI-enriched field value.
+ * 1. Updates the official Container/Shipment record with the value (locking it).
+ * 2. Removes the field from the aiDerived JSON so it no longer appears as a suggestion.
+ * 
+ * @param containerNumber - The container identifier
+ * @param fieldName - The key of the field being accepted (e.g., 'serviceType')
+ * @param value - The value to accept
+ */
+export async function acceptEnrichment(containerNumber: string, fieldName: string, value: any) {
+    try {
+        console.log(`[Accept Enrichment] ${containerNumber}: Accepting ${fieldName} = ${value}`);
+
+        // 1. Update the official record (this handles locking and Shipment vs Container split)
+        const updateResult = await updateContainer(containerNumber, { [fieldName]: value });
+        if (!updateResult.success) throw new Error(updateResult.error);
+
+        // 2. Remove the suggestion from aiDerived
+        const container = await prisma.container.findUnique({
+            where: { containerNumber },
+            select: { aiDerived: true }
+        });
+
+        if (container?.aiDerived) {
+            const aiDerived = container.aiDerived as any;
+
+            // Check if field exists in aiDerived
+            if (aiDerived.fields && aiDerived.fields[fieldName]) {
+                delete aiDerived.fields[fieldName];
+
+                // Construct log message
+                const logMessage = `Accepted AI enrichment for ${fieldName}`;
+
+                // Update container with cleaned aiDerived
+                await prisma.container.update({
+                    where: { containerNumber },
+                    data: { aiDerived }
+                });
+
+                // Log activity
+                await prisma.activityLog.create({
+                    data: {
+                        containerId: containerNumber,
+                        action: "Enrichment Accepted",
+                        actor: "Current User",
+                        detail: logMessage,
+                        source: "Manual"
+                    }
+                });
+            }
+        }
+
+        revalidatePath(`/container/${containerNumber}`);
+        return { success: true };
+    } catch (e: any) {
+        console.error("Accept Enrichment Failed:", e);
         return { success: false, error: e.message };
     }
 }

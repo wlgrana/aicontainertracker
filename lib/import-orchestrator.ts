@@ -6,7 +6,9 @@ import { runAuditor } from '@/agents/auditor';
 import { PrismaClient } from '@prisma/client';
 import { TranslatorInput, AuditorOutput, TranslatorOutput, AuditorInput } from '@/types/agents';
 import { runImprovementLoop } from '@/agents/improvement-orchestrator';
+import { runEnricher } from '@/agents/enricher';
 import { persistMappedData, applyAuditorCorrections, updateContainerAuditMeta } from '@/lib/persistence';
+import { AgentStage } from '@prisma/client';
 
 
 const prisma = new PrismaClient();
@@ -19,6 +21,7 @@ export async function orchestrateImport(
         useImprovementMode?: boolean;
         benchmarkFiles?: string[];
         rowLimit?: number;
+        enrichDuringImport?: boolean;
     } = {}
 ) {
     if (options.useImprovementMode) {
@@ -41,6 +44,8 @@ export async function orchestrateImport(
             auditSummary: { total: 0, failed: 0 }
         };
     }
+
+    const startTotal = Date.now();
 
     // Step 1: Archive raw data
     console.log('[Orchestrator] Step 1: Archiving raw data...');
@@ -82,15 +87,99 @@ export async function orchestrateImport(
         transitStages: transitStages.map(s => s.stageName)
     });
 
-    // Step 5: Persist Mapped Data (IMMEDIATELY)
-    console.log('[Orchestrator] Step 3: Persisting initial translation to database...');
+    // --- STEP 3: ENRICHER (Pre-Persistence Inference) ---
+    console.log(`[Orchestrator] >>> RUNNING STEP 3 [${new Date().toISOString()}] <<<`);
+    console.log(`[Orchestrator] >>> STEP 3: ENRICHER (Inference Engine) <<<`);
+
+    const enrichmentMap = new Map<string, any>();
+    let enrichedCount = 0;
+
+    if (options.enrichDuringImport) {
+        console.log(`[Enricher] Loading ${translatorOutput.containers.length} containers for enrichment...`);
+        console.log(`[Enricher] Running inference methods: [ServiceType, StatusInference, FinalDestination]`);
+
+        // Stats
+        let totalFields = 0;
+        const confidenceStats = { HIGH: 0, MED: 0, LOW: 0 };
+
+        for (const mappedContainer of translatorOutput.containers) {
+            const rawRow = rawRowMap.get(mappedContainer.rawRowId || '');
+
+            // Construct transient canonical object for Enricher
+            // (Only needs fields used by Enricher: serviceType, currentStatus, atd, ata, finalDestination)
+            const f = mappedContainer.fields;
+            const transientContainer: any = {
+                containerNumber: f.containerNumber?.value,
+                serviceType: f.serviceType?.value || null,
+                currentStatus: f.currentStatus?.value || null,
+                atd: f.atd?.value || null,
+                ata: f.ata?.value || null,
+                finalDestination: f.finalDestination?.value || null,
+                // Add others if needed by enricher logic
+            };
+
+            const enrichResult = runEnricher({
+                container: transientContainer,
+                rawMetadata: rawRow || {},
+                mode: 'IMPORT_FAST'
+            });
+
+            if (enrichResult.aiDerived && Object.keys(enrichResult.aiDerived.fields).length > 0) {
+                enrichmentMap.set(transientContainer.containerNumber, enrichResult.aiDerived);
+                enrichedCount++;
+
+                // Detailed Logs for the example container or first few
+                if (enrichedCount <= 3) {
+                    console.log(`[Enricher] Processing container ${transientContainer.containerNumber}...`);
+                    Object.entries(enrichResult.aiDerived.fields).forEach(([k, v]: any) => {
+                        console.log(`  → ${k}: Derived "${v.value}" from ${v.source} [${v.confidence} confidence]`);
+                    });
+                }
+
+                // Stats collection
+                Object.values(enrichResult.aiDerived.fields).forEach((v: any) => {
+                    totalFields++;
+                    if (v.confidence === 'HIGH') confidenceStats.HIGH++;
+                    else if (v.confidence === 'MED') confidenceStats.MED++;
+                    else confidenceStats.LOW++;
+                });
+            }
+        }
+
+        const avgConf = totalFields > 0 ? Math.round(((confidenceStats.HIGH * 100) + (confidenceStats.MED * 70) + (confidenceStats.LOW * 30)) / totalFields) : 0;
+        console.log(`[Enricher] ✅ Enriched ${enrichedCount}/${translatorOutput.containers.length} containers (avg confidence: ~${avgConf}%)`);
+        console.log(`[Enricher] Summary:`);
+        console.log(`  - ${totalFields} fields derived`);
+        console.log(`  - ${confidenceStats.HIGH} HIGH confidence`);
+        console.log(`  - ${confidenceStats.MED} MEDIUM confidence`);
+        console.log(`  - ${confidenceStats.LOW} LOW confidence`);
+    } else {
+        console.log(`[Enricher] Skipped (enrichDuringImport=false)`);
+    }
+    console.log(`[Orchestrator] STEP 3 Complete.\n`);
+
+    // Step 4: Persist Mapped Data (IMMEDIATELY)
+    console.log(`[Orchestrator] >>> RUNNING STEP 4 [${new Date().toISOString()}] <<<`);
+    console.log('[Orchestrator] >>> STEP 4: PERSISTENCE (Database Write) <<<');
+    console.log(`[Importer] Writing ${translatorOutput.containers.length} containers to database...`);
+
     const persistResult = await persistMappedData(
         archiveResult.importLogId,
-        translatorOutput
+        translatorOutput,
+        enrichmentMap, // Pass the pre-calculated enrichment
+        (msg) => console.log(msg)
     );
+    console.log(`[Importer] ✅ Database write complete.`);
+    console.log(`[Orchestrator] STEP 4 Complete.\n`);
+
+    // Step 5: (Implicit/Learner - skipped in logs as per user request flow, or maybe user meant Step 6 Auditor)
+    // The previous flow had Auditor as Step 6. Let's stick to that.
 
     // Step 6: Post-Persistence Audit (The V2 Flow)
-    console.log('[Orchestrator] Step 4: Running Auditor V2 on persisted data...');
+    console.log(`[Orchestrator] >>> RUNNING STEP 6 [${new Date().toISOString()}] <<<`);
+    console.log('[Orchestrator] >>> STEP 6: AUDITOR (Quality Gate) <<<');
+    console.log(`[Auditor] Loading raw rows and database records for reconciliation...`);
+    console.log(`[Auditor] Comparing ${rawRows.length} raw rows against ${persistResult.containers.length} database containers...`);
 
     const simpleMapping: Record<string, string> = {};
     if (translatorOutput.schemaMapping && translatorOutput.schemaMapping.fieldMappings) {
@@ -100,16 +189,26 @@ export async function orchestrateImport(
     }
 
     const auditResults: AuditorOutput[] = [];
+    let exactMatches = 0;
+    let missingFields = 0;
+    let unmappedTotal = 0;
 
     // Audit each container
     for (const container of persistResult.containers) {
-        const metadata = container.metadata as any;
+        const metadata = (container as any).metadata;
         const rawRowId = metadata?._internal?.rawRowId;
         const originalRow = rawRowId ? rawRowMap.get(rawRowId) : {};
 
         if (!originalRow) {
             console.warn(`[Orchestrator] Warning: No raw row found for container ${container.containerNumber}`);
             continue;
+        }
+
+        // Log individual check for first item
+        if (auditResults.length === 0) {
+            console.log(`\n[Auditor] Checking container ${container.containerNumber}:`);
+            console.log(`  Raw Row keys: ${Object.keys(originalRow).slice(0, 3)}...`);
+            // We could log values but keeping it concise
         }
 
         const auditorInput: AuditorInput = {
@@ -124,18 +223,24 @@ export async function orchestrateImport(
         const auditResult = await runAuditor(auditorInput);
         auditResults.push(auditResult);
 
+        if (auditResult.verified.length === Object.keys(simpleMapping).length) exactMatches++;
+        missingFields += auditResult.lost.length;
+        unmappedTotal += auditResult.unmapped.length;
+
+        // Log critical failure sample
+        if (auditResults.length === 0 && auditResult.lost.length > 0) {
+            console.log(`  ❌ CRITICAL: ${auditResult.lost.length} fields LOST in persistence`);
+            auditResult.lost.slice(0, 3).forEach(l => console.log(`     - ${l.field}: Raw "${l.rawValue}" -> DB "${l.dbValue}"`));
+        }
+
         // Auto-Correct Logic
         if (auditResult.auditResult === 'FAIL') {
             const recommendation = auditResult.summary.recommendation;
-            const captureRate = parseInt(auditResult.summary.captureRate.replace('%', ''));
 
             // Safety check: Only auto-correct if recommended
             if (recommendation === 'AUTO_CORRECT') {
-                console.log(`[Orchestrator] Applying corrections for ${container.containerNumber} (Capture Rate: ${captureRate}%)...`);
                 await applyAuditorCorrections(container.containerNumber, auditResult);
             } else {
-                console.log(`[Orchestrator] Skipping auto-correction for ${container.containerNumber}: Recommendation is ${recommendation}`);
-                // Even if we skip, we should update metadata to show it FAILED audit
                 await updateContainerAuditMeta(container.containerNumber, auditResult, 'FAIL');
             }
         } else {
@@ -144,8 +249,44 @@ export async function orchestrateImport(
         }
     }
 
-    // Step 7: Update ImportLog
+    console.log(`\n[Auditor] EXACT MATCHES: ${exactMatches}/${persistResult.containers.length} (${Math.round(exactMatches / persistResult.containers.length * 100)}%)`);
+    console.log(`[Auditor] MISSING FIELDS: ${missingFields} fields lost between Enricher and Database`);
+    console.log(`[Auditor] UNMAPPED FIELDS: ${unmappedTotal} raw columns with no database column`);
+
+    const qualityScore = Math.round((exactMatches / persistResult.containers.length) * 100);
+    if (qualityScore < 95) {
+        console.log(`[Auditor] ⚠️  QUALITY GATE FAILED: ${qualityScore}% match rate (threshold: 95%)`);
+        console.log(`[Auditor] 🚨 Import requires manual review`);
+    } else {
+        console.log(`[Auditor] ✅ QUALITY GATE PASSED`);
+    }
+
+    console.log(`[Orchestrator] STEP 6 Complete.\n`);
+
     const failedCount = auditResults.filter(r => r.auditResult === 'FAIL').length;
+
+    // --- FINAL PERFORMANCE SUMMARY ---
+    const endTotal = Date.now();
+
+    console.log(`\n=== IMPORT SUMMARY ===`);
+    console.log(`File: ${fileName}`);
+    console.log(`Duration: ${((endTotal - startTotal) / 1000).toFixed(2)}s`);
+
+    console.log(`\nRecords Processed:`);
+    console.log(`  - Raw Rows: ${rawRows.length}`);
+    console.log(`  - Containers Created: ${persistResult.containers.length}`);
+    console.log(`  - Events Created: ${persistResult.events.length}`);
+
+    console.log(`\nData Quality:`);
+    console.log(`  - Enrichment: ${enrichedCount || 0} containers enriched`);
+    console.log(`  - Persistence Warnings: ${missingFields} fields possibly lost`);
+    console.log(`  - Quality Score: ${qualityScore}%`);
+
+    if (failedCount > 0 || missingFields > 0) {
+        console.log(`\nIssues:`);
+        if (failedCount > 0) console.log(`  🚨 ${failedCount} containers failed audit`);
+        if (missingFields > 0) console.log(`  ⚠️  ${missingFields} enriched fields not persisted`);
+    }
 
     await prisma.importLog.update({
         where: { fileName: archiveResult.importLogId },
@@ -158,7 +299,10 @@ export async function orchestrateImport(
                     container: r.containerNumber,
                     result: r.auditResult,
                     summary: r.summary
-                }))
+                })),
+                performance: {
+                    totalDuration: endTotal - startTotal
+                }
             }),
             completedAt: new Date(),
             rowsSucceeded: persistResult.containers.length,

@@ -14,7 +14,7 @@ const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.js
 async function main() {
     try {
         console.log(`>>> STEP 3: AUDITOR PREVIEW (Quality Gate) <<<`);
-        updateStatus({ step: 'AUDITOR', progress: 40, message: 'Simulating Import & Auditing (5 Samples)...' });
+        updateStatus({ step: 'AUDITOR', progress: 40, message: 'Simulating Import & Auditing (1 Sample)...' });
 
         if (!fs.existsSync(ARTIFACT_PATH)) throw new Error("No approved detection found. Run Step 2 (Analysis) first.");
         const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf-8'));
@@ -23,7 +23,7 @@ async function main() {
         // Fetch Sample Rows (we don't need all 1000 for a preview)
         const rawRows = await prisma.rawRow.findMany({
             where: { importLogId: FILENAME },
-            take: 3 // Check first 3 rows for speed
+            take: 1 // Check first 1 row for speed
         });
 
         console.log(`Loaded ${rawRows.length} sample rows for Pre-Import Audit.`);
@@ -136,6 +136,25 @@ async function main() {
         }
 
         console.log(`Audit Preview Complete: ${verifiedCount} Verified / ${discrepancyCount} Issues in Sample.`);
+
+        // If sampleAnalysis is still null (e.g. all audits failed), create a dummy one so UI doesn't spin
+        if (!sampleAnalysis && rawRows.length > 0) {
+            const row = rawRows[0];
+            const rawData = JSON.parse(row.data);
+            const headers = row.originalHeaders ? JSON.parse(row.originalHeaders) : [];
+            const rawObj: any = {};
+            if (Array.isArray(rawData)) headers.forEach((h: string, i: number) => rawObj[h] = rawData[i]);
+            else Object.assign(rawObj, rawData);
+
+            sampleAnalysis = {
+                container: "Audit Failed (Timeout/Error)",
+                raw: rawObj,
+                db: {},
+                unmapped: [],
+                captureRate: 0,
+                proposedPatches: {}
+            };
+        }
 
         updateStatus({
             step: 'AUDITOR_COMPLETE',

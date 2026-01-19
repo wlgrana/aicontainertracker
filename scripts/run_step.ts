@@ -4,7 +4,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const step = process.argv[2];
-const LOG_FILE = path.join(process.cwd(), 'logs', 'simulation.log');
+let logFilename = 'simulation.log';
+
+// Try to read log filename from status
+const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
+try {
+    if (fs.existsSync(STATUS_FILE)) {
+        const status = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
+        if (status.logFilename) {
+            logFilename = status.logFilename;
+        }
+    }
+} catch (e) {
+    // ignore
+}
+
+const LOG_FILE = path.join(process.cwd(), 'logs', logFilename);
 
 const scriptMap: Record<string, string> = {
     '1': 'scripts/step1_archivist.ts',
@@ -23,9 +38,15 @@ if (!script) {
 const banner = `\n\n>>> RUNNING STEP ${step} [${new Date().toISOString()}] <<<\n`;
 console.log(banner);
 try {
+    // Ensure directory exists
+    const logDir = path.dirname(LOG_FILE);
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+
     fs.appendFileSync(LOG_FILE, banner);
 } catch (e) { }
 
+// FORCE TRACE LOGGING for detailed debugging
+process.env.LOG_LEVEL = 'trace';
 
 const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
 const child = spawn(process.execPath, [tsxPath, script, ...process.argv.slice(3)], {

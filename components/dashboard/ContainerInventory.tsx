@@ -173,8 +173,8 @@ export function ContainerInventory({
 
     return (
         <div className="space-y-6">
-            {/* Quick Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            {/* Quick Stats Cards - HIDDEN REQUEST */}
+            {/* <div className="grid grid-cols-4 gap-4">
                 <div onClick={() => { setHealthFilter("all"); setBuFilter("all"); }} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Fleet</div>
                     <div className="text-2xl font-black text-slate-900">{totalContainers}</div>
@@ -195,7 +195,7 @@ export function ContainerInventory({
                     <div className="text-2xl font-black text-slate-900">{inTransitCount}</div>
                     <div className="text-xs font-bold text-slate-500">Active Movements</div>
                 </div>
-            </div>
+            </div> */}
 
             <Card className="rounded-[2.5rem] border-slate-200 overflow-hidden shadow-sm">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-8 py-6 space-y-4">
@@ -207,7 +207,7 @@ export function ContainerInventory({
                                 {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems.toLocaleString()} active assets
                             </p>
                         </div>
-                        <Link href="/ingestion">
+                        <Link href="/import">
                             <Button className="rounded-xl font-black text-xs uppercase tracking-widest px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
                                 Import Manifest
                             </Button>
@@ -235,19 +235,6 @@ export function ContainerInventory({
                                 {uniqueBUs.map(bu => (
                                     <SelectItem key={bu} value={bu}>{bu}</SelectItem>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={healthFilter} onValueChange={setHealthFilter}>
-                            <SelectTrigger className="w-[140px] border-none bg-transparent font-bold text-xs uppercase tracking-wide text-slate-600 shadow-none">
-                                <SelectValue placeholder="Health" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Health</SelectItem>
-                                <SelectItem value="critical">Critical</SelectItem>
-                                <SelectItem value="at_risk">At Risk</SelectItem>
-                                <SelectItem value="warning">Warning</SelectItem>
-                                <SelectItem value="on_track">On Track</SelectItem>
-                                <SelectItem value="complete">Complete</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -279,7 +266,7 @@ export function ContainerInventory({
                                                 <h3 className="text-sm font-black text-slate-900">No containers found</h3>
                                                 <p className="text-xs text-slate-500 font-medium">Try adjusting your filters or import a manifest</p>
                                             </div>
-                                            <Link href="/ingestion">
+                                            <Link href="/import">
                                                 <Button variant="outline" size="sm" className="mt-2 text-xs font-bold border-slate-200">
                                                     Import Manifest
                                                 </Button>
@@ -390,13 +377,13 @@ export function ContainerInventory({
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-xs text-slate-600 font-medium">
-                                                {c.atd ? format(new Date(c.atd), 'yyyy-MM-dd') : '—'}
+                                                {c.atd ? format(new Date(c.atd), 'MM-dd-yyyy') : '—'}
                                             </TableCell>
                                             <TableCell className="text-xs text-slate-600 font-medium">
-                                                {c.eta ? format(new Date(c.eta), 'yyyy-MM-dd') : '—'}
+                                                {c.eta ? format(new Date(c.eta), 'MM-dd-yyyy') : '—'}
                                             </TableCell>
                                             <TableCell className="text-xs text-slate-600 font-medium">
-                                                {c.lastFreeDay ? format(new Date(c.lastFreeDay), 'yyyy-MM-dd') : '—'}
+                                                {c.lastFreeDay ? format(new Date(c.lastFreeDay), 'MM-dd-yyyy') : '—'}
                                             </TableCell>
                                             <TableCell className="text-right pr-12 text-xs font-bold text-slate-900">
                                                 {c.daysInTransit ?? '—'}

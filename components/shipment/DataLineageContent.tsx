@@ -11,11 +11,12 @@ interface DataLineageContentProps {
 }
 
 // Helper to strip AI metadata from unmapped fields for cleaner display
-function sanitizeMetadata(metadata: any) {
-    if (!metadata) return null;
+// Helper to strip AI metadata from unmapped fields for cleaner display
+function sanitizeMetadata(metadata: any, externalRawData: any = null) {
+    if (!metadata && !externalRawData) return null;
 
     // Deep clone to avoid mutating state
-    const clean = JSON.parse(JSON.stringify(metadata));
+    const clean = metadata ? JSON.parse(JSON.stringify(metadata)) : {};
 
     // Sanitize unmappedFields if they exist
     if (clean.mapping && clean.mapping.unmappedFields) {
@@ -33,9 +34,8 @@ function sanitizeMetadata(metadata: any) {
     }
 
     // Explicitly keep only the requested top-level keys
-    // "the raw import data should just be the data from the ingestion nothing else"
     return {
-        raw: clean.raw,
+        raw: externalRawData || clean.raw,
         mapping: clean.mapping,
         lastAudit: clean.lastAudit
     };
@@ -45,120 +45,78 @@ export default function DataLineageContent({ data }: DataLineageContentProps) {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* 1. System Metadata Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Clock className="h-4 w-4" /> Timestamps
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Created At</span>
-                            <span className="font-mono text-slate-700">{data.createdAt ? new Date(data.createdAt).toLocaleString() : "-"}</span>
+            {/* 1. System Metadata Cards */}
+            {/* 1. Import Event Details */}
+            <Card className="bg-white border-slate-200 shadow-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Layers className="h-4 w-4" /> Import Event Details
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <span className="text-xs text-slate-500 block mb-1">Import ID</span>
+                            <span className="font-mono text-xs font-bold text-slate-700 block truncate" title={data.importLogId}>
+                                {data.importLogId || "Manual Entry"}
+                            </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Last Updated</span>
-                            <span className="font-mono text-slate-700">{data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "-"}</span>
+                        <div>
+                            <span className="text-xs text-slate-500 block mb-1">Import Date</span>
+                            <span className="font-mono text-xs font-bold text-slate-700 block">
+                                {data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "-"}
+                            </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">AI Last Analysis</span>
-                            <span className="font-mono text-slate-700">{data.aiLastUpdated ? new Date(data.aiLastUpdated).toLocaleString() : "-"}</span>
+                        <div>
+                            <span className="text-xs text-slate-500 block mb-1">Row Number</span>
+                            <span className="font-mono text-xs font-bold text-slate-700 block">
+                                {data.meta?.rawRowId || "-"}
+                            </span>
                         </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Layers className="h-4 w-4" /> Data Sources
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Import Log ID</span>
-                            <span className="font-mono text-xs truncate max-w-[150px] text-slate-700" title={data.importLogId}>{data.importLogId || "-"}</span>
+                        <div>
+                            <span className="text-xs text-slate-500 block mb-1">Last Updated</span>
+                            <span className="font-mono text-xs font-bold text-slate-700 block">
+                                {data.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "-"}
+                            </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Raw Row ID</span>
-                            <span className="font-mono text-xs truncate max-w-[150px] text-slate-700" title={data.meta?.rawRowId}>{data.meta?.rawRowId || "-"}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Confidence</span>
-                            <Badge variant={data.meta?.mappingConfidence > 0.8 ? "default" : "secondary"}>
-                                {data.meta?.mappingConfidence ? `${Math.round(data.meta.mappingConfidence * 100)}%` : "N/A"}
-                            </Badge>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4" /> Integrity Flags
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {data.meta?.flags && Array.isArray(data.meta.flags) && data.meta.flags.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {data.meta.flags.map((flag: string, i: number) => (
-                                    <Badge key={i} variant="outline" className="text-xs border-amber-200 bg-amber-50 text-amber-700">
-                                        {flag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-sm text-slate-400 italic">No flags raised during import.</div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* 1b. Unmapped Data Report */}
             {data.metadata?.lastAudit?.unmappedFields?.length > 0 && data.rawRowData && Array.isArray(data.metadata.lastAudit.unmappedFields) && (
-                <Card className="bg-amber-50 border-amber-200 shadow-sm">
+                <Card className="bg-slate-50 border-slate-200 shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4" /> Unmapped Source Data
+                                <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <Database className="h-4 w-4 text-indigo-500" /> Additional Metadata
                                 </CardTitle>
-                                <CardDescription className="text-amber-700 text-xs mt-1">
-                                    The following columns were present in the source file but not mapped to the database.
+                                <CardDescription className="text-slate-500 text-xs mt-1">
+                                    Valid data found in the source file that was not mapped to a specific schema field.
                                 </CardDescription>
                             </div>
-                            <div className="flex gap-4 text-xs">
-                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
-                                    <span className="font-bold text-slate-700">{Object.keys(data.rawRowData).length}</span>
-                                    <span className="text-[10px] text-slate-500 uppercase">Total Source Columns</span>
-                                </div>
-                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
-                                    <span className="font-bold text-emerald-600">{Object.keys(data.rawRowData).length - data.metadata.lastAudit.unmappedFields.length}</span>
-                                    <span className="text-[10px] text-slate-500 uppercase">Mapped</span>
-                                </div>
-                                <div className="flex flex-col items-center p-2 bg-white/50 rounded border border-amber-100">
-                                    <span className="font-bold text-amber-600">{data.metadata.lastAudit.unmappedFields.length}</span>
-                                    <span className="text-[10px] text-amber-600/70 uppercase">Orphaned</span>
-                                </div>
-                            </div>
+                            <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">
+                                {data.metadata.lastAudit.unmappedFields.length} Fields
+                            </Badge>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="bg-white rounded-md border border-amber-100 overflow-hidden">
+                        <div className="bg-white rounded-md border border-slate-200 overflow-hidden">
                             <table className="w-full text-sm">
-                                <thead className="bg-amber-100/50">
+                                <thead className="bg-slate-50 border-b border-slate-100">
                                     <tr>
-                                        <th className="px-4 py-2 text-left font-bold text-amber-900 border-b border-amber-100 text-xs uppercase tracking-wider">Source Column</th>
-                                        <th className="px-4 py-2 text-left font-bold text-amber-900 border-b border-amber-100 text-xs uppercase tracking-wider">Original Value</th>
+                                        <th className="px-4 py-2 text-left font-bold text-slate-500 text-xs uppercase tracking-wider w-1/3">Field Name</th>
+                                        <th className="px-4 py-2 text-left font-bold text-slate-500 text-xs uppercase tracking-wider">Value</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.metadata.lastAudit.unmappedFields.map((field: string) => {
                                         const val = data.rawRowData[field];
                                         return (
-                                            <tr key={field} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                                                <td className="px-4 py-2 font-mono text-xs text-slate-600 truncate max-w-[200px] font-bold">{field}</td>
-                                                <td className="px-4 py-2 font-mono text-xs text-slate-800 truncate max-w-[300px] break-all">{val !== undefined && val !== null ? String(val) : <span className="text-slate-300 italic">null</span>}</td>
+                                            <tr key={field} className="hover:bg-slate-50/50 border-b border-slate-50 last:border-0">
+                                                <td className="px-4 py-2 font-mono text-xs text-slate-600 truncate font-bold">{field}</td>
+                                                <td className="px-4 py-2 font-mono text-xs text-slate-800 break-all">{val !== undefined && val !== null ? String(val) : <span className="text-slate-300 italic">null</span>}</td>
                                             </tr>
                                         );
                                     })}
@@ -173,20 +131,38 @@ export default function DataLineageContent({ data }: DataLineageContentProps) {
             }
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                {/* AI Analysis */}
+                {/* Container Record (Database) */}
                 <Card className="bg-slate-950 border-slate-800 shadow-inner">
                     <CardHeader>
-                        <CardTitle className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                            <Activity className="h-4 w-4" /> AI Analysis Blob
+                        <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                            <Database className="h-4 w-4" /> Container Record
                         </CardTitle>
                         <CardDescription className="text-slate-500">
-                            Latest output from Mission Oracle agent.
+                            Current data stored in the `Container` table (excluding valid relations).
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-[400px] w-full rounded-md border border-slate-800 bg-slate-950/50 p-4">
-                            <pre className="text-xs font-mono text-emerald-400/90 whitespace-pre-wrap">
-                                {data.aiAnalysis ? JSON.stringify(data.aiAnalysis, null, 2) : "// No AI Analysis found"}
+                            <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap">
+                                {(() => {
+                                    if (!data) return "// No Data";
+                                    // Strip relations and injected fields to show only Container table columns
+                                    const {
+                                        events,
+                                        shipmentContainers,
+                                        attentionFlags,
+                                        activityLogs,
+                                        statusOverrides,
+                                        stage,
+                                        rawRowData,
+                                        riskAssessment, // Often stored in separate table or JSON, keeping it if it's a field, but schema says separate relation?
+                                        // actions.ts includes `riskAssessment` in fetching? No, `include` didn't show `riskAssessment` in `getContainerDetails`...
+                                        // Wait, getDashboardData included it. getContainerDetails did NOT include riskAssessment in `include` block in actions.ts step 64.
+                                        // So it might not be there. Safe to destructure what we know.
+                                        ...containerFields
+                                    } = data;
+                                    return JSON.stringify(containerFields, null, 2);
+                                })()}
                             </pre>
                         </ScrollArea>
                     </CardContent>
@@ -205,7 +181,7 @@ export default function DataLineageContent({ data }: DataLineageContentProps) {
                     <CardContent>
                         <ScrollArea className="h-[400px] w-full rounded-md border border-slate-800 bg-slate-950/50 p-4">
                             <pre className="text-xs font-mono text-blue-400/90 whitespace-pre-wrap">
-                                {data.metadata ? JSON.stringify(sanitizeMetadata(data.metadata), null, 2) : "// No Raw Metadata found"}
+                                {data.metadata || data.rawRowData ? JSON.stringify(sanitizeMetadata(data.metadata, data.rawRowData), null, 2) : "// No Raw Metadata found"}
                             </pre>
                         </ScrollArea>
                     </CardContent>

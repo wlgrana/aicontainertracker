@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Calendar, Building2, MapPin, Pencil, Plus, AlertTriangle, ArrowRight, Save, MessageSquare, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2, Calendar, Building2, MapPin, Pencil, Plus, AlertTriangle, ArrowRight, Save, MessageSquare, ShieldCheck, BrainCircuit, Check, Ship, Anchor, FileText, Siren, Bot, Zap, Flag, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { updateContainer, addNote } from "@/app/actions/operational/actions";
-import { runAgentAudit } from "@/app/actions/reRunAgentAction";
+import { updateContainer, addNote, acceptEnrichment, overrideStatus } from "@/app/actions/operational/actions";
+import { runEnricherAgent } from "@/app/actions/reRunAgentAction";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { OracleChat } from './OracleChat';
 import Link from 'next/link';
 import DataLineageContent from './DataLineageContent';
-import { AgentProcessingTimeline } from './AgentProcessingTimeline';
+
 
 interface ContainerDetailViewProps {
     initialData: any;
@@ -39,7 +39,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
     // --- Actions ---
 
     const handleStatusChange = async (newStatus: string) => {
-        const result = await updateContainer(data.containerNumber, { currentStatus: newStatus });
+        const result = await overrideStatus(data.containerNumber, newStatus, "Manual update from Dashboard");
         if (result.success) {
             toast.success(`Status updated to ${newStatus}`);
             setData((prev: any) => ({ ...prev, currentStatus: newStatus }));
@@ -127,17 +127,20 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
 
     // --- Configuration ---
 
-    const statusOptions = [
-        { value: "BOOK", label: "Booked" },
-        { value: "DEP", label: "Departed" },
-        { value: "ARR", label: "Arrived" },
-        { value: "DIS", label: "Discharged" },
-        { value: "CUS", label: "Customs Hold" },
-        { value: "REL", label: "Released" },
-        { value: "OGF", label: "Out Gate" },
-        { value: "DLV", label: "Delivered" },
-        { value: "EMP", label: "Empty Return" },
-    ];
+    const statusOptions = transitStages?.map((stage: any) => ({
+        value: stage.stageCode || stage.code,
+        label: stage.stageName || stage.name || stage.definition
+    })) || [
+            { value: "BOOK", label: "Booked" },
+            { value: "DEP", label: "Departed" },
+            { value: "ARR", label: "Arrived" },
+            { value: "DIS", label: "Discharged" },
+            { value: "CUS", label: "Customs Hold" },
+            { value: "REL", label: "Released" },
+            { value: "OGF", label: "Out Gate" },
+            { value: "DLV", label: "Delivered" },
+            { value: "EMP", label: "Empty Return" },
+        ];
 
     const dataCards = [
         {
@@ -150,8 +153,10 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                 { key: "eta", label: "ETA", type: "date" },
                 { key: "ata", label: "ATA", type: "date" },
                 { key: "lastFreeDay", label: "Last Free Day (LFD)", type: "date", warningIfMissing: true },
+                { key: "detentionFreeDay", label: "Detention Free Day", type: "date" },
                 { key: "gateOutDate", label: "Gate Out", type: "date" },
                 { key: "deliveryDate", label: "Delivered", type: "date" },
+                { key: "finalDestinationEta", label: "Final Dest ETA", type: "date" },
                 { key: "emptyReturnDate", label: "Empty Return", type: "date" },
             ]
         },
@@ -163,7 +168,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                 { key: "shipment.shipper", label: "Shipper" },
                 { key: "businessUnit", label: "Business Unit" },
                 { key: "mbl", label: "Master BL" },
-                { key: "hbl", label: "House BL" },
+                { key: "hbl", label: "House BL" }, // Verified: container.hbl should be available if populated
                 { key: "shipment.shipmentReference", label: "Reference", readOnly: true },
                 { key: "sealNumber", label: "Seal #" },
                 { key: "shipment.customerPo", label: "Customer PO" },
@@ -171,7 +176,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
         },
         {
             title: "CONTAINER SPECS",
-            icon: MapPin, // logic stretch but works for location/physical
+            icon: MapPin,
             fields: [
                 { key: "containerNumber", label: "Container #", readOnly: true },
                 { key: "containerType", label: "Type" },
@@ -191,6 +196,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                 { key: "serviceType", label: "Service Type" },
                 { key: "currentVessel", label: "Vessel" },
                 { key: "currentVoyage", label: "Voyage" },
+                { key: "loadType", label: "Load Type" },
             ]
         }
     ];
@@ -218,21 +224,36 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
     const issueText = data.exceptionType || (hasIssues ? "Review Required" : "");
 
 
-    const handleReAudit = async () => {
+    const handleRunEnricher = async () => {
         setIsLoading(true);
-        toast.info("Starting Auditor Agent re-run...");
+        toast.info("Starting Enricher Agent...");
         try {
-            const result = await runAgentAudit(data.containerNumber);
+            const result = await runEnricherAgent(data.containerNumber);
             if (result.success) {
-                toast.success("Auditor Agent finished. Decision: " + result.decision);
+                toast.success("Enricher Agent complete: " + result.summary);
                 router.refresh();
             } else {
-                toast.error("Audit failed: " + result.error);
+                toast.error("Enrichment failed: " + result.error);
             }
         } catch (e) {
             toast.error("An error occurred");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleAcceptEnrichment = async (key: string, field: any) => {
+        const toastId = toast.loading(`Accepting ${key}...`);
+        try {
+            const result = await acceptEnrichment(data.containerNumber, key, field.value);
+            if (result.success) {
+                toast.success(`Accepted ${key}`, { id: toastId });
+                router.refresh();
+            } else {
+                toast.error("Failed to accept: " + result.error, { id: toastId });
+            }
+        } catch (e) {
+            toast.error("Error accepting enrichment", { id: toastId });
         }
     };
 
@@ -270,16 +291,16 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
 
                         <div className="flex flex-col items-end gap-3">
                             <div className="flex items-center gap-3">
-                                {/* Re-run Auditor Button */}
+                                {/* Run Enricher Button */}
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={handleReAudit}
+                                    onClick={handleRunEnricher}
                                     disabled={isLoading}
-                                    className="border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200"
+                                    className="border-purple-200 text-purple-700 hover:text-purple-900 hover:bg-purple-50 hover:border-purple-300"
                                 >
-                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
-                                    Re-run Auditor
+                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BrainCircuit className="h-4 w-4 mr-2" />}
+                                    Run Enricher
                                 </Button>
 
                                 {/* Status Dropdown */}
@@ -307,7 +328,67 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                 </div>
             </header>
 
-            {/* 2. ATTENTION BANNER REMOVED */}
+            {/* AI STATUS BANNER */}
+            {(data.aiOperationalStatus || data.aiAttentionCategory) && (
+                <div className="bg-slate-900 text-white border-b border-slate-800">
+                    <div className="max-w-7xl mx-auto px-6 py-4">
+                        <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                            <div className="flex items-start gap-4">
+                                <div className={cn(
+                                    "p-3 rounded-xl",
+                                    data.aiUrgencyLevel === 'CRITICAL' ? "bg-red-500/20 text-red-400" :
+                                        data.aiUrgencyLevel === 'HIGH' ? "bg-orange-500/20 text-orange-400" :
+                                            data.aiUrgencyLevel === 'MEDIUM' ? "bg-yellow-500/20 text-yellow-400" :
+                                                "bg-green-500/20 text-green-400"
+                                )}>
+                                    <Bot className="h-8 w-8" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Badge className={cn(
+                                            "font-bold",
+                                            data.aiUrgencyLevel === 'CRITICAL' ? "bg-red-500 text-white" :
+                                                data.aiUrgencyLevel === 'HIGH' ? "bg-orange-500 text-white" :
+                                                    data.aiUrgencyLevel === 'MEDIUM' ? "bg-yellow-500 text-black" :
+                                                        "bg-green-500 text-white"
+                                        )}>
+                                            {data.aiOperationalStatus || "STATUS UNKNOWN"}
+                                        </Badge>
+                                        <span className="text-sm font-medium text-slate-400">
+                                            Conf: {data.aiDataConfidence || "N/A"}
+                                        </span>
+                                    </div>
+                                    <p className="text-lg font-medium text-white max-w-2xl">
+                                        {data.aiStatusReason || "No status reason provided."}
+                                    </p>
+                                    {data.aiAttentionHeadline && (
+                                        <div className="flex items-center gap-2 mt-2 text-sm text-yellow-400">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            {data.aiAttentionHeadline}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-right">
+                                <div>
+                                    <div className="text-slate-400 text-xs uppercase font-bold tracking-wider">Days in Transit</div>
+                                    <div className="text-2xl font-black">{data.daysInTransit ?? "--"}</div>
+                                </div>
+                                <div>
+                                    <div className="text-slate-400 text-xs uppercase font-bold tracking-wider">Health Score</div>
+                                    <div className={cn("text-2xl font-black",
+                                        (data.healthScore || 0) > 80 ? "text-green-400" :
+                                            (data.healthScore || 0) > 50 ? "text-yellow-400" : "text-red-400"
+                                    )}>{data.healthScore ?? "--"}/100</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
 
             <main className="flex-1 max-w-7xl mx-auto w-full p-6 space-y-8">
 
@@ -351,6 +432,176 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                     ))}
                 </div>
 
+                {/* CUSTOMS & COMPLIANCE */}
+                {(data.aceEntryNumber || data.pgaHold !== null || data.aceStatus) && (
+                    <Card className="shadow-sm border-slate-200">
+                        <CardHeader className="pb-2 border-b border-slate-50">
+                            <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <FileText className="h-4 w-4" /> Customs & Compliance
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">ACE Entry Number</span>
+                                    <div className="font-mono font-medium text-slate-900">{data.aceEntryNumber || "—"}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">ACE Disposition</span>
+                                    <div className="font-medium text-slate-900">{data.aceDisposition || "—"}</div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">PGA Hold</span>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={data.pgaHold ? "destructive" : "outline"} className={!data.pgaHold ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                                            {data.pgaHold ? "YES" : "NO"}
+                                        </Badge>
+                                        {data.pgaAgency && <Badge variant="secondary">{data.pgaAgency}</Badge>}
+                                    </div>
+                                </div>
+                                {(data.pgaHoldReason || data.aceStatus) && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Status / Reason</span>
+                                        <div className="font-medium text-slate-900">{data.pgaHoldReason || data.aceStatus || "—"}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* EXCEPTIONS & PRIORITY */}
+                {(data.hasException || data.manualPriority) && (
+                    <Card className={cn("shadow-sm border-2", data.manualPriority === 'CRITICAL' ? "border-red-200 bg-red-50/10" : "border-amber-200 bg-amber-50/10")}>
+                        <CardHeader className="pb-2 border-b border-slate-100/50">
+                            <CardTitle className={cn("text-xs font-black uppercase tracking-widest flex items-center gap-2", data.manualPriority === 'CRITICAL' ? "text-red-600" : "text-amber-600")}>
+                                <Siren className="h-4 w-4" /> Exceptions & Priority
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Exception Side */}
+                            <div className="space-y-4 p-4 rounded-lg bg-white/50 border border-slate-100">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">Exception Status</span>
+                                    <Badge variant={data.hasException ? "destructive" : "outline"} className={!data.hasException ? "text-slate-400" : ""}>
+                                        {data.hasException ? "ACTIVE" : "NONE"}
+                                    </Badge>
+                                </div>
+                                {data.hasException && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Type</span>
+                                            <div className="font-medium text-red-700">{data.exceptionType}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Notes</span>
+                                            <div className="text-sm text-slate-700">{data.exceptionNotes || "No notes provided."}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Owner</span>
+                                            <div className="text-sm text-slate-700 font-medium">{data.exceptionOwner || "Unassigned"}</div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Priority Side */}
+                            <div className="space-y-4 p-4 rounded-lg bg-white/50 border border-slate-100">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">Priority Override</span>
+                                    {data.manualPriority ? (
+                                        <Badge className={cn(
+                                            data.manualPriority === 'CRITICAL' ? "bg-red-600" : "bg-amber-600"
+                                        )}>{data.manualPriority}</Badge>
+                                    ) : (
+                                        <span className="text-xs text-slate-400">Not Set</span>
+                                    )}
+                                </div>
+                                {data.manualPriority && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Reason</span>
+                                            <div className="font-medium text-slate-900">{data.priorityReason}</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Set By</span>
+                                            <div className="text-sm text-slate-600">
+                                                {data.prioritySetBy} on {data.prioritySetDate ? new Date(data.prioritySetDate).toLocaleDateString() : "-"}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+
+                {/* 3b. AI ENRICHMENT CARD */}
+                {data.aiDerived && data.aiDerived.fields && Object.keys(data.aiDerived.fields).length > 0 && (
+                    <div className="bg-purple-50 rounded-xl border border-purple-200 shadow-sm p-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                            <BrainCircuit className="w-32 h-32 text-purple-600" />
+                        </div>
+
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                            <div>
+                                <h3 className="text-sm font-black text-purple-900 uppercase tracking-widest flex items-center gap-2">
+                                    <BrainCircuit className="h-4 w-4" /> AI Enrichment
+                                </h3>
+                                <p className="text-xs text-purple-700 mt-1">
+                                    Derived from raw metadata without modifying official records.
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Badge variant="outline" className="bg-white border-purple-200 text-purple-700">
+                                    Mode: {data.aiDerived.mode}
+                                </Badge>
+                                <span className="text-[10px] text-purple-600 bg-purple-100 px-2 py-1 rounded">
+                                    Last Run: {new Date(data.aiDerived.lastRun).toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                            {Object.entries(data.aiDerived.fields).map(([key, field]: any) => (
+                                <div key={key} className="bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                        <Badge className={cn(
+                                            "text-[10px] px-1.5 py-0 h-5",
+                                            field.confidence === 'HIGH' ? "bg-green-100 text-green-700 hover:bg-green-100" :
+                                                field.confidence === 'MED' ? "bg-amber-100 text-amber-700 hover:bg-amber-100" :
+                                                    "bg-red-100 text-red-700 hover:bg-red-100"
+                                        )}>
+                                            {field.confidence}
+                                        </Badge>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0 hover:bg-green-50 hover:text-green-600 rounded-full"
+                                            onClick={() => handleAcceptEnrichment(key, field)}
+                                            title="Accept this value"
+                                        >
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="text-lg font-bold text-slate-800 mb-1">
+                                        {String(field.value)}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-100">
+                                        <span className="font-semibold text-purple-600">Source:</span> {field.source}
+                                        <br />
+                                        <span className="font-semibold text-purple-600">Logic:</span> {field.rationale}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* 4. NOTES SECTION */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -385,10 +636,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
 
 
 
-                {/* 5. AGENT PROCESSING TIMELINE (Replaces Event History) */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
-                    <AgentProcessingTimeline containerId={data.containerNumber} />
-                </div>
+
 
                 {/* 6. DATA LINEAGE & AUDIT LOG */}
                 <div className="pt-8 border-t border-slate-200">
@@ -398,6 +646,56 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                     </h3>
                     <DataLineageContent data={data} />
                 </div>
+
+                {/* 7. AI INSIGHTS ACCORDION */}
+                {(data.aiAssessment || data.aiAnalysis) && (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                        <details className="group">
+                            <summary className="flex items-center justify-between p-4 cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <Zap className="h-4 w-4 text-purple-600" />
+                                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">AI Insights & Assessment</h3>
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <span className="text-xs group-open:hidden">[Expand]</span>
+                                    <span className="text-xs hidden group-open:inline">[Collapse]</span>
+                                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                                </div>
+                            </summary>
+                            <div className="p-6 border-t border-slate-100 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Last Analysis</span>
+                                        <div className="font-medium text-slate-900">{data.aiLastUpdated ? new Date(data.aiLastUpdated).toLocaleString() : "—"}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Recommended Owner</span>
+                                        <div className="font-medium text-slate-900">{data.aiRecommendedOwner || "Unassigned"}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">System Flags</span>
+                                        <div className="font-medium text-slate-900">
+                                            {data.metadata?._internal?.flags?.length > 0 ? (
+                                                <div className="flex gap-1 flex-wrap">
+                                                    {data.metadata._internal.flags.map((f: string) => <Badge key={f} variant="outline" className="text-xs">{f}</Badge>)}
+                                                </div>
+                                            ) : "None"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Full Assessment Object</span>
+                                    <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto">
+                                        <pre className="text-xs font-mono text-blue-300">
+                                            {JSON.stringify(data.aiAssessment || data.aiAnalysis, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                )}
 
             </main>
 

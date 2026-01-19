@@ -91,12 +91,52 @@ The Translator creates a mapping from raw Excel fields to database columns. But 
 3. Valuable data has no database column (data is UNMAPPED)
 
 You catch all of these.`,
-        when: "Step 6 of Import Pipeline (Post-Persistence)"
+        when: "Step 3 of Import Pipeline (Pre-Persistence)"
+    },
+    {
+        name: "Enricher",
+        purpose: "The \"Analyst\" - Post-Persistence Inference",
+        icon: Microscope,
+        thinking: "NONE (Heuristic)",
+        status: "Active & Integrated",
+        gradient: "from-pink-500 to-rose-600",
+        steps: [
+            "Scans post-import containers",
+            "Infers Service Type (FCL/LCL)",
+            "Triangulates Status (In Transit)",
+            "Writes to 'aiDerived' (Zero Overwrite)"
+        ],
+        prompt: `N/A - Rule-based TypeScript Logic.
+
+The Enricher uses deterministic heuristics (Regex, Date Triangulation) to infer missing operational data without overwriting 'Official' canonical data.`,
+        when: "Step 4.5 of Import Pipeline"
+    },
+    {
+        name: "Learner",
+        purpose: "The \"Optimizer\" - Self-Improving Dictionary",
+        icon: BrainCircuit,
+        thinking: "HIGH",
+        status: "Active & Integrated",
+        gradient: "from-amber-500 to-orange-600",
+        steps: [
+            "Analyzes unmapped headers",
+            "Consumes Auditor Auto-Patches",
+            "Deduces new synonyms",
+            "Updates persistent dictionaries"
+        ],
+        prompt: `You are the Improvement Analyzer. Your job is to analyze unmapped headers and suggest new synonym additions for the dictionary.
+
+You will see:
+1. 'Header': The unmapped raw column name
+2. 'Values': Sample values from that column
+
+Your Goal: Determine if this header maps to a known canonical field.`,
+        when: "Step 5 of Import Pipeline"
     },
     {
         name: "Oracle Chat",
         purpose: "The \"Assistant\" - Interactive Intelligence",
-        icon: BrainCircuit, // or MessageSquare
+        icon: MessageSquare,
         thinking: "HIGH",
         status: "Active & Integrated",
         gradient: "from-violet-600 to-purple-600",

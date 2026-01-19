@@ -19,6 +19,7 @@ function runScript(scriptName: string): Promise<void> {
         const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
         const child = spawn(process.execPath, [tsxPath, `scripts/${scriptName}`], {
             cwd: process.cwd(),
+            detached: false, // Prevent new console window popup
             shell: false,
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: true

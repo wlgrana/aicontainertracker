@@ -12,7 +12,7 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Smart Filtering**: Advanced filtering by Forwarder, Business Unit, and Operational Status.
 
 ### 2. **Deep Container Intelligence & Simulation (New)**
-- **Simulation Mode**: A developer-focused "Transparent AI" dashboard (`/simulation`) that visualizes the entire ingestion pipeline step-by-step.
+- **Simulation Mode**: A developer-focused "Transparent AI" dashboard (`/import`) that visualizes the entire ingestion pipeline step-by-step.
     - **Step-by-Step Execution**: Manually trigger Archivist, Translator, Auditor, Importer, and Learner agents.
     - **Variable Batch Size**: Control upload limits (10, 25, 100, 1k rows) for rapid testing.
     - **Live Logs**: Downloadable full execution logs for forensic debugging.
@@ -24,7 +24,7 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Status Banner**: Conditional alerts for critical issues (Data Conflicts, Overdue Milestones).
 - **Shipment Snapshot**: Two-column reference card with essential Identity, Routing, Timeline, and Parties data.
 - **Data Quality Alerts**: Specific flags for missing or conflicting data (e.g., "Status shows BOOKED but ATD is past").
-- **Operational Status Classification**: AI-driven "Truth Engine" that determines the *actual* status (e.g., IN_TRANSIT) by analyzing conflicting signals (ATD, Dates, Status Codes) rather than trusting a single field.
+- **Operational Status Classification**: AI-driven "Truth Engine" that prioritizes **Manual Overrides** > **Physical Dates** (Delivery, Gate Out) > **Carrier Status** > **AI Inference** to ensure high-fidelity tracking.
 - **Agent Processing Timeline**: A forensic audit trail visualizing every step of the AI ingestion pipeline (Archivist → Translator → Validation). Displays confidence scores, exact field mappings, and any data discrepancies preventing "black box" confusion.
 
 ### 3. **AI-Driven Data Ingestion Architecture (4-Agent System)**
@@ -52,8 +52,9 @@ The system uses a robust 4-agent architecture to ensure "Zero Data Loss" and hig
 
 ### 4. **Self-Improving Ingestion Engine (New)**
 The system now features an autonomous improvement loop that can iterate on data parsing rules without human intervention.
-- **Mechanism**: Orchestrates the agents in a loop (Translator -> Auditor -> Analyzer -> Updater).
-- **Goal**: Achieves >90% coverage and accuracy by automatically updating internal dictionaries (`business_units.yml`, `container_ontology.yml`).
+- **Agent Pipeline**: 5-step autonomous process (Archivist -> Translator -> Auditor -> Importer -> **Enricher** -> Learner).
+- **Enrichment Engine**: Non-destructive AI inference for Service Type and Status (Zero Overwrite).
+- **Self-Improving**: 'Learner' agent fixes missing mappings automatically. updating internal dictionaries (`business_units.yml`, `container_ontology.yml`).
 - **Docs**: [Self-Improving Engine](./docs/SELF_IMPROVING_ENGINE.md)
 
 ### 5. **Manual Intervention Tools**

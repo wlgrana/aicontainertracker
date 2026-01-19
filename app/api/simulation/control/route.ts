@@ -8,7 +8,7 @@ const PID_FILE = path.join(process.cwd(), 'simulation_pid.txt');
 const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
 
 export async function POST(req: Request) {
-    const { action, filename, containerLimit } = await req.json();
+    const { action, filename, containerLimit, enrichEnabled } = await req.json();
 
 
     const spawnStep = (stepArgs: string[]) => {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
         const child = spawn(process.execPath, [tsxPath, 'scripts/run_step.ts', ...stepArgs], {
             cwd: process.cwd(),
-            detached: true,
+            detached: false, // Keep attached to main process to avoid popups
             stdio: 'ignore', // 'ignore' is crucial for detached on Windows to not pop up
             shell: false,     // Disable shell to prevent cmd.exe popup
             windowsHide: true // Explicitly hide window
@@ -47,6 +47,9 @@ export async function POST(req: Request) {
         else args.push('all');
 
         // RESET STATUS IMMEDIATELY to prevent stale data flicker
+        const timestamp = Date.now();
+        const logFilename = `simulation_${timestamp}.log`;
+
         try {
             const initialStatus = {
                 step: 'ARCHIVIST',
@@ -54,20 +57,16 @@ export async function POST(req: Request) {
                 message: 'Initializing Simulation...',
                 filename: filename || 'Unknown',
                 rowCount: 0,
-                agentData: {} // Clear all agent data
+                agentData: {}, // Clear all agent data
+                enrichEnabled: !!enrichEnabled,
+                logFilename: logFilename // Store the unique log filename for this run
             };
             fs.writeFileSync(STATUS_FILE, JSON.stringify(initialStatus, null, 2));
         } catch (e) {
             console.error("Failed to reset status on start:", e);
         }
 
-        if (filename || containerLimit) {
-            const logPath = path.join(process.cwd(), 'logs', 'simulation.log');
-            if (fs.existsSync(logPath)) {
-                const archivePath = path.join(process.cwd(), 'logs', `simulation_${Date.now()}.log`);
-                try { fs.renameSync(logPath, archivePath); } catch (e) { }
-            }
-        }
+        // No more log rotation/renaming. Each run gets a new file.
 
         spawnStep(args);
         return NextResponse.json({ success: true, message: `Simulation Started (Step 1) with ${filename || 'default'}` });
@@ -138,24 +137,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: 'Re-running step...' });
     }
 
-    if (action === 'clear') {
-        if (fs.existsSync(PID_FILE)) {
-            try {
-                const pid = fs.readFileSync(PID_FILE, 'utf-8').trim();
-                if (pid) process.kill(Number(pid), 'SIGKILL');
-            } catch (e) { }
-            try { fs.unlinkSync(PID_FILE); } catch (e) { }
-        }
-        const tsxPath = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
-        spawn(process.execPath, [tsxPath, 'scripts/clear_only.ts'], {
-            detached: true,
-            stdio: 'ignore',
-            shell: false,
-            windowsHide: true
-        }).unref();
-        try { fs.writeFileSync(STATUS_FILE, JSON.stringify({ step: 'IDLE', progress: 0, message: 'Database Cleared' }, null, 2)); } catch (e) { }
-        return NextResponse.json({ success: true, message: 'Clearing Database...' });
-    }
+
 
     if (action === 'stop') {
         if (fs.existsSync(PID_FILE)) {

@@ -31,7 +31,7 @@ export interface TranslatorInput {
     headers: string[];
     rawRows: RawRowData[];
     existingSchemaFields: string[];
-    transitStages: string[];
+    transitStages: Array<{ code: string | null; name: string; definition: string | null }>;
     auditorFeedback?: AuditorFeedback; // For revision rounds
 }
 
@@ -289,5 +289,38 @@ export interface AnalyzerSuggestion {
 export interface AnalyzerOutput {
     suggestions: AnalyzerSuggestion[];
     summary: string;
+}
+
+// ============================================
+// ENRICHER TYPES
+// ============================================
+
+export interface EnricherInput {
+    // using Record<string, any> to denote the Shape of Container model
+    container: Record<string, any>;
+    rawMetadata: Record<string, any>;
+    mode: 'IMPORT_FAST' | 'ON_DEMAND';
+}
+
+export interface EnricherOutput {
+    containerNumber: string;
+    // We intentionally do NOT include 'updates' for canonical fields to enforce "Zero Overwrite"
+    aiDerived: AiDerivedData;
+    summary: string;
+}
+
+export interface AiDerivedData {
+    lastRun: string;
+    mode: 'IMPORT_FAST' | 'ON_DEMAND';
+    statusInference?: string; // Renamed from derivedStatus
+    fields: Record<string, AiDerivedField>;
+}
+
+export interface AiDerivedField {
+    value: any;
+    confidence: 'HIGH' | 'MED' | 'LOW';
+    source: string;
+    method: string;
+    rationale: string;
 }
 

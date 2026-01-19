@@ -1,10 +1,12 @@
 
 import { prisma } from '../lib/prisma';
 import { persistMappedData } from '../lib/persistence';
-import { updateStatus, getActiveFilename } from './simulation-utils';
+import { updateStatus, getActiveFilename, getActiveOptions } from './simulation-utils';
 import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
+import { runEnricher } from '../agents/enricher';
+import { AgentStage } from '@prisma/client';
 
 const FILENAME = getActiveFilename();
 const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
@@ -100,7 +102,78 @@ async function main() {
 
         console.log(`Transformed ${MAPPED_CONTAINERS.length} records instantly.`);
 
+        // --- ENRICHER (Pre-Persistence Inference) ---
+        // We run this BEFORE persistence so we can validate it during the write.
+        // Conceptually this is Step 3 in the user's mental model.
+        const { enrichEnabled } = getActiveOptions();
+        const enrichmentMap = new Map<string, any>();
+        let enrichedCount = 0;
+        let enrichmentTotalFields = 0;
+        const confidenceStats = { HIGH: 0, MED: 0, LOW: 0 };
+
+        if (enrichEnabled) {
+            console.log(`\n>>> STEP 3: ENRICHER (Inference Engine) <<<`);
+            updateStatus({ message: 'Running Enrichment...' });
+            console.log(`[Enricher] Processing ${MAPPED_CONTAINERS.length} containers...`);
+            console.log(`[Enricher] Running inference methods: [ServiceType, StatusInference, FinalDestination]`);
+
+            for (const c of MAPPED_CONTAINERS) {
+                try {
+                    // Reconstruct canonical container object from fields
+                    const containerObj: any = { containerNumber: c.fields.containerNumber?.value };
+                    ALL_CONTAINER_FIELDS.forEach(k => {
+                        if (c.fields[k]?.value) containerObj[k] = c.fields[k].value;
+                    });
+
+                    // Reconstruct raw metadata
+                    const rawMeta = c.meta || {};
+
+                    const enrichment = runEnricher({
+                        container: containerObj,
+                        rawMetadata: rawMeta,
+                        mode: 'IMPORT_FAST'
+                    });
+
+                    if (enrichment.aiDerived && Object.keys(enrichment.aiDerived.fields).length > 0) {
+                        enrichmentMap.set(containerObj.containerNumber, enrichment.aiDerived);
+                        enrichedCount++;
+
+                        // Detailed Log for first few
+                        if (enrichedCount <= 3) {
+                            console.log(`[Enricher] Processing container ${containerObj.containerNumber}...`);
+                            Object.entries(enrichment.aiDerived.fields).forEach(([k, v]: any) => {
+                                console.log(`  → ${k}: Derived "${v.value}" from ${v.source} [${v.confidence} confidence]`);
+                            });
+                        }
+
+                        // Stats collection
+                        Object.values(enrichment.aiDerived.fields).forEach((v: any) => {
+                            enrichmentTotalFields++;
+                            if (v.confidence === 'HIGH') confidenceStats.HIGH++;
+                            else if (v.confidence === 'MED') confidenceStats.MED++;
+                            else confidenceStats.LOW++;
+                        });
+                    }
+                } catch (e) {
+                    console.warn(`Enrichment error on ${c.rawRowId}:`, e);
+                }
+            }
+
+            const avgConf = enrichmentTotalFields > 0 ? Math.round(((confidenceStats.HIGH * 100) + (confidenceStats.MED * 70) + (confidenceStats.LOW * 30)) / enrichmentTotalFields) : 0;
+            console.log(`[Enricher] ✅ Enriched ${enrichedCount}/${MAPPED_CONTAINERS.length} containers (avg confidence: ~${avgConf}%)`);
+            console.log(`[Enricher] Summary:`);
+            console.log(`  - ${enrichmentTotalFields} fields derived`);
+            console.log(`  - ${confidenceStats.HIGH} HIGH confidence`);
+            console.log(`  - ${confidenceStats.MED} MEDIUM confidence`);
+            console.log(`  - ${confidenceStats.LOW} LOW confidence`);
+            console.log("STEP 3 Complete.");
+
+        } else {
+            console.log("\n>>> STEP 3: ENRICHER SKIPPED (Not Enabled) <<<");
+        }
+
         // PERSIST
+        console.log("\n>>> STEP 4: PERSISTENCE (Database Write) <<<");
         const fullOutput = {
             ...artifact,
             containers: MAPPED_CONTAINERS,
@@ -108,7 +181,8 @@ async function main() {
         };
 
         // Saving to DB
-        await persistMappedData(FILENAME, fullOutput, (msg) => {
+        // Validation logging happens INSIDE persistMappedData now
+        await persistMappedData(FILENAME, fullOutput, enrichmentMap, (msg) => {
             updateStatus({
                 step: 'IMPORT',
                 progress: 60 + Math.floor((parseInt(msg.match(/Processed (\d+)/)?.[1] || "0") / MAPPED_CONTAINERS.length) * 40),
@@ -144,9 +218,9 @@ async function main() {
         // CLEANUP (DISABLED: Step 5 needs this artifact to learn from Auditor patches)
         // try { fs.unlinkSync(ARTIFACT_PATH); } catch (e) { }
 
-        // Show 5 Sample Rows
-        console.log("\n>>> IMPORT SAMPLE (5 Rows) <<<");
-        const sample = MAPPED_CONTAINERS.slice(0, 5).map(c => {
+        // Show 1 Sample Row
+        console.log("\n>>> IMPORT SAMPLE (1 Row) <<<");
+        const sample = MAPPED_CONTAINERS.slice(0, 1).map(c => {
             const flat: any = {};
             ALL_CONTAINER_FIELDS.forEach(field => {
                 flat[field] = (c.fields[field] as any)?.value || null;
@@ -189,6 +263,21 @@ async function main() {
         console.log("STEP 4 Complete.");
         console.table(sample);
         console.log(`\nVerified ${MAPPED_CONTAINERS.length} records imported.\n`);
+
+        console.log(`\n=== IMPORT SUMMARY ===`);
+        console.log(`File: ${FILENAME}`);
+        console.log(`Start Time: ${new Date().toISOString()}`);
+
+        console.log(`\nRecords Processed:`);
+        console.log(`  - Raw Rows: ${rawRows.length}`);
+        console.log(`  - Containers Created: ${MAPPED_CONTAINERS.length}`);
+
+        console.log(`\nData Quality:`);
+        console.log(`  - Enrichment: ${enrichedCount} containers enriched`);
+        // Note: Persistence Warnings are logged during execution
+
+        console.log(`\nIssues:`);
+        console.log(`  (See logs above for specific warnings)`);
 
     } catch (error) {
         console.error("Step 4 Failed:", error);

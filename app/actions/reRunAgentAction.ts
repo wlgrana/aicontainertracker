@@ -5,6 +5,8 @@ import { runTranslator } from "@/agents/translator";
 import { runAuditor } from "@/agents/auditor";
 import { persistMappedData, applyAuditorCorrections, updateContainerAuditMeta } from "@/lib/persistence";
 import { AuditorOutput, AuditorInput } from '@/types/agents';
+import { runEnricher } from "@/agents/enricher";
+import { AgentStage } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function runAgentAudit(containerNumber: string) {
@@ -163,5 +165,66 @@ export async function runAgentAudit(containerNumber: string) {
     } catch (error: any) {
         console.error("Agent Audit Failed:", error);
         return { success: false, error: error.message };
+    }
+}
+
+export async function runEnricherAgent(containerNumber: string) {
+    console.log(`[Action] Re-running Enricher Agent for container ${containerNumber}...`);
+
+    try {
+        const container = await prisma.container.findUnique({
+            where: { containerNumber },
+        });
+
+        if (!container) throw new Error("Container not found");
+
+        const rawRowId = (container.metadata as any)?._internal?.rawRowId || (container.metadata as any)?.rawRowId;
+        let rawMeta: any = {};
+
+        if (rawRowId) {
+            const rawRow = await prisma.rawRow.findUnique({ where: { id: rawRowId } });
+            if (rawRow) {
+                try { rawMeta = JSON.parse(rawRow.data); } catch (e) { }
+            }
+        } else {
+            // Fallback: use rawMetadata field if populated (likely from previous import)
+            rawMeta = container.rawMetadata || {};
+        }
+
+        const enricherInput = {
+            container: container as any,
+            rawMetadata: rawMeta,
+            mode: 'ON_DEMAND' as const
+        };
+
+        const result = runEnricher(enricherInput);
+
+        if (result.aiDerived && Object.keys(result.aiDerived.fields).length > 0) {
+            await prisma.container.update({
+                where: { containerNumber },
+                data: {
+                    aiDerived: result.aiDerived as any,
+                    aiLastUpdated: new Date()
+                }
+            });
+
+            // Log event
+            await prisma.agentProcessingLog.create({
+                data: {
+                    containerId: containerNumber,
+                    stage: AgentStage.ENRICHER,
+                    status: 'COMPLETED',
+                    timestamp: new Date(),
+                    output: result.aiDerived as any
+                }
+            });
+        }
+
+        revalidatePath(`/container/${containerNumber}`);
+        return { success: true, summary: result.summary };
+
+    } catch (e: any) {
+        console.error("Enricher Agent Failed:", e);
+        return { success: false, error: e.message };
     }
 }

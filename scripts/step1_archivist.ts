@@ -27,18 +27,18 @@ async function main() {
         console.log("⚠️  RESETTING DATABASE...");
 
         // await prisma.agentProcessingLog.deleteMany();
-        // CLEAN DB (Optional, for simulation reset)
-        try { await prisma.agentProcessingLog.deleteMany(); } catch (e) { } // Ignore if missing
-        try { await prisma.improvementJob.deleteMany(); } catch (e) { }
-        await prisma.activityLog.deleteMany();
-        await prisma.containerEvent.deleteMany();
-        await prisma.shipmentContainer.deleteMany();
-        await prisma.shipment.deleteMany();
-        await prisma.container.deleteMany();
-        await prisma.rawRow.deleteMany();
-        await prisma.importLog.deleteMany();
+        // CLEAN DB (Optional, for simulation reset) - DISABLED PER USER REQUEST
+        // try { await prisma.agentProcessingLog.deleteMany(); } catch (e) { } // Ignore if missing
+        // try { await prisma.improvementJob.deleteMany(); } catch (e) { }
+        // await prisma.activityLog.deleteMany();
+        // await prisma.containerEvent.deleteMany();
+        // await prisma.shipmentContainer.deleteMany();
+        // await prisma.shipment.deleteMany();
+        // await prisma.container.deleteMany();
+        // await prisma.rawRow.deleteMany();
+        // await prisma.importLog.deleteMany();
 
-        console.log("✅ Database Wiped.");
+        console.log("✅ Database Wipe Disabled (Preserving Data).");
 
         // --- ARCHIVIST ---
         updateStatus({ step: 'ARCHIVIST', progress: 10, message: `Ingesting ${FILENAME}...`, agentData: {} });

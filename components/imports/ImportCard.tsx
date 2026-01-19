@@ -198,7 +198,7 @@ export function ImportCard({ log, onProcess, onDelete, onViewAnalysis }: ImportC
                     >
                         <Trash2 className="w-5 h-5" />
                     </button>
-                    <Link href={`/ingestion/${log.fileName}`}>
+                    <Link href={`/import`}>
                         <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-primary hover:border-primary rounded-xl transition-all">
                             <Eye className="w-5 h-5" />
                         </button>

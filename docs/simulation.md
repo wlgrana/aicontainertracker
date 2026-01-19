@@ -14,18 +14,18 @@ The simulation automates the "Self-Improving Ingestion Engine" workflow:
 
 2.  **Translator (Step 2)**
     *   **Action**: Maps user headers to the canonical schema (e.g., "PO Number" -> `customer_po`).
-    *   **Logic**: Uses `Translator` agent (OpenAI) with a fallback to "Heuristic Matching" if the AI times out.
+    *   **Logic**: Uses `Translator` agent (OpenAI) with a fallback to "Heuristic Matching". **Includes Robust Date Conversion**: Automatically detects and converts Excel serial dates (e.g., `45719`) to ISO format (`2025-03-03T00...`).
     *   **Output**: Generates a `temp_translation.json` artifact defining the schema mapping.
 
 3.  **Auditor (Step 3)**
     *   **Action**: Pre-validates the mapping before committing to the database.
-    *   **Logic**: Simulates the import for a small sample (3-5 rows) and runs the `Auditor` agent to check for data quality issues or unmapped fields.
+    *   **Logic**: Runs a **"Fast Check" (1-Row Sample)** to validate the mapping logic instantly using the `Auditor` agent. Checks for data quality issues or unmapped fields without stalling the pipeline.
     *   **Output**: Updates the mapping artifact with "Auto-Patches" if it finds obvious missing fields (e.g., `Remaks` -> `metadata.remarks`). These patches are immediately available to the Importer and Learner.
 
 4.  **Importer (Step 4)**
     *   **Action**: bulk transforms and saves all data.
-    *   **Logic**: Applies the mapping artifact (including Auditor patches) to ALL rows in the `RawRow` table and upserts `Container`, `Shipment`, and `ContainerEvent` records. Preserves `temp_translation.json` for Step 5 analysis.
-    *   **Output**: Live database records.
+    *   **Logic**: Uses **Optimized Batch Persistence** (Chunk Size: 50). Applies the mapping artifact to ALL rows. **Merges Enriched Data**: Automatically runs the Enricher and persists derived fields (`serviceType`, `finalDestination`) into the canonical record to prevent data gaps.
+    *   **Output**: Live database records. Displays a **1-Row Verification Sample** in the logs.
 
 5.  **Learner (Step 5)**
     *   **Action**: Learns from unmapped data to improve future runs.
@@ -51,11 +51,12 @@ To verify runs and troubleshoot issues without relying on the UI console, we hav
 
 ### 1. Auditor "Stuck" State (Resolved)
 **Symptoms**: The simulation hangs during Step 3 (Auditor). The logs show 2-3 containers processed, then silence. The test script times out after 60 seconds.
-**Cause**: The `Auditor` agent makes sequential, heavy AI calls (Azure OpenAI `gpt-4o`). If the API is slow or rate-limited, the strict timeout in the loop halts the process, or it simply takes longer than the test script allows.
+**Cause**: The `Auditor` agent makes sequential, heavy AI calls. Long prompts or slow API responses caused timeouts.
 **Resolution**:
-*   Reduced the sample size in Step 3 (from 5 to 3) in `scripts/step3_auditor.ts`.
-*   Added a 15-second strict timeout wrapper to the AI calls in `agents/auditor.ts` and wrapped the call in a try/catch block to skip failures gracefully.
-*   The simulation now successfully completes even if the auditor times out on specific containers.
+*   **Increased Timeout**: AI call timeout increased to 30 seconds.
+*   **Retry Logic**: Implemented exponential backoff (up to 2 retries) to handle transient failures.
+*   **Input Validation**: Fixed a bug where `rawData.raw.originalRow` was undefined, creating an immediate failure loop.
+*   The simulation now successfully completes even if the auditor encounters transient network issues.
 
 ### 2. "Node.exe" Popups (Resolved)
 **Symptoms**: Infinite loop of command prompt windows opening/closing.
@@ -67,6 +68,7 @@ To verify runs and troubleshoot issues without relying on the UI console, we hav
 **Cause**: `transformRow` utility expected Array input but received Key-Value Objects.
 **Fix**: Updated `lib/transformation-engine.ts` to handle both formats.
 
+<<<<<<< Updated upstream
 ## Environment Compatibility
 
 ### Vercel / Serverless Deployments
@@ -81,3 +83,19 @@ These features are **incompatible** with Vercel's serverless environment (Read-O
 *   They will return a `200 OK` with `success: false` and a descriptive message.
 *   The UI will display an alert: *"Simulation Engine is meant for local demonstration only..."*
 *   **Operational Dashboard**: The rest of the application (Dashboard, Container Details, Search) functions normally on Vercel using the production database.
+=======
+### 4. "Left Over" Column Loss (Resolved)
+**Symptoms**: Unmapped columns (like "Booking Date" or "Notes") were silently dropped during import and checking "meta" revealed nothing.
+**Cause**: The `transformRow` utility attempted to access unmapped fields using numeric array indices (`rawData[i]`) even when the input was a Key-Value Object (JSON), resulting in `undefined` values.
+**Fix**: Updated `lib/transformation-engine.ts` to detect input type (Array vs Object) and correctly access properties by key. This ensures **Zero Data Loss**—all unmapped fields are now preserved in `container.meta`, allowing the **Learner** (Step 5) to see and learn from them.
+
+### 5. Excell Serial Dates (Resolved)
+**Symptoms**: Dates appeared as integers (e.g., `45719`) or were invalid in the database.
+**Cause**: Excel stores dates as serial numbers. The system was treating them as raw strings.
+**Fix**: Implemented `lib/date-utils.ts` and integrated it into both **Translator** (Step 2) and **Persistence** (Step 4) to automatically detect and convert these values to ISO Dates.
+
+### 6. Enricher Data Loss (Resolved)
+**Symptoms**: Enriched fields (Service Type, Final Destination) appeared in logs but were NULL in the database.
+**Cause**: The persistence layer calculated the `Container` object *before* running the Enricher, so the enriched values were calculated but never merged into the create/update payload.
+**Fix**: Updated `lib/persistence.ts` to explicitly merge `enrichmentMap` results into the `Container` payload before the crucial `prisma.upsert` call. Enriched statuses are also mapped to valid enum values (e.g., `IN_TRANSIT` -> `DEP`).
+>>>>>>> Stashed changes

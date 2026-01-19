@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils";
 const navigation = [
     { name: 'All Containers', href: '/dashboard?tab=containers', icon: List },
     { name: 'Action Items', href: '/dashboard?tab=attention', icon: AlertCircle },
-    { name: 'Ingestion', href: '/ingestion', icon: FileUp },
-    { name: 'Import History', href: '/ingestion', icon: Clock },
+    { name: 'Ingestion', href: '/import', icon: FileUp },
+    { name: 'Import History', href: '/import-history', icon: Clock },
     { name: 'Manual Entry', href: '/dashboard?tab=manual', icon: Database },
     { name: 'How It Works', href: '/about', icon: Info },
 ];

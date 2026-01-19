@@ -21,6 +21,8 @@ The Shipment Tracker uses a robust **15-table PostgreSQL schema** hosted on Neon
 This system implements a **"Zero Data Loss"** philosophy. Unlike traditional ELT pipelines that discard unmapped columns, we preserve **100% of the raw input data**.
 
 ### The "Hybrid" Approach
+**Persistence Strategy**: Optimized Batch Upserts (Chunk Size: 50) + Parallel execution for high-performance ingestion.
+
 Every `Container` and `Shipment` record stores data in two parallel layers:
 
 1.  **Structured Columns (The "Canonical" Layer)**

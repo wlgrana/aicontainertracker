@@ -206,6 +206,10 @@ export async function archiveExcelFile(input: ArchivistInput): Promise<Archivist
     }
 
     console.log(`[Archivist] Archived ${rows.length} rows.`);
+    if (process.env.LOG_LEVEL === 'trace') {
+        console.log(`[Archivist-TRACE] Raw Rows:`);
+        console.log(JSON.stringify(rawRowData, null, 2));
+    }
 
     return {
         importLogId: importLog.fileName,

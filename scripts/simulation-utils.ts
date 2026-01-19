@@ -56,3 +56,13 @@ export function getActiveFilename(): string {
     }
     return "Horizon Tracking Report.xlsx";
 }
+
+export function getActiveOptions(): { enrichEnabled: boolean } {
+    if (fs.existsSync(STATUS_FILE)) {
+        try {
+            const current = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
+            return { enrichEnabled: !!current.enrichEnabled };
+        } catch (e) { }
+    }
+    return { enrichEnabled: false };
+}

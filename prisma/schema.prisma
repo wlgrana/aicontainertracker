@@ -160,6 +160,7 @@ model Container {
   importLogId         String?
   metadata            Json?
   aiAnalysis          Json?
+  aiDerived           Json?       // NEW: Enriched / Inferred data layer
   aiLastUpdated       DateTime?
   daysInTransit       Int?
   demurrageExposure   String?
@@ -194,6 +195,7 @@ model Container {
   statusOverrides     StatusOverride[]
   agentProcessingLogs AgentProcessingLog[]
 }
+
 
 model ShipmentContainer {
   id                String    @id @default(uuid())
@@ -464,6 +466,7 @@ enum AgentStage {
   PERSISTENCE
   AUDITOR
   IMPROVEMENT_ANALYZER
+  ENRICHER
 }
 
 enum ProcessingStatus {

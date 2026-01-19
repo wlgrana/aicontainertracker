@@ -110,7 +110,7 @@ export default function TrainingDashboard() {
                             </span>
                             LIVE MONITORING
                         </span>
-                        <Link href="/simulation" className="text-sm text-slate-400 hover:text-white transition-colors">
+                        <Link href="/import" className="text-sm text-slate-400 hover:text-white transition-colors">
                             View Simulation
                         </Link>
                     </div>

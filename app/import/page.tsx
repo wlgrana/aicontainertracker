@@ -48,12 +48,17 @@ export default function SimulationPage() {
 
     const [stepTimes, setStepTimes] = useState<Record<string, { end: number, duration: number }>>({});
 
-    useEffect(() => {
+    const fetchLogs = () => {
         fetch('/api/simulation/logs/list').then(r => r.json()).then(d => setLogFiles(d.files || [])).catch(console.error);
-    }, []);
+    };
+
+    useEffect(() => {
+        fetchLogs();
+    }, [status?.step]);
 
     const [containerLimit, setContainerLimit] = useState<string>("all");
     const [autoRun, setAutoRun] = useState(true);
+    const [enrichEnabled, setEnrichEnabled] = useState(true);
 
     // Auto-Run Logic
     useEffect(() => {
@@ -87,7 +92,8 @@ export default function SimulationPage() {
                 body: JSON.stringify({
                     action: action.toLowerCase(),
                     filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
-                    containerLimit: action === 'START' ? containerLimit : undefined
+                    containerLimit: action === 'START' ? containerLimit : undefined,
+                    enrichEnabled: action === 'START' ? enrichEnabled : undefined
                 })
             });
             setTimeout(() => {
@@ -161,14 +167,33 @@ export default function SimulationPage() {
         <div className="min-h-screen bg-slate-50 p-8">
             <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls,.csv" onChange={handleUpload} />
             <div className="max-w-5xl mx-auto space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-1">
-                        <div className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-widest mb-1">
-                            System Demonstration
+                <div className="flex flex-col gap-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Data Ingestion Engine</h1>
+                        <p className="text-slate-500 font-medium">Autonomous import pipeline for container tracking reports.</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative group">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploading}
+                                    className="h-10 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 font-medium bg-slate-50"
+                                >
+                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2 text-blue-500" />}
+                                    {uploading ? 'Uploading...' : 'Select File'}
+                                </Button>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded border border-slate-200 min-w-[200px]">
+                                <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                <span className="font-mono text-slate-700 text-sm font-medium truncate max-w-[200px]">{selectedFile || "No file selected"}</span>
+                            </div>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Autonomous Ingestion Pipeline</h1>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 text-sm text-slate-600 font-medium cursor-pointer select-none bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200">
+
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                            <label className="flex items-center gap-2 text-sm text-slate-600 font-medium cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded border border-slate-200 transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={autoRun}
@@ -176,42 +201,26 @@ export default function SimulationPage() {
                                     className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
                                 />
                                 <Zap className={cn("w-4 h-4", autoRun ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
-                                Auto-Run Mode
+                                <span>Auto-Run</span>
                             </label>
-                            {autoRun && status?.step && status.step !== 'IDLE' && status.step !== 'COMPLETE' && (
-                                <span className="text-xs font-bold text-amber-600 animate-pulse uppercase tracking-wider">
-                                    Autopilot Engaged
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                            <span className="font-bold">Source:</span>
-                            <div className="relative">
-                                <select
-                                    value={selectedFile}
-                                    onChange={(e) => setSelectedFile(e.target.value)}
-                                    className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs rounded-md pl-2 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono shadow-sm cursor-pointer hover:border-blue-300 transition-colors"
-                                >
-                                    {availableFiles.map(f => (
-                                        <option key={f} value={f}>{f}</option>
-                                    ))}
-                                    {!availableFiles.includes(selectedFile) && <option value={selectedFile}>{selectedFile} (Custom)</option>}
-                                </select>
-                                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2 pointer-events-none" />
-                            </div>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-600 hover:text-blue-600 hover:bg-blue-50" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-                                {uploading ? 'Uploading...' : 'Upload File'}
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-2 border-r border-slate-200 pr-2 mr-2">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Limit:</span>
+
+                            <label className="flex items-center gap-2 text-sm text-slate-600 font-medium cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded border border-slate-200 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={enrichEnabled}
+                                    onChange={(e) => setEnrichEnabled(e.target.checked)}
+                                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                />
+                                <BrainCircuit className={cn("w-4 h-4", enrichEnabled ? "text-purple-500 fill-purple-500" : "text-slate-400")} />
+                                <span>Enrich (AI)</span>
+                            </label>
+
+                            <div className="h-8 w-px bg-slate-200" />
+
                             <select
                                 value={containerLimit}
                                 onChange={(e) => setContainerLimit(e.target.value)}
-                                className="text-sm font-bold text-slate-700 bg-transparent border-none focus:ring-0 cursor-pointer"
+                                className="h-10 pl-2 pr-8 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={!!loadingAction}
                             >
                                 <option value="10">10 Rows</option>
@@ -220,34 +229,29 @@ export default function SimulationPage() {
                                 <option value="1000">1k Rows</option>
                                 <option value="all">All Rows</option>
                             </select>
+
+                            <Button
+                                variant="default"
+                                className="h-10 bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm px-6"
+                                onClick={() => handleControl('START')}
+                                disabled={!!loadingAction || (status.step !== 'IDLE' && status.step !== 'COMPLETE')}
+                            >
+                                {loadingAction === 'START' ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
+                                Start Ingestion
+                            </Button>
+
+                            {status.step !== 'IDLE' && status.step !== 'COMPLETE' && (
+                                <Button
+                                    variant="destructive"
+                                    className="h-10 w-10 p-0 rounded bg-red-100 hover:bg-red-200 text-red-600 border border-red-200 shadow-sm"
+                                    onClick={() => handleControl('STOP')}
+                                    disabled={!!loadingAction}
+                                    title="Stop Ingestion"
+                                >
+                                    <Square className="w-4 h-4 fill-current" />
+                                </Button>
+                            )}
                         </div>
-                        <Button
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                            onClick={() => handleControl('START')}
-                            disabled={!!loadingAction || (status.step !== 'IDLE' && status.step !== 'COMPLETE')}
-                        >
-                            {loadingAction === 'START' ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                            Start Simulation
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            className="bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm"
-                            onClick={() => handleControl('STOP')}
-                            disabled={!!loadingAction}
-                        >
-                            <Square className="w-4 h-4 fill-current mr-2" />
-                            Stop
-                        </Button>
-                        <div className="w-px h-8 bg-slate-200 mx-1" />
-                        <Button
-                            variant="outline"
-                            onClick={() => handleControl('CLEAR')}
-                            disabled={!!loadingAction}
-                        >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Clear DB
-                        </Button>
                     </div>
                 </div>
 
@@ -795,13 +799,20 @@ export default function SimulationPage() {
                                 <div className="p-2.5 bg-slate-100 rounded-lg border border-slate-200"><FileText className="w-5 h-5 text-slate-600" /></div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-slate-900 text-lg">Simulation Logs</h3>
-                                    <p className="text-sm text-slate-500 font-medium">Download full execution logs for forensic analysis and debugging.</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm text-slate-500 font-medium">Download full execution logs.</p>
+                                        {status?.logFilename && (
+                                            <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                                Active: {status.logFilename}
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     className="ml-auto"
-                                    onClick={() => fetch('/api/simulation/logs/list').then(r => r.json()).then(d => setLogFiles(d.files || []))}
+                                    onClick={fetchLogs}
                                 >
                                     <RotateCcw className="w-4 h-4 mr-2" /> Refresh
                                 </Button>

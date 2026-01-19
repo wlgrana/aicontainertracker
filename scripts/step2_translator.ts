@@ -48,7 +48,7 @@ async function main() {
                 rawData: JSON.parse(r.data)
             })),
             existingSchemaFields: containerFields,
-            transitStages: transitStages.map(s => s.stageName)
+            transitStages: transitStages.map(s => ({ code: s.stageCode, name: s.stageName, definition: s.definition }))
         });
 
         // NORMALIZE MAPPING KEYS to camelCase (DB Schema format)

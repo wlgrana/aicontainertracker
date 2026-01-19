@@ -95,15 +95,15 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
                 */}
 
                 {/* Import Manifest (Ingestion) */}
-                <Link href="/ingestion" className="block w-full">
+                <Link href="/import" className="block w-full">
                     <div suppressHydrationWarning className={cn(
                         "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
-                        isActive('/ingestion')
+                        isActive('/import')
                             ? "bg-blue-600 shadow-lg shadow-blue-900/50 text-white"
                             : "hover:bg-white/5 text-slate-400 hover:text-white"
                     )}>
                         <div className="flex items-center gap-3">
-                            <UploadCloud className={cn("h-5 w-5", isActive('/ingestion') ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                            <UploadCloud className={cn("h-5 w-5", isActive('/import') ? "text-white" : "text-slate-500 group-hover:text-white")} />
                             <span className="font-bold text-sm tracking-wide">Import Manifest</span>
                         </div>
                     </div>
@@ -144,20 +144,7 @@ export function PremiumSidebar({ attentionCount = 0 }: PremiumSidebarProps) {
 
                 <div className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-2" suppressHydrationWarning>System</div>
 
-                {/* Simulation Dashboard */}
-                <Link href="/simulation" className="block w-full">
-                    <div suppressHydrationWarning className={cn(
-                        "w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between group transition-all duration-200",
-                        isActive('/simulation')
-                            ? "bg-purple-600 shadow-lg shadow-purple-900/50 text-white"
-                            : "hover:bg-white/5 text-slate-400 hover:text-white"
-                    )}>
-                        <div className="flex items-center gap-3">
-                            <Bot className={cn("h-5 w-5", isActive('/simulation') ? "text-white" : "text-slate-500 group-hover:text-white")} />
-                            <span className="font-bold text-sm tracking-wide">Simulation</span>
-                        </div>
-                    </div>
-                </Link>
+
 
                 {/* Training Dashboard */}
                 <Link href="/training" className="block w-full">

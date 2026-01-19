@@ -1,40 +1,33 @@
 import { prisma } from './prisma';
 import { TranslatorOutput, AuditorOutput } from '@/types/agents';
+import { AgentStage, ProcessingStatus } from '@prisma/client';
 
 
-function safeDate(val: any): Date | null {
-    if (!val) return null;
-
-    // Explicitly handle Numeric Strings (Excel Serial)
-    // If we rely on new Date("45719"), it parses as Year 45719 which crashes DB
-    if (String(val).match(/^\d+(\.\d+)?$/)) {
-        const num = parseFloat(String(val));
-        // Excel Range (1954 - 2064)
-        if (num > 20000 && num < 60000) {
-            const utc_days = Math.floor(num - 25569);
-            const utc_value = utc_days * 86400;
-            return new Date(utc_value * 1000);
-        }
-        // Timestamp (milliseconds) check
-        if (num > 946684800000) return new Date(num); // > Year 2000
-    }
-
-    const d = new Date(val);
-    if (!isNaN(d.getTime())) return d;
-
-    return null;
-}
+import { safeDate } from './date-utils';
 
 export async function persistMappedData(
     importLogId: string,
     translatorOutput: TranslatorOutput,
+    enrichmentMap?: Map<string, any>, // NEW: Accept pre-calculated enrichment
     onProgress?: (message: string) => void
 ) {
-    const containers = [];
-    const events = [];
+    // 1. O(1) Lookup Map for matching Events & Logs to Containers
+    const rowIdToContainerMap = new Map<string, string>();
+    const rowIdToMappingMap = new Map<string, any>();
 
-    // Valid Status Codes from seed
-    const VALID_STAGES = ["BOOK", "CEP", "CGI", "STUF", "LOA", "DEP", "TS1", "TSD", "TSL", "TS1D", "ARR", "DIS", "INSP", "CUS", "REL", "AVL", "CGO", "OFD", "DEL", "STRP", "RET", "O"];
+    translatorOutput.containers.forEach(c => {
+        if (c.rawRowId && c.fields.containerNumber?.value) {
+            rowIdToContainerMap.set(c.rawRowId, c.fields.containerNumber.value);
+            rowIdToMappingMap.set(c.rawRowId, c);
+        }
+    });
+
+    // Valid Status Codes - FETCH DYNAMICALLY
+    const dbStages = await prisma.transitStage.findMany({ select: { stageCode: true } });
+    const VALID_STAGES = dbStages.length > 0
+        ? dbStages.map(s => s.stageCode)
+        : ["BOOK", "CEP", "CGI", "STUF", "LOA", "DEP", "TS1", "TSD", "TSL", "TS1D", "ARR", "DIS", "INSP", "CUS", "REL", "AVL", "CGO", "OFD", "DEL", "STRP", "RET", "O"]; // Fallback if DB empty
+
 
     // Helper to derive BU from Consignee
     const deriveBusinessUnit = (consignee: any): string | null => {
@@ -50,17 +43,48 @@ export async function persistMappedData(
         return null;
     };
 
-    for (let i = 0; i < translatorOutput.containers.length; i++) {
-        const mappedContainer = translatorOutput.containers[i];
-        if (i > 0 && i % 25 === 0) {
-            const msg = `[Persistence] Processed ${i} / ${translatorOutput.containers.length} containers...`;
-            console.log(msg);
-            if (onProgress) onProgress(msg);
-        }
-        const f = mappedContainer.fields;
-        const cNum = f.containerNumber?.value;
+    // --- BATCH PROCESSING CONSTANTS ---
+    const BATCH_SIZE = 50;
+    const containers = translatorOutput.containers;
+    const total = containers.length;
 
-        if (cNum) {
+    // Arrays to hold created objects for return
+    const createdContainers = []; // We won't strictly populate this with full DB objects to save memory, just IDs if needed
+    const createdEvents = [];
+
+    // --- STEP 1: Process Containers & Shipments (Batched) ---
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+        const chunk = containers.slice(i, i + BATCH_SIZE);
+
+        if (onProgress) {
+            onProgress(`[Persistence] Batch ${Math.ceil((i + 1) / BATCH_SIZE)}/${Math.ceil(total / BATCH_SIZE)}: Upserting ${chunk.length} containers...`);
+        }
+
+        const containerUpserts = [];
+        const shipmentUpserts = [];
+        const shipmentLinkPromises = [];
+        const rawRowUpdates = [];
+
+        // Logs Accumulator for this chunk
+        const agentLogsToCreate = [];
+
+        // Pre-fetch all containers in this chunk to handle locking efficiently
+        const chunkContainerNumbers = chunk.map(c => c.fields.containerNumber?.value).filter(Boolean) as string[];
+        const existingContainers = await prisma.container.findMany({
+            where: { containerNumber: { in: chunkContainerNumbers } },
+            select: { containerNumber: true, metadata: true, currentStatus: true }
+        });
+        const existingMap = new Map(existingContainers.map(c => [c.containerNumber, c]));
+
+        for (const mappedContainer of chunk) {
+            const f = mappedContainer.fields;
+            const cNum = f.containerNumber?.value;
+
+            if (!cNum) continue;
+
+            createdContainers.push({ containerNumber: cNum });
+
+            // 1a. Prepare Container Upsert
             const metadata: any = {
                 _internal: {
                     mappingConfidence: mappedContainer.overallConfidence,
@@ -69,132 +93,238 @@ export async function persistMappedData(
                     importLogId: importLogId
                 }
             };
+            if (f.finalDestination?.value) metadata.finalDestination = f.finalDestination.value;
 
-            if (f.finalDestination?.value) {
-                metadata.finalDestination = f.finalDestination.value;
+            // --- ENRICHMENT MERGE ---
+            let enrichedServiceType = undefined;
+            let enrichedFinalDest = undefined;
+            let enrichedStatus = undefined;
+
+            if (enrichmentMap && enrichmentMap.has(cNum)) {
+                const eData = enrichmentMap.get(cNum);
+                if (eData && eData.fields) {
+                    enrichedServiceType = eData.fields.serviceType?.value;
+                    enrichedFinalDest = eData.fields.finalDestination?.value;
+
+                    const rawInf = eData.fields.statusInference?.value || eData.statusInference;
+                    if (rawInf === 'IN_TRANSIT') enrichedStatus = 'DEP';
+                    else if (rawInf === 'ARRIVED') enrichedStatus = 'ARR';
+                    // Respect Explicit Code Returns (DEL, CGO, RET) from new logic
+                    else if (['DEL', 'CGO', 'RET', 'DEP', 'ARR', 'BOOK'].includes(rawInf)) enrichedStatus = rawInf;
+                }
             }
 
             const rawStatus = f.currentStatus?.value;
-            const validStatus = (rawStatus && VALID_STAGES.includes(rawStatus)) ? rawStatus : undefined;
+            // PRIORITY: 2. Enriched (Date-based) > 3. Carrier (Raw)
+            // Note: Manual (1) is handled by locking check below.
+            const validStatus = enrichedStatus || ((rawStatus && VALID_STAGES.includes(rawStatus)) ? rawStatus : null);
 
             const derivedBU = f.businessUnit?.value || deriveBusinessUnit(f.consignee?.value);
 
-            const container = await prisma.container.upsert({
-                where: { containerNumber: cNum },
-                create: {
-                    containerNumber: cNum,
-                    currentStatus: validStatus,
-                    carrier: f.carrier?.value,
-                    pol: f.pol?.value,
-                    pod: f.pod?.value,
-                    etd: safeDate(f.etd?.value),
-                    atd: safeDate(f.atd?.value),
-                    eta: safeDate(f.eta?.value),
-                    ata: safeDate(f.ata?.value),
+            const mblValue = f.mbl?.value || f.mbl_or_booking?.value;
 
-                    // Detailed Fields
-                    businessUnit: derivedBU,
-                    hbl: f.hbl?.value,
-                    pieces: f.pieces?.value ? parseInt(String(f.pieces.value)) : null,
-                    volumeCbm: f.volumeCbm?.value ? parseFloat(String(f.volumeCbm.value)) : (f.volume?.value ? parseFloat(String(f.volume.value)) : null),
-                    sealNumber: f.sealNumber?.value,
-                    grossWeight: f.grossWeight?.value ? parseFloat(String(f.grossWeight.value)) : null,
-                    finalDestinationEta: safeDate(f.finalDestinationEta?.value),
-                    loadType: f.loadType?.value,
-                    serviceType: f.serviceType?.value,
-                    containerType: f.containerType?.value,
+            // Full Payload for Creation
+            const containerData = {
+                containerNumber: cNum,
+                currentStatus: validStatus,
+                carrier: f.carrier?.value,
+                pol: f.pol?.value,
+                pod: f.pod?.value,
+                etd: safeDate(f.etd?.value),
+                atd: safeDate(f.atd?.value),
+                eta: safeDate(f.eta?.value),
+                ata: safeDate(f.ata?.value),
+                businessUnit: derivedBU,
+                mbl: mblValue,
+                hbl: f.hbl?.value,
+                pieces: f.pieces?.value ? parseInt(String(f.pieces.value)) : null,
+                volumeCbm: f.volumeCbm?.value ? parseFloat(String(f.volumeCbm.value)) : (f.volume?.value ? parseFloat(String(f.volume.value)) : null),
+                sealNumber: f.sealNumber?.value,
+                grossWeight: f.grossWeight?.value ? parseFloat(String(f.grossWeight.value)) : null,
+                finalDestinationEta: safeDate(f.finalDestinationEta?.value),
+                loadType: f.loadType?.value,
+                serviceType: f.serviceType?.value || enrichedServiceType,
+                containerType: f.containerType?.value,
+                deliveryDate: safeDate(f.deliveryDate?.value),
+                gateOutDate: safeDate(f.gateOutDate?.value),
+                lastFreeDay: safeDate(f.lastFreeDay?.value),
+                emptyReturnDate: safeDate(f.emptyReturnDate?.value),
+                finalDestination: f.finalDestination?.value || enrichedFinalDest,
+                meta: mappedContainer.meta,
+                importLogId: importLogId,
+                aiDerived: enrichmentMap?.get(cNum) || undefined
+            };
 
-                    // Date Fields
-                    deliveryDate: safeDate(f.deliveryDate?.value),
-                    gateOutDate: safeDate(f.gateOutDate?.value),
-                    lastFreeDay: safeDate(f.lastFreeDay?.value),
-                    emptyReturnDate: safeDate(f.emptyReturnDate?.value),
+            // Calculate Update Payload (Pre-Locking)
+            const updatePayload: any = {
+                atd: safeDate(f.atd?.value),
+                ata: safeDate(f.ata?.value),
+                etd: safeDate(f.etd?.value),
+                eta: safeDate(f.eta?.value),
+                importLogId: importLogId,
+                businessUnit: derivedBU || undefined,
+                mbl: mblValue || undefined,
+                hbl: f.hbl?.value || undefined,
+                pieces: f.pieces?.value ? parseInt(String(f.pieces.value)) : undefined,
+                volumeCbm: f.volumeCbm?.value ? parseFloat(String(f.volumeCbm.value)) : undefined,
+                sealNumber: f.sealNumber?.value || undefined,
+                grossWeight: f.grossWeight?.value ? parseFloat(String(f.grossWeight.value)) : undefined,
+                finalDestinationEta: safeDate(f.finalDestinationEta?.value),
+                finalDestination: f.finalDestination?.value || enrichedFinalDest || undefined,
+                loadType: f.loadType?.value || undefined,
+                serviceType: f.serviceType?.value || enrichedServiceType || undefined,
+                containerType: f.containerType?.value || undefined,
+                deliveryDate: safeDate(f.deliveryDate?.value),
+                gateOutDate: safeDate(f.gateOutDate?.value),
+                lastFreeDay: safeDate(f.lastFreeDay?.value),
+                emptyReturnDate: safeDate(f.emptyReturnDate?.value),
+                currentStatus: validStatus,
+                meta: mappedContainer.meta || undefined,
+                aiLastUpdated: new Date()
+            };
 
-                    metadata: metadata,
-                    meta: mappedContainer.meta,
-                    importLogId: importLogId
-                },
-                update: {
-                    atd: safeDate(f.atd?.value),
-                    ata: safeDate(f.ata?.value),
-                    etd: safeDate(f.etd?.value),
-                    eta: safeDate(f.eta?.value),
-
-                    importLogId: importLogId,
-                    businessUnit: derivedBU || undefined,
-                    hbl: f.hbl?.value || undefined,
-                    pieces: f.pieces?.value ? parseInt(String(f.pieces.value)) : undefined,
-                    volumeCbm: f.volumeCbm?.value ? parseFloat(String(f.volumeCbm.value)) : undefined,
-                    sealNumber: f.sealNumber?.value || undefined,
-                    grossWeight: f.grossWeight?.value ? parseFloat(String(f.grossWeight.value)) : undefined,
-                    finalDestinationEta: safeDate(f.finalDestinationEta?.value),
-                    loadType: f.loadType?.value || undefined,
-                    serviceType: f.serviceType?.value || undefined,
-                    containerType: f.containerType?.value || undefined,
-
-                    deliveryDate: safeDate(f.deliveryDate?.value),
-                    gateOutDate: safeDate(f.gateOutDate?.value),
-                    lastFreeDay: safeDate(f.lastFreeDay?.value),
-                    emptyReturnDate: safeDate(f.emptyReturnDate?.value),
-
-                    currentStatus: validStatus,
-                    meta: mappedContainer.meta || undefined,
-                    aiLastUpdated: new Date()
+            // --- CHECK LOCKING ---
+            const ex = existingMap.get(cNum);
+            if (ex) {
+                const lockedFields = (ex.metadata as any)?.lockedFields || [];
+                if (Array.isArray(lockedFields) && lockedFields.length > 0) {
+                    lockedFields.forEach(field => {
+                        if (updatePayload[field] !== undefined) {
+                            delete updatePayload[field]; // PROTECT LOCKED FIELD
+                        }
+                    });
                 }
-            });
 
-            containers.push(container);
+                // Merge Metadata (preserve locks)
+                updatePayload.metadata = {
+                    ...(ex.metadata as any || {}),
+                    ...metadata
+                };
+
+                containerUpserts.push(prisma.container.update({
+                    where: { containerNumber: cNum },
+                    data: updatePayload
+                }));
+            } else {
+                // New Container
+                containerUpserts.push(prisma.container.create({
+                    data: containerData
+                }));
+            }
 
             if (mappedContainer.rawRowId) {
-                await prisma.rawRow.update({
+                rawRowUpdates.push(prisma.rawRow.update({
                     where: { id: mappedContainer.rawRowId },
-                    data: { containerId: container.containerNumber }
+                    data: { containerId: cNum }
+                }));
+            }
+
+            // 1b. Prepare Shipment Upsert
+            const shipRef = f.shipmentReference?.value || mblValue;
+            if (shipRef) {
+                // Deduplicate shipment upserts in this chunk could be an optimization, but Prisma handles concurrent upserts reasonably well if keys are unique. 
+                // However, to avoid "Unique constraint failed" race conditions on create within the same transaction, we should ideally dedup. 
+                // For now, we rely on the fact that container->shipment is many-to-one, so we might hit the same shipment multiple times.
+                // WE WILL RUN SHIPMENT UPSERTS SEQUENTIALLY OR DEDUPED TO BE SAFE.
+                // Let's DEDUP shipment payload by shipRef.
+            }
+
+            // 1c. Accumulate Logs (Archivist & Translator)
+            if (mappedContainer.rawRowId) {
+                agentLogsToCreate.push({
+                    containerId: cNum,
+                    stage: AgentStage.ARCHIVIST,
+                    status: ProcessingStatus.COMPLETED,
+                    timestamp: new Date(metadata._internal?.ingestedAt || new Date()),
+                    output: { rowId: mappedContainer.rawRowId, note: "Captured from raw import" }
                 });
+
+                const shouldLogFull = mappedContainer.overallConfidence < 0.90 || (mappedContainer.flagsForReview?.length || 0) > 0;
+                agentLogsToCreate.push({
+                    containerId: cNum,
+                    stage: AgentStage.TRANSLATOR,
+                    status: ProcessingStatus.COMPLETED,
+                    timestamp: new Date(),
+                    confidence: mappedContainer.overallConfidence,
+                    mappings: mappedContainer.fields as any,
+                    dictionaryVersion: translatorOutput.dictionaryVersion,
+                    output: shouldLogFull ? JSON.parse(JSON.stringify(mappedContainer)) : { summary: "High confidence mapping" }
+                });
+            }
+        } // End chunk loop
+
+        // Execute Container Upserts
+        await Promise.all(containerUpserts);
+
+        // Execute RawRow Updates (can be fire-and-forget or parallel)
+        await Promise.all(rawRowUpdates);
+
+        // Handle Shipments & Links (Deduplicated)
+        const uniqueShipments = new Map();
+        const linksToCreate = [];
+
+        for (const mappedContainer of chunk) {
+            const f = mappedContainer.fields;
+            const cNum = f.containerNumber?.value;
+            const mblValue = f.mbl?.value || f.mbl_or_booking?.value;
+            const shipRef = f.shipmentReference?.value || mblValue;
+
+            if (cNum && shipRef) {
+                if (!uniqueShipments.has(shipRef)) {
+                    uniqueShipments.set(shipRef, {
+                        where: { shipmentReference: shipRef },
+                        create: {
+                            shipmentReference: shipRef,
+                            mbl: mblValue,
+                            hbl: f.hbl?.value,
+                            importLogId: importLogId,
+                            finalDestination: f.finalDestination?.value,
+                            bookingReference: f.bookingReference?.value,
+                            customerPo: f.customerPo?.value,
+                            shipper: f.shipper?.value,
+                            consignee: f.consignee?.value,
+                            businessUnit: f.businessUnit?.value,
+                        },
+                        update: {
+                            mbl: mblValue,
+                            hbl: f.hbl?.value,
+                            customerPo: f.customerPo?.value || undefined,
+                            shipper: f.shipper?.value || undefined,
+                            consignee: f.consignee?.value || undefined,
+                            businessUnit: f.businessUnit?.value || undefined
+                        }
+                    });
+                }
+                linksToCreate.push({ shipmentId: shipRef, containerId: cNum });
             }
         }
 
-        const shipRef = f.shipmentReference?.value || f.mbl?.value;
-        if (shipRef && cNum) {
-            await prisma.shipment.upsert({
-                where: { shipmentReference: shipRef },
-                create: {
-                    shipmentReference: shipRef,
-                    mbl: f.mbl?.value,
-                    hbl: f.hbl?.value,
-                    importLogId: importLogId,
-                    finalDestination: f.finalDestination?.value,
-                    bookingReference: f.bookingReference?.value,
-                    customerPo: f.customerPo?.value,
-                    shipper: f.shipper?.value,
-                    consignee: f.consignee?.value,
-                    businessUnit: f.businessUnit?.value,
-                },
-                update: {
-                    mbl: f.mbl?.value,
-                    hbl: f.hbl?.value,
-                    customerPo: f.customerPo?.value || undefined,
-                    shipper: f.shipper?.value || undefined,
-                    consignee: f.consignee?.value || undefined,
-                    businessUnit: f.businessUnit?.value || undefined
-                }
-            });
+        // Run Shipment Upserts
+        await Promise.all(Array.from(uniqueShipments.values()).map(payload => prisma.shipment.upsert(payload)));
 
-            await prisma.shipmentContainer.create({
-                data: {
-                    shipmentId: shipRef,
-                    containerId: cNum
-                }
-            }).catch(() => { });
+        // Run Link Creation (Swallowing errors for duplicates)
+        await Promise.all(linksToCreate.map(link => prisma.shipmentContainer.create({ data: link }).catch(() => { })));
+
+        // Bulk Create Logs (Archivist/Translator)
+        if (agentLogsToCreate.length > 0) {
+            await prisma.agentProcessingLog.createMany({ data: agentLogsToCreate });
         }
     }
 
-    for (const ev of translatorOutput.events) {
-        const matchedContainerDef = translatorOutput.containers.find(mc => mc.rawRowId === ev.rawRowId);
-        const cNum = matchedContainerDef?.fields.containerNumber?.value;
+    // --- STEP 2: Process Events & Persistence Logs (Batched) ---
+    const allEvents = translatorOutput.events || [];
+    const eventBatchSize = 100;
+    const persistenceLogs = [];
 
-        if (cNum) {
-            const event = await prisma.containerEvent.create({
-                data: {
+    for (let i = 0; i < allEvents.length; i += eventBatchSize) {
+        const chunk = allEvents.slice(i, i + eventBatchSize);
+        const eventsToCreate = [];
+
+        for (const ev of chunk) {
+            // FAST LOOKUP
+            const cNum = rowIdToContainerMap.get(ev.rawRowId);
+            if (cNum) {
+                eventsToCreate.push({
                     containerId: cNum,
                     stageName: ev.stageName,
                     eventDateTime: new Date(ev.eventDateTime),
@@ -203,82 +333,57 @@ export async function persistMappedData(
                     meta: {
                         confidence: ev.confidence,
                         derivedFrom: ev.derivedFrom
-                    } as any
-                }
-            });
-            events.push(event);
+                    }
+                });
+                createdEvents.push(eventsToCreate[eventsToCreate.length - 1]);
+            }
+        }
+
+        if (eventsToCreate.length > 0) {
+            await prisma.containerEvent.createMany({ data: eventsToCreate });
         }
     }
 
-    // LOGGING: Agent Processing Timeline
-    console.log('[Persistence] Logging Agent Processing Timeline...');
+    // --- STEP 3: Create Persistence Logs ---
+    // We do this per container, but we can generate them in memory and bulk insert
+    if (onProgress) onProgress(`[Persistence] Finalizing Audit Logs...`);
 
-    for (const container of containers) {
-        const cNum = container.containerNumber;
-        const meta = container.metadata as any;
-        const rawRowId = meta?._internal?.rawRowId;
+    const persistenceLogsToCreate = [];
+    const eventsByContainer = new Map<string, string[]>();
 
-        try {
-            // 1. ARCHIVIST LOG (Retroactive)
-            if (rawRowId) {
-                await prisma.agentProcessingLog.create({
-                    data: {
-                        containerId: cNum,
-                        stage: 'ARCHIVIST',
-                        status: 'COMPLETED',
-                        timestamp: new Date(meta.ingestedAt || new Date()),
-                        output: {
-                            rowId: rawRowId,
-                            note: "Captured from raw import"
-                        }
-                    }
-                });
+    // Index generated events by container for logging
+    createdEvents.forEach(e => {
+        if (!eventsByContainer.has(e.containerId)) eventsByContainer.set(e.containerId, []);
+        eventsByContainer.get(e.containerId)?.push(e.stageName || 'UNKNOWN');
+    });
+
+    for (const c of createdContainers) {
+        const cNum = c.containerNumber;
+        const evTypes = eventsByContainer.get(cNum) || [];
+
+        persistenceLogsToCreate.push({
+            containerId: cNum,
+            stage: AgentStage.PERSISTENCE,
+            status: ProcessingStatus.COMPLETED,
+            timestamp: new Date(),
+            output: {
+                eventsGenerated: evTypes.length,
+                eventTypes: evTypes
             }
+        });
+    }
 
-            // 2. TRANSLATOR LOG (Retroactive)
-            const containerMapping = translatorOutput.containers.find(mc => mc.rawRowId === rawRowId);
-
-            if (containerMapping) {
-                const shouldLogFull = containerMapping.overallConfidence < 0.90 || (containerMapping.flagsForReview?.length || 0) > 0;
-
-                await prisma.agentProcessingLog.create({
-                    data: {
-                        containerId: cNum,
-                        stage: 'TRANSLATOR',
-                        status: 'COMPLETED',
-                        timestamp: new Date(),
-                        confidence: containerMapping.overallConfidence,
-                        mappings: containerMapping.fields as any,
-                        dictionaryVersion: translatorOutput.dictionaryVersion,
-                        output: shouldLogFull ? JSON.parse(JSON.stringify(containerMapping)) : { summary: "High confidence mapping" }
-                    }
-                });
-            }
-
-            // 3. PERSISTENCE LOG (Current)
-            const createdEvents = events.filter(e => e.containerId === cNum);
-            const shipmentId = await prisma.shipmentContainer.findFirst({ where: { containerId: cNum }, select: { shipmentId: true } });
-
-            await prisma.agentProcessingLog.create({
-                data: {
-                    containerId: cNum,
-                    stage: 'PERSISTENCE',
-                    status: 'COMPLETED',
-                    timestamp: new Date(),
-                    output: {
-                        eventsGenerated: createdEvents.length,
-                        shipmentLinked: shipmentId?.shipmentId || null,
-                        eventTypes: createdEvents.map(e => e.stageName)
-                    }
-                }
+    if (persistenceLogsToCreate.length > 0) {
+        // Chunk logs to avoid query size limits
+        const logChunks = [];
+        for (let i = 0; i < persistenceLogsToCreate.length; i += 100) {
+            await prisma.agentProcessingLog.createMany({
+                data: persistenceLogsToCreate.slice(i, i + 100)
             });
-
-        } catch (logErr) {
-            console.error(`[Persistence] Failed to log timeline for ${cNum}:`, logErr);
         }
     }
 
-    return { containers, events };
+    return { containers: createdContainers, events: createdEvents };
 }
 
 export async function updateContainerAuditMeta(containerNumber: string, result: AuditorOutput, status: 'PASS' | 'FAIL' | 'CORRECTED') {

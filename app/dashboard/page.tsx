@@ -106,7 +106,8 @@ function DashboardContent() {
         router.push(`/dashboard?${params.toString()}`);
     };
 
-    if (loading || !data) {
+    // Only show full page loader on INITIAL load when we have no data at all
+    if (!data) {
         return (
             <div className="flex items-center justify-center h-screen bg-slate-50">
                 <div className="animate-pulse flex flex-col items-center gap-4">

@@ -1,88 +1,477 @@
 {
-  "step": "IDLE",
-  "progress": 0,
-  "message": "Simulation Stopped",
-  "filename": "Horizon Tracking Report.xlsx",
+  "step": "COMPLETE",
+  "progress": 100,
+  "message": "Simulation Finished.",
+  "filename": "First Brands Wkly Report 1.13 (1).xlsx",
   "rowCount": 0,
   "agentData": {
     "archivist": {
-      "filename": "Horizon Tracking Report.xlsx",
-      "rowCount": 176,
+      "filename": "First Brands Wkly Report 1.13 (1).xlsx",
+      "rowCount": 25,
       "headers": [
-        "SHIPMENT ID",
-        "Status",
-        "CONSIGNEE",
-        "VENDOR",
-        "CONTAINER",
-        "SIZE",
-        "SEAL",
-        "PCS",
-        "CBM",
-        "WGT",
-        "HBL",
-        "MBL",
-        "CUSTOMER PO",
-        "CARRIER",
-        "SERV TYPE\r\nAWS / MLB",
-        "ETD POL",
-        "POL",
-        "ETA POD",
-        "POD",
-        "FINAL DESTINATION",
-        "FINAL DEST ETA",
-        "ATD",
-        "ATA POD",
-        "CNTR AVAIL",
-        "OGF DATE",
-        "TRUCKER APPT",
-        "ACTUAL DEL DATE",
-        "EMPTY AVAIL DATE",
-        "EMPTY RETURN DATE",
-        "LFD"
+        "Business Unit",
+        "Shipment / House Bill",
+        "MasterBillNumber",
+        "ContainerNumber",
+        "Container Type (20GP,40GP,40HC)",
+        "Transport Mode (Ocean, Air, Ground)",
+        "Shipping Type (FCL, LCL, Air)",
+        "Shipper's Full Name",
+        "Consigne's Full Name (Ship To)",
+        "Ship to City",
+        "Booking Date",
+        "Actual Departure (ATD)",
+        "Confirmed Destination Port Arrival (ATA)",
+        "Acutal Gateout Date",
+        "Export Departure Port",
+        "Port of Unlading",
+        "Port of Destination",
+        "Carrier Code (SCAC) - shipping line",
+        "Shipment Pieces (Pallets)",
+        "Shipment Volume (M3)",
+        "Shipment Actual Weight (KG's)",
+        "OCEAN FREIGHT COSTS",
+        "Notes",
+        "Empty Return Date"
       ],
       "sampleRow": {
-        "SHIPMENT ID": "S25030127446",
-        "Status": "BCN",
-        "CONSIGNEE": "HORIZON GLOBAL AMERICAS INC",
-        "VENDOR": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
-        "CONTAINER": "TCNU3094950",
-        "SIZE": "40HC",
-        "SEAL": "YMAT099440",
-        "PCS": 128,
-        "CBM": 16.05,
-        "WGT": 4955,
-        "HBL": "YMJAW232595336B",
-        "MBL": "YMJAW232595336",
-        "CUSTOMER PO": 4500033779,
-        "CARRIER": "YMJA",
-        "SERV TYPE\r\nAWS / MLB": "MLB",
-        "ETD POL": 45719,
-        "POL": "Ningbo, CN",
-        "ETA POD": 45733.17569444444,
-        "POD": "Los Angeles, CA",
-        "FINAL DESTINATION": "Edgerton, KS",
-        "FINAL DEST ETA": 45747,
-        "ATD": 45719.229166666664,
-        "ATA POD": 45733.17569444444,
-        "CNTR AVAIL": 45743,
-        "OGF DATE": 45744.63125,
-        "TRUCKER APPT": 45747,
-        "ACTUAL DEL DATE": 45747,
-        "EMPTY AVAIL DATE": 45750.46319444444,
-        "EMPTY RETURN DATE": 45750.46319444444,
-        "LFD": 45745
+        "Business Unit": "HOPKINS MANUFACTURING CORP.",
+        "Shipment / House Bill": "SSZX7031904",
+        "MasterBillNumber": "EGLV010500214709",
+        "ContainerNumber": "EITU1857012",
+        "Container Type (20GP,40GP,40HC)": "40HQ",
+        "Transport Mode (Ocean, Air, Ground)": "OCEAN",
+        "Shipping Type (FCL, LCL, Air)": "LCL",
+        "Shipper's Full Name": "A & W (HONGKONG) LTD.",
+        "Consigne's Full Name (Ship To)": "HOPKINS MANUFACTURING CORP.",
+        "Ship to City": "KANSAS CITY,KS",
+        "Booking Date": 45716,
+        "Actual Departure (ATD)": 45750,
+        "Confirmed Destination Port Arrival (ATA)": "",
+        "Acutal Gateout Date": 45789,
+        "Export Departure Port": "YANTIAN",
+        "Port of Unlading": "LONG BEACH,CA",
+        "Port of Destination": "KANSAS CITY, KS",
+        "Carrier Code (SCAC) - shipping line": "EGLV",
+        "Shipment Pieces (Pallets)": 165,
+        "Shipment Volume (M3)": 4.783,
+        "Shipment Actual Weight (KG's)": 1328.42,
+        "OCEAN FREIGHT COSTS": 1949,
+        "Notes": "SML250019, PO118806",
+        "Empty Return Date": "　"
       }
+    },
+    "translator": {
+      "mappedCount": 25,
+      "confidence": {
+        "overallScore": 0.8,
+        "summary": "Heuristic Fallback Generated",
+        "totalFields": 24,
+        "highConfidence": 0,
+        "mediumConfidence": 0,
+        "lowConfidence": 0,
+        "flaggedForReview": 0
+      },
+      "sampleContainer": {
+        "rawRowId": "8eacea04-54e3-4cb5-abdd-cb127fa1adf9",
+        "fields": {},
+        "meta": {
+          "Business Unit": "HOPKINS MANUFACTURING CORP.",
+          "Shipment / House Bill": "SSZX7031904",
+          "MasterBillNumber": "EGLV010500214709",
+          "ContainerNumber": "EITU1857012",
+          "Container Type (20GP,40GP,40HC)": "40HQ",
+          "Transport Mode (Ocean, Air, Ground)": "OCEAN",
+          "Shipping Type (FCL, LCL, Air)": "LCL",
+          "Shipper's Full Name": "A & W (HONGKONG) LTD.",
+          "Consigne's Full Name (Ship To)": "HOPKINS MANUFACTURING CORP.",
+          "Ship to City": "KANSAS CITY,KS",
+          "Booking Date": 45716,
+          "Actual Departure (ATD)": 45750,
+          "Confirmed Destination Port Arrival (ATA)": "",
+          "Acutal Gateout Date": 45789,
+          "Export Departure Port": "YANTIAN",
+          "Port of Unlading": "LONG BEACH,CA",
+          "Port of Destination": "KANSAS CITY, KS",
+          "Carrier Code (SCAC) - shipping line": "EGLV",
+          "Shipment Pieces (Pallets)": 165,
+          "Shipment Volume (M3)": 4.783,
+          "Shipment Actual Weight (KG's)": 1328.42,
+          "OCEAN FREIGHT COSTS": 1949,
+          "Notes": "SML250019, PO118806",
+          "Empty Return Date": "　",
+          "mappings": {
+            "Business Unit": "businessUnit",
+            "Shipment / House Bill": "hbl",
+            "MasterBillNumber": "mbl_or_booking",
+            "ContainerNumber": "containerNumber",
+            "Container Type (20GP,40GP,40HC)": "containerType",
+            "Transport Mode (Ocean, Air, Ground)": "loadType",
+            "Shipper's Full Name": "shipper",
+            "Consigne's Full Name (Ship To)": "consignee",
+            "Booking Date": "booking_date",
+            "Actual Departure (ATD)": "atd",
+            "Confirmed Destination Port Arrival (ATA)": "ata",
+            "Acutal Gateout Date": "gateOutDate",
+            "Export Departure Port": "pol",
+            "Port of Unlading": "pod",
+            "Carrier Code (SCAC) - shipping line": "carrier",
+            "Shipment Pieces (Pallets)": "pieces",
+            "Shipment Volume (M3)": "volumeCbm",
+            "Shipment Actual Weight (KG's)": "grossWeight",
+            "OCEAN FREIGHT COSTS": "ocean_freight_cost",
+            "Notes": "metadata.remarks",
+            "Empty Return Date": "emptyReturnDate"
+          },
+          "source": "Translator",
+          "confidence": 0.8
+        },
+        "overallConfidence": 0,
+        "flagsForReview": [
+          "Missing Container Number"
+        ]
+      },
+      "schemaMapping": {
+        "fieldMappings": {
+          "businessUnit": {
+            "sourceHeader": "Business Unit",
+            "targetField": "businessUnit",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "hbl": {
+            "sourceHeader": "Shipment / House Bill",
+            "targetField": "hbl",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "mbl": {
+            "sourceHeader": "MasterBillNumber",
+            "targetField": "mbl",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "containerNumber": {
+            "sourceHeader": "ContainerNumber",
+            "targetField": "containerNumber",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "containerType": {
+            "sourceHeader": "Container Type (20GP,40GP,40HC)",
+            "targetField": "containerType",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "loadType": {
+            "sourceHeader": "Transport Mode (Ocean, Air, Ground)",
+            "targetField": "loadType",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "shipper": {
+            "sourceHeader": "Shipper's Full Name",
+            "targetField": "shipper",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "consignee": {
+            "sourceHeader": "Consigne's Full Name (Ship To)",
+            "targetField": "consignee",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "bookingDate": {
+            "sourceHeader": "Booking Date",
+            "targetField": "bookingDate",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "atd": {
+            "sourceHeader": "Actual Departure (ATD)",
+            "targetField": "atd",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "ata": {
+            "sourceHeader": "Confirmed Destination Port Arrival (ATA)",
+            "targetField": "ata",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "gateOutDate": {
+            "sourceHeader": "Acutal Gateout Date",
+            "targetField": "gateOutDate",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "pol": {
+            "sourceHeader": "Export Departure Port",
+            "targetField": "pol",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "pod": {
+            "sourceHeader": "Port of Unlading",
+            "targetField": "pod",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "carrier": {
+            "sourceHeader": "Carrier Code (SCAC) - shipping line",
+            "targetField": "carrier",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "pieces": {
+            "sourceHeader": "Shipment Pieces (Pallets)",
+            "targetField": "pieces",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "volumeCbm": {
+            "sourceHeader": "Shipment Volume (M3)",
+            "targetField": "volumeCbm",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "grossWeight": {
+            "sourceHeader": "Shipment Actual Weight (KG's)",
+            "targetField": "grossWeight",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "oceanFreightCost": {
+            "sourceHeader": "OCEAN FREIGHT COSTS",
+            "targetField": "oceanFreightCost",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "metadata.remarks": {
+            "sourceHeader": "Notes",
+            "targetField": "metadata.remarks",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "emptyReturnDate": {
+            "sourceHeader": "Empty Return Date",
+            "targetField": "emptyReturnDate",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
+          "Shipping Type (FCL, LCL, Air)": {
+            "sourceHeader": "Shipping Type (FCL, LCL, Air)",
+            "targetField": "metadata.serviceType",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          },
+          "Ship to City": {
+            "sourceHeader": "Ship to City",
+            "targetField": "metadata.finalDestination",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          },
+          "Port of Destination": {
+            "sourceHeader": "Port of Destination",
+            "targetField": "metadata.finalDestination",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          }
+        },
+        "unmappedSourceFields": [
+          {
+            "sourceHeader": "Shipping Type (FCL, LCL, Air)",
+            "sampleValue": null,
+            "suggestedField": null,
+            "confidence": 0,
+            "potentialMeaning": "Unknown"
+          },
+          {
+            "sourceHeader": "Ship to City",
+            "sampleValue": null,
+            "suggestedField": null,
+            "confidence": 0,
+            "potentialMeaning": "Unknown"
+          },
+          {
+            "sourceHeader": "Port of Destination",
+            "sampleValue": null,
+            "suggestedField": null,
+            "confidence": 0,
+            "potentialMeaning": "Unknown"
+          }
+        ],
+        "missingSchemaFields": [],
+        "detectedForwarder": "Unknown"
+      },
+      "schemaStats": {
+        "sourceColumns": 27,
+        "schemaFields": 30,
+        "mapped": 24,
+        "unmapped": 3
+      },
+      "stats": {
+        "populated": 505,
+        "empty": 95,
+        "unmapped": 0,
+        "avgFieldsPerContainer": "20.2"
+      },
+      "importSample": [
+        {
+          "containerNumber": "EITU1857012",
+          "currentStatus": null,
+          "currentLocation": null,
+          "carrier": "EGLV",
+          "pol": "YANTIAN",
+          "pod": "LONG BEACH,CA",
+          "finalDestination": null,
+          "eta": null,
+          "ata": null,
+          "etd": null,
+          "atd": "45750",
+          "finalDestinationEta": null,
+          "lastFreeDay": null,
+          "emptyReturnDate": null,
+          "gateOutDate": "45789",
+          "pieces": "165",
+          "grossWeight": "1328.42",
+          "volumeCbm": "4.783",
+          "sealNumber": null,
+          "containerType": "40HQ",
+          "mbl": "EGLV010500214709",
+          "hbl": "SSZX7031904",
+          "shipmentReference": null,
+          "consignee": "HOPKINS MANUFACTURING CORP.",
+          "shipper": "A & W (HONGKONG) LTD.",
+          "customerPo": null,
+          "businessUnit": "HOPKINS MANUFACTURING CORP.",
+          "deliveryDate": null,
+          "loadType": "OCEAN",
+          "serviceType": null
+        }
+      ]
+    },
+    "auditor": {
+      "verifiedCount": 0,
+      "discrepancyCount": 1,
+      "sampleAnalysis": {
+        "container": "BEAU2304798",
+        "raw": {
+          "Business Unit": "BPI",
+          "Shipment / House Bill": "COSU6435509450",
+          "MasterBillNumber": "COSU6435509450",
+          "ContainerNumber": "BEAU2304798",
+          "Container Type (20GP,40GP,40HC)": "20GP",
+          "Transport Mode (Ocean, Air, Ground)": "OCEAN",
+          "Shipping Type (FCL, LCL, Air)": "FCL",
+          "Shipper's Full Name": "LONGKOUG HAIMENG MACHINERY CO,LTD",
+          "Consigne's Full Name (Ship To)": "BRAKE PARTS INC",
+          "Ship to City": "MT. JULIET,TN  ",
+          "Booking Date": 45962,
+          "Actual Departure (ATD)": 45976,
+          "Confirmed Destination Port Arrival (ATA)": "　",
+          "Acutal Gateout Date": "　",
+          "Export Departure Port": "QINGAO",
+          "Port of Unlading": "NEW YORK,NY",
+          "Port of Destination": "NEW YORK,NY",
+          "Carrier Code (SCAC) - shipping line": "COSU",
+          "Shipment Pieces (Pallets)": 16,
+          "Shipment Volume (M3)": 17.44,
+          "Shipment Actual Weight (KG's)": 15946,
+          "OCEAN FREIGHT COSTS": 6525,
+          "Notes": "　",
+          "Empty Return Date": "　"
+        },
+        "db": {
+          "metadata": {
+            "Shipping Type (FCL, LCL, Air)": "FCL",
+            "Ship to City": "MT. JULIET,TN  ",
+            "Port of Destination": "NEW YORK,NY"
+          },
+          "businessUnit": "BPI",
+          "hbl": "COSU6435509450",
+          "mbl": "COSU6435509450",
+          "containerNumber": "BEAU2304798",
+          "containerType": "20GP",
+          "loadType": "OCEAN",
+          "shipper": "LONGKOUG HAIMENG MACHINERY CO,LTD",
+          "consignee": "BRAKE PARTS INC",
+          "bookingDate": "45962",
+          "atd": "45976",
+          "ata": "",
+          "gateOutDate": "",
+          "pol": "QINGAO",
+          "pod": "NEW YORK,NY",
+          "carrier": "COSU",
+          "pieces": "16",
+          "volumeCbm": "17.44",
+          "grossWeight": "15946",
+          "oceanFreightCost": "6525",
+          "metadata.remarks": "",
+          "emptyReturnDate": ""
+        },
+        "unmapped": [
+          "Shipping Type (FCL, LCL, Air)",
+          "Ship to City",
+          "Port of Destination"
+        ],
+        "captureRate": 0.71,
+        "proposedPatches": {
+          "Shipping Type (FCL, LCL, Air)": "metadata.serviceType",
+          "Ship to City": "metadata.finalDestination",
+          "Port of Destination": "metadata.finalDestination"
+        }
+      },
+      "patchedCount": 3
+    },
+    "learner": {
+      "scoreImprovement": 0,
+      "newSynonyms": [
+        "📋 Pending Review: \"Port of Destination\" → final_destination (Unknown Field)"
+      ],
+      "analysisSummary": "Analysis Complete; Reinforced 0 patterns."
     }
   },
-  "timestamp": 1768696027115,
+  "enrichEnabled": true,
+  "logFilename": "simulation_1768815747150.log",
+  "timestamp": 1768815802516,
   "metrics": {
     "source": {
-      "filename": "Horizon Tracking Report.xlsx",
-      "totalRows": 176,
-      "totalCols": 30
+      "filename": "First Brands Wkly Report 1.13 (1).xlsx",
+      "totalRows": 25,
+      "totalCols": 24
     },
     "baseline": {},
     "final": {},
-    "improvement": {}
+    "improvement": {},
+    "translation": {
+      "mapped": 25,
+      "confidence": 0.8,
+      "unmappedFields": 0
+    }
   }
 }
