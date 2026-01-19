@@ -7,7 +7,7 @@ import { AnalyzerInput, AnalyzerSuggestion, AnalyzerOutput } from '../types/agen
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { toCanonicalFieldName, validateFieldExists } from '../agents/field-name-utils';
+import { validateFieldExists } from '../agents/field-name-utils';
 
 const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
@@ -69,8 +69,8 @@ async function main() {
             // 1. Discover Successful Mappings (The "Fix")
             if (meta.mappings) {
                 for (const [rawHeader, dbField] of Object.entries(meta.mappings)) {
-                    // New logic using canonical utils
-                    const canonicalField = toCanonicalFieldName(String(dbField));
+                    // ✅ NEW: Normalize first (preserve casing for Updater matching)
+                    const canonicalField = String(dbField).replace(/^metadata\./, '');
 
                     // Verify field exists
                     if (validateFieldExists(canonicalField, ontology)) {

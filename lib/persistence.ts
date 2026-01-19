@@ -60,6 +60,14 @@ export async function persistMappedData(
             onProgress(`[Persistence] Batch ${Math.ceil((i + 1) / BATCH_SIZE)}/${Math.ceil(total / BATCH_SIZE)}: Upserting ${chunk.length} containers...`);
         }
 
+        // DEBUG: Log first container's key dates in this batch
+        if (chunk.length > 0) {
+            const first = chunk[0];
+            const cNum = first.fields.containerNumber?.value;
+            const etdVal = first.fields.etd?.value;
+            console.log(`[Persistence-DEBUG] Sample Container ${cNum}: Raw ETD from fields="${etdVal}", safeDate Output="${safeDate(etdVal)?.toISOString() || 'null'}"`);
+        }
+
         const containerUpserts = [];
         const shipmentUpserts = [];
         const shipmentLinkPromises = [];
@@ -151,6 +159,7 @@ export async function persistMappedData(
                 emptyReturnDate: safeDate(f.emptyReturnDate?.value),
                 finalDestination: f.finalDestination?.value || enrichedFinalDest,
                 meta: mappedContainer.meta,
+                metadata: metadata, // Fixed: Added missing metadata on create
                 importLogId: importLogId,
                 aiDerived: enrichmentMap?.get(cNum) || undefined
             };
@@ -200,17 +209,14 @@ export async function persistMappedData(
                     ...(ex.metadata as any || {}),
                     ...metadata
                 };
-
-                containerUpserts.push(prisma.container.update({
-                    where: { containerNumber: cNum },
-                    data: updatePayload
-                }));
-            } else {
-                // New Container
-                containerUpserts.push(prisma.container.create({
-                    data: containerData
-                }));
             }
+
+            // Use upsert to handle both creation and updates safely (Fixes race conditions)
+            containerUpserts.push(prisma.container.upsert({
+                where: { containerNumber: cNum },
+                update: updatePayload,
+                create: containerData // Now includes metadata
+            }));
 
             if (mappedContainer.rawRowId) {
                 rawRowUpdates.push(prisma.rawRow.update({

@@ -9,9 +9,10 @@ export function safeDate(val: any): Date | null {
         // Excel Range (1954 - 2064) - serial 20000 is year 1954, 60000 is year 2064
         if (num > 20000 && num < 60000) {
             // Excel base date: Dec 30 1899
-            const utc_days = Math.floor(num - 25569);
-            const utc_value = utc_days * 86400;
-            return new Date(utc_value * 1000);
+            // Formula: (serial - 25569) * 86400 * 1000
+            // We use a small epsilon for floating point precision if needed, but simple formula usually works.
+            const ms = Math.round((num - 25569) * 86400 * 1000);
+            return new Date(ms);
         }
         // Timestamp (milliseconds) check
         if (num > 946684800000) return new Date(num); // > Year 2000

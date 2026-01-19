@@ -145,6 +145,7 @@ required_fields:
       - ETD (Original?)
       - ETD (Original)
       - Dep. Date
+      - Est Departure
     data_type: datetime
     confidence_threshold: 0.9
   atd:
@@ -155,6 +156,7 @@ required_fields:
       - Actual Departure (ATD)
       - Act Depart
       - Actual Time of Departure (ATD)
+      - Act Departure
     data_type: datetime
     confidence_threshold: 0.9
   eta:
@@ -179,6 +181,7 @@ required_fields:
       - ATA (POD?)
       - ATA (?)
       - Confirmed Destination Port Arrival (ATA)
+      - Act Arrival
     data_type: datetime
     confidence_threshold: 0.9
   shipmentReference:
@@ -199,6 +202,7 @@ required_fields:
       - Stage
       - Milestone
       - Current Transport Stage
+      - Current Stage
     value_patterns:
       - "TransitStage codes: BOOK, DEP, ARR, DIS, CUS, REL, OGF, DLV, EMP"
       - Carrier-specific codes (needs normalization)
@@ -294,6 +298,7 @@ optional_fields:
       - SIZE
       - Container Type (20GP,40GP,40HC)
       - Typ
+      - Equip Type
     value_patterns:
       - 20GP, 20ST, 40GP, 40HC, 40HQ, 45HC
     data_type: string
@@ -314,6 +319,7 @@ optional_fields:
       - Last Free Day
       - Free Time Ends
       - Demurrage Starts
+      - Free Time Expires
     data_type: date
     confidence_threshold: 0.8
   discharge_date:
@@ -461,6 +467,8 @@ optional_fields:
       - Weight Detail
       - Shipment Actual Weight (KG's)
       - Wgt
+      - Gross Weight (KG)
+      - Weight (KG)
     data_type: float
     confidence_threshold: 0.85
   shipper:
@@ -516,6 +524,31 @@ optional_fields:
       - Remaks
     data_type: string
     confidence_threshold: 0.8
+  bookingDate:
+    definition: Date the booking was created
+    header_synonyms:
+      - Booking Date
+      - Book Date
+      - BKG Date
+    data_type: date
+    confidence_threshold: 0.8
+  oceanFreightCost:
+    definition: Ocean freight charges in USD
+    header_synonyms:
+      - OCEAN FREIGHT COSTS
+      - Ocean Freight
+      - Freight Cost
+      - Sea Freight
+    data_type: float
+    confidence_threshold: 0.8
+  portOfDestination:
+    definition: Final inland destination port (may differ from POD)
+    header_synonyms:
+      - Port of Destination
+      - Final Destination Port
+      - Inland Port
+    data_type: string
+    confidence_threshold: 0.8
 metadata_fields:
   source_file:
     definition: Original filename
@@ -535,6 +568,20 @@ metadata_fields:
       - Current timestamp
     data_type: datetime
     confidence_threshold: 1
+  truckerAppointment:
+    definition: Scheduled trucker appointment date
+    header_synonyms:
+      - TRUCKER APPT
+      - Trucker Appointment
+    data_type: date
+    confidence_threshold: 0.8
+  emptyAvailableDate:
+    definition: Date empty container becomes available
+    header_synonyms:
+      - EMPTY AVAIL DATE
+      - Empty Available Date
+    data_type: date
+    confidence_threshold: 0.8
 learning_rules:
   auto_add_synonyms: true
   auto_add_value_patterns: true
@@ -867,6 +914,24 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-19T09:43:22.505Z
-version: 1.0.26
+  - unmappedHeader: TRUCKER APPT
+    canonicalField: metadata.truckerAppointment
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T12:31:05.786Z
+  - unmappedHeader: EMPTY AVAIL DATE
+    canonicalField: metadata.emptyAvailableDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T12:31:05.787Z
+  - unmappedHeader: TRUCKER APPT
+    canonicalField: metadata.truckerAppointmentDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T12:42:53.700Z
+version: 1.0.30
 last_updated: 2026-01-19
 total_fields: 29

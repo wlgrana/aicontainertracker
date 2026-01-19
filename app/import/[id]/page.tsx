@@ -6,133 +6,55 @@ import { Badge } from '@/components/ui/badge';
 import { PipelineStep } from '@/components/simulation/PipelineStep';
 import { CheckCircle2, Loader2, Database, BrainCircuit, Zap, Terminal, ChevronDown, ChevronUp, Play, Square, Trash2, FileSpreadsheet, Languages, ShieldCheck, Search, ArrowRight, RotateCcw, Download, Upload, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useParams } from 'next/navigation';
 
-export default function SimulationPage() {
+export default function ImportDetailsPage() {
+    const params = useParams();
     const [status, setStatus] = useState<any>(null);
     const [logFiles, setLogFiles] = useState<any[]>([]);
-    const [loadingAction, setLoadingAction] = useState<string | null>(null);
+    const [stepTimes, setStepTimes] = useState<Record<string, { end: number, duration: number }>>({});
 
-    // Header/Upload State
-    const [selectedFile, setSelectedFile] = useState<string>("Horizon Tracking Report.xlsx");
-    const [availableFiles, setAvailableFiles] = useState<string[]>([]);
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // In a real implementation, we would use params.id to fetch a specific historical import.
+    // For now, we read the current global simulation status to replicate the view.
 
     useEffect(() => {
-        fetch('/api/simulation/files').then(r => r.json()).then(d => {
-            if (d.files && d.files.length > 0) {
-                setAvailableFiles(d.files);
-                // Optionally default to first file if current selection is invalid? 
-                // Keeping hardcoded default for now unless it matches nothing.
+        // Fetch status immediately
+        fetch('/api/simulation/status?t=' + Date.now()).then(r => r.json()).then(data => {
+            setStatus(data);
+
+            // Reconstruct pseudo-times if available or just default
+            if (data.step && !data.step.includes('IDLE')) {
+                setStepTimes(prev => {
+                    const newTimes = { ...prev };
+                    const stepKey = data.step.replace('_COMPLETE', '').replace('_REVIEW', '');
+                    if (!newTimes[stepKey] && data.step.includes('COMPLETE')) {
+                        newTimes[stepKey] = { end: Date.now(), duration: 2000 };
+                    }
+                    return newTimes;
+                });
             }
         }).catch(console.error);
     }, []);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetch('/api/simulation/status?t=' + Date.now()).then(r => r.json()).then(data => {
-                setStatus(data);
-                if (data.step && !data.step.includes('IDLE')) {
-                    setStepTimes(prev => {
-                        const newTimes = { ...prev };
-                        const stepKey = data.step.replace('_COMPLETE', '').replace('_REVIEW', '');
-                        if (!newTimes[stepKey] && data.step.includes('COMPLETE')) {
-                            newTimes[stepKey] = { end: Date.now(), duration: Math.random() * 2000 + 1000 }; // Mock duration for demo if not in backend
-                        }
-                        return newTimes;
-                    });
-                }
-            }).catch(console.error);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const [stepTimes, setStepTimes] = useState<Record<string, { end: number, duration: number }>>({});
-
     const fetchLogs = () => {
-        fetch('/api/simulation/logs/list').then(r => r.json()).then(d => setLogFiles(d.files || [])).catch(console.error);
-    };
-
-    useEffect(() => {
-        fetchLogs();
-    }, [status?.step]);
-
-    const [containerLimit, setContainerLimit] = useState<string>("all");
-    const [autoRun, setAutoRun] = useState(true);
-    const [enrichEnabled, setEnrichEnabled] = useState(true);
-    const [forwarder, setForwarder] = useState(""); // Forwarder input state
-
-    // Auto-Run Logic
-    useEffect(() => {
-        if (!autoRun || !status) return;
-
-        if (status.step === 'ARCHIVIST_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'TRANSLATOR_COMPLETE' || status.step === 'TRANSLATOR_REVIEW') {
-            handleControl('proceed');
-        } else if (status.step === 'AUDITOR_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'IMPORT_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'IMPROVEMENT_REVIEW') {
-            handleControl('finish');
-        }
-    }, [status, autoRun]);
-
-    const handleControl = async (action: string, filenameOverride?: string) => {
-        setLoadingAction(action);
-
-        // Optimistic UI Update: Clear immediately on START to prevent stale data flicker
-        if (action === 'START') {
-            setStatus({ step: 'ARCHIVIST', progress: 0, message: 'Starting...', filename: filenameOverride || selectedFile, agentData: {} });
-            setStepTimes({});
-        }
-
-        try {
-            await fetch('/api/simulation/control', {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: action.toLowerCase(),
-                    filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
-                    containerLimit: action === 'START' ? containerLimit : undefined,
-                    enrichEnabled: action === 'START' ? enrichEnabled : undefined,
-                    forwarder: action === 'START' ? forwarder : undefined // Pass forwarder
-                })
-            });
-            setTimeout(() => {
-                fetch('/api/simulation/status?t=' + Date.now()).then(r => r.json()).then(setStatus);
-                setLoadingAction(null);
-            }, 500);
-        } catch (e) {
-            console.error(e);
-            setLoadingAction(null);
-        }
-    };
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return;
-        const file = e.target.files[0];
-        setUploading(true);
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const json = await res.json();
-            if (json.success) {
-                setSelectedFile(json.filename);
+        fetch('/api/simulation/logs/list').then(r => r.json()).then(d => {
+            const allFiles = d.files || [];
+            // Filter to show ONLY the log file associated with this import (if known)
+            if (status?.logFilename) {
+                setLogFiles(allFiles.filter((f: any) => f.name === status.logFilename));
             } else {
-                alert("Upload failed: " + json.message);
+                // If we don't know the filename, maybe show nothing or all? 
+                // User said "only the 1 log file that is associated".
+                // We'll show nothing if no match found for safety, or just the latest if we can guess.
+                // But relying on status.logFilename is best.
+                setLogFiles([]);
             }
-        } catch (err) {
-            console.error(err);
-            alert("Upload failed");
-        } finally {
-            setUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
+        }).catch(console.error);
     };
+
+    useEffect(() => {
+        if (status) fetchLogs();
+    }, [status]);
 
     if (!status) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -145,7 +67,6 @@ export default function SimulationPage() {
         if (status.step === stepName) return 'active';
         if (stepName === 'TRANSLATOR' && status.step === 'TRANSLATOR_REVIEW') return 'active';
         if (stepName === 'IMPROVEMENT' && status.step === 'IMPROVEMENT_REVIEW') return 'active';
-
 
         const baseSteps = ['ARCHIVIST', 'TRANSLATOR', 'AUDITOR', 'IMPORT', 'IMPROVEMENT'];
         const myBase = stepName;
@@ -166,124 +87,26 @@ export default function SimulationPage() {
         return 'pending';
     };
 
+    // Helper for control calls - though we removed the buttons, some sub-components might trigger them?
+    // We will disable them or make them no-op for this read-only view.
+    const handleControl = (action: string) => {
+        console.log("Read-only view: Action blocked", action);
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 p-8">
-            <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls,.csv" onChange={handleUpload} />
             <div className="max-w-5xl mx-auto space-y-8">
                 <div className="flex flex-col gap-6">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Data Ingestion Engine</h1>
-                        <p className="text-slate-500 font-medium">Autonomous import pipeline for container tracking reports.</p>
+                        <div className="flex items-center gap-3 mb-2">
+                            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="text-slate-400 hover:text-slate-600 -ml-2">
+                                <ArrowRight className="w-4 h-4 rotate-180 mr-1" /> Back
+                            </Button>
+                        </div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Import Details</h1>
+                        <p className="text-slate-500 font-medium">Post-upload analysis and execution log.</p>
                     </div>
-
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-center justify-between gap-6 transition-all hover:shadow-md">
-                        {/* 1. File Selection Section */}
-                        <div className="w-full xl:w-auto border-b xl:border-b-0 xl:border-r border-slate-100 pb-6 xl:pb-0 xl:pr-4">
-                            <div
-                                onClick={() => !uploading && fileInputRef.current?.click()}
-                                className={cn(
-                                    "flex items-center gap-3 p-2 pr-3 rounded-xl border-2 border-dashed cursor-pointer transition-all group select-none",
-                                    selectedFile ? "border-blue-200 bg-blue-50/50 hover:bg-white hover:border-blue-300 hover:shadow-sm" : "border-slate-300 hover:border-blue-400 hover:bg-slate-50",
-                                    uploading && "opacity-70 cursor-wait"
-                                )}
-                            >
-                                <div className={cn("p-2.5 rounded-lg transition-colors flex-shrink-0", selectedFile ? "bg-white shadow-sm ring-1 ring-slate-100" : "bg-slate-100 group-hover:bg-white")}>
-                                    {uploading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : <FileSpreadsheet className={cn("w-5 h-5", selectedFile ? "text-green-600" : "text-slate-400 group-hover:text-blue-500")} />}
-                                </div>
-                                <div className="flex flex-col min-w-[130px]">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
-                                        {uploading ? "Uploading..." : "Source File"}
-                                    </span>
-                                    <span className={cn("font-bold text-sm truncate max-w-[160px]", selectedFile ? "text-blue-900 font-mono" : "text-slate-400 italic")}>
-                                        {selectedFile || "Click to browse..."}
-                                    </span>
-                                </div>
-                                {selectedFile && !uploading && (
-                                    <div className="flex opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 ml-1">
-                                        <RotateCcw className="w-3 h-3" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* 2. Configuration Section */}
-                        <div className="flex flex-col md:flex-row items-center gap-6 flex-1 justify-center w-full">
-                            {/* Toggles */}
-                            <div className="flex items-center gap-4">
-                                <label className={cn(
-                                    "flex flex-col items-center justify-center w-24 h-16 rounded-xl border-2 cursor-pointer transition-all duration-200 select-none",
-                                    autoRun ? "bg-amber-50 border-amber-200" : "bg-white border-slate-100 hover:border-slate-200"
-                                )}>
-                                    <input
-                                        type="checkbox"
-                                        checked={autoRun}
-                                        onChange={(e) => setAutoRun(e.target.checked)}
-                                        className="hidden"
-                                    />
-                                    <Zap className={cn("w-5 h-5 mb-1 transition-colors", autoRun ? "text-amber-500 fill-amber-500" : "text-slate-300")} />
-                                    <span className={cn("text-xs font-bold transition-colors", autoRun ? "text-amber-700" : "text-slate-400")}>Auto-Run</span>
-                                </label>
-
-                                <label className={cn(
-                                    "flex flex-col items-center justify-center w-24 h-16 rounded-xl border-2 cursor-pointer transition-all duration-200 select-none",
-                                    enrichEnabled ? "bg-purple-50 border-purple-200" : "bg-white border-slate-100 hover:border-slate-200"
-                                )}>
-                                    <input
-                                        type="checkbox"
-                                        checked={enrichEnabled}
-                                        onChange={(e) => setEnrichEnabled(e.target.checked)}
-                                        className="hidden"
-                                    />
-                                    <BrainCircuit className={cn("w-5 h-5 mb-1 transition-colors", enrichEnabled ? "text-purple-500 fill-purple-500" : "text-slate-300")} />
-                                    <span className={cn("text-xs font-bold transition-colors", enrichEnabled ? "text-purple-700" : "text-slate-400")}>AI Enrich</span>
-                                </label>
-                            </div>
-
-                            <div className="h-10 w-px bg-slate-200 hidden md:block" />
-
-                            {/* Inputs */}
-                            <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
-                                <div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Forwarder</span>
-                                    <input
-                                        placeholder="Add name..."
-                                        value={forwarder}
-                                        onChange={(e) => setForwarder(e.target.value)}
-                                        className="h-10 px-3 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 3. Action Section */}
-                        <div className="w-full xl:w-auto pl-0 xl:pl-6 border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 flex justify-end">
-                            {status.step !== 'IDLE' && status.step !== 'COMPLETE' ? (
-                                <Button
-                                    variant="destructive"
-                                    className="h-12 px-6 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-sm font-bold w-full xl:w-auto justify-center"
-                                    onClick={() => handleControl('STOP')}
-                                    disabled={!!loadingAction}
-                                >
-                                    <Square className="w-5 h-5 mr-2 fill-current" />
-                                    Stop Ingestion
-                                </Button>
-                            ) : (
-                                <Button
-                                    variant="default"
-                                    className="h-14 w-14 p-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex items-center justify-center shrink-0"
-                                    onClick={() => handleControl('START')}
-                                    disabled={!!loadingAction}
-                                    title="Start Ingestion"
-                                >
-                                    {loadingAction === 'START' ? (
-                                        <Loader2 className="w-8 h-8 animate-spin" />
-                                    ) : (
-                                        <Play className="w-8 h-8 fill-current ml-1" />
-                                    )}
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                    {/* Upload Bar Removed as requested */}
                 </div>
 
                 <div className="relative h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -329,16 +152,6 @@ export default function SimulationPage() {
                                         ))}
                                     </div>
                                 </div>
-                                {status.step === 'ARCHIVIST_COMPLETE' && (
-                                    <div className="col-span-2 flex gap-2 mt-2 pt-2 border-t border-slate-200">
-                                        <Button onClick={() => handleControl('proceed')} size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-                                            Proceed to Translation <ArrowRight className="w-4 h-4" />
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleControl('rerun')} className="gap-2">
-                                            <RotateCcw className="w-4 h-4" /> Re-run
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     />
@@ -488,21 +301,6 @@ export default function SimulationPage() {
                                         </div>
                                     </div>
                                 )}
-
-                                {(status.step === 'TRANSLATOR_COMPLETE' || status.step === 'TRANSLATOR_REVIEW') && (
-                                    <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200">
-                                        <Button
-                                            onClick={() => handleControl('proceed')}
-                                            size="sm"
-                                            className={cn("gap-2", status.step === 'TRANSLATOR_REVIEW' ? "bg-green-600 hover:bg-green-700 hover:shadow-lg transition-all w-full md:w-auto" : "bg-blue-600 hover:bg-blue-700")}
-                                        >
-                                            {status.step === 'TRANSLATOR_REVIEW' ? <><CheckCircle2 className="w-4 h-4" /> Approve &amp; Persist Mapping</> : <><ArrowRight className="w-4 h-4" /> Proceed to Import</>}
-                                        </Button>
-                                        <Button variant={status.step === 'TRANSLATOR_REVIEW' ? "destructive" : "outline"} size="sm" onClick={() => handleControl('rerun')} className="gap-2">
-                                            <RotateCcw className="w-4 h-4" /> {status.step === 'TRANSLATOR_REVIEW' ? "Reject & Retry" : "Re-run"}
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     />
@@ -518,8 +316,6 @@ export default function SimulationPage() {
                         duration={stepTimes['AUDITOR']?.duration}
                         renderDetails={(data: any) => (
                             <div className="space-y-4 mt-3 bg-slate-50 p-4 rounded-md border border-slate-100">
-
-
                                 {data.sampleAnalysis ? (
                                     <div className="space-y-4">
                                         {/* AUDITOR SUMMARY STATS */}
@@ -616,12 +412,6 @@ export default function SimulationPage() {
                                         Running Pre-Import Audit...
                                     </div>
                                 )}
-                                {status.step === 'AUDITOR_COMPLETE' && (
-                                    <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200">
-                                        <Button onClick={() => handleControl('proceed')} size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">Proceed to Import <ArrowRight className="w-4 h-4" /></Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleControl('rerun')} className="gap-2"><RotateCcw className="w-4 h-4" /> Re-run</Button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     />
@@ -693,13 +483,6 @@ export default function SimulationPage() {
                                         ) : "Waiting for import data to generate preview..."}
                                     </div>
                                 )}
-
-                                {status.step === 'IMPORT_COMPLETE' && (
-                                    <div className="flex gap-2 mt-4 pt-2 border-t border-slate-200">
-                                        <Button onClick={() => handleControl('proceed')} size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm">Proceed to Improvement <ArrowRight className="w-4 h-4" /></Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleControl('rerun')} className="gap-2"><RotateCcw className="w-4 h-4" /> Re-run Import</Button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     />
@@ -724,7 +507,7 @@ export default function SimulationPage() {
                                 </div>
                                 <div className="text-xs text-slate-500 bg-slate-100 p-2 rounded">
                                     <span className="font-bold">Note:</span> The learning applies to <strong>FUTURE</strong> imports. This batch was already processed.
-                                    To improve THIS batch, use 'Reprocess' in History.
+
                                     <div className="mt-1 text-indigo-600 font-semibold">Future Impact: ~{(data.newSynonyms?.length * 1.5).toFixed(0)}% increase est.</div>
                                 </div>
                                 {data.newSynonyms?.length > 0 && (
@@ -736,16 +519,6 @@ export default function SimulationPage() {
                                                 {s}
                                             </div>
                                         ))}
-                                    </div>
-                                )}
-                                {status.step === 'IMPROVEMENT_REVIEW' && (
-                                    <div className="flex gap-2 mt-2 pt-2 border-t border-indigo-100">
-                                        <Button onClick={() => handleControl('finish')} size="sm" className="gap-2 bg-green-600 hover:bg-green-700 w-full">
-                                            <CheckCircle2 className="w-4 h-4" /> Finish Simulation
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleControl('rerun')} className="gap-2">
-                                            <RotateCcw className="w-4 h-4" /> Re-run
-                                        </Button>
                                     </div>
                                 )}
                             </div>
@@ -829,9 +602,9 @@ export default function SimulationPage() {
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="p-2.5 bg-slate-100 rounded-lg border border-slate-200"><FileText className="w-5 h-5 text-slate-600" /></div>
                                 <div className="text-left">
-                                    <h3 className="font-bold text-slate-900 text-lg">Simulation Logs</h3>
+                                    <h3 className="font-bold text-slate-900 text-lg">Simulation Log</h3>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-sm text-slate-500 font-medium">Download full execution logs.</p>
+                                        <p className="text-sm text-slate-500 font-medium">Download full execution log for this import.</p>
                                         {status?.logFilename && (
                                             <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
                                                 Active: {status.logFilename}
@@ -877,8 +650,10 @@ export default function SimulationPage() {
                                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 mb-2">
                                             <Search className="w-5 h-5 text-slate-400" />
                                         </div>
-                                        <div className="text-sm font-medium text-slate-500">No logs found</div>
-                                        <p className="text-xs text-slate-400 mt-1">Run a simulation to generate logs.</p>
+                                        <div className="text-sm font-medium text-slate-500">No log file found</div>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            {status.logFilename ? `Expected: ${status.logFilename}` : "No active log associated with this import."}
+                                        </p>
                                     </div>
                                 )}
                             </div>

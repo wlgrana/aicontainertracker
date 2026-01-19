@@ -5,6 +5,40 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { toCanonicalFieldName, normalizeHeader } from './field-name-utils';
 
+function toCamelCase(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function findFieldDefinition(ontology: any, canonicalField: string): any {
+    // 1. Normalize to snake_case first (baseline)
+    const normalized = toCanonicalFieldName(canonicalField);
+
+    // 2. Derive camelCase
+    const camelCase = toCamelCase(normalized);
+
+    // 3. Define variations to check
+    const variations = [
+        canonicalField,                 // Original input
+        camelCase,                      // camelCase (target in ontology?)
+        normalized,                     // snake_case
+        normalized.replace(/_/g, ''),   // flatcase
+    ];
+
+    for (const variant of variations) {
+        // Check required, optional, then pending (though pending is not usually a definition source)
+        // Usually we only check definitions in required/optional for adding synonyms.
+        const fieldDef = ontology.required_fields?.[variant] || ontology.optional_fields?.[variant];
+
+        if (fieldDef) {
+            return {
+                def: fieldDef,
+                actualKey: variant
+            };
+        }
+    }
+    return null;
+}
+
 export interface UpdaterOutput {
     synonymsAdded: number;
     pendingAdded: number;
@@ -40,10 +74,11 @@ export async function updateDictionaries(analysis: AnalyzerOutput): Promise<Upda
         let targetField = suggestion.canonicalField;
 
         // 1. Normalize Target Field (Handle metadata.foo -> foo, camelCase -> snake_case)
-        targetField = toCanonicalFieldName(targetField);
+        // We defer strict normalization to findFieldDefinition to allow multiple attempts
 
         // 2. Find Field Definition
-        const fieldDef = ontology.required_fields[targetField] || ontology.optional_fields[targetField];
+        const fieldInfo = findFieldDefinition(ontology, targetField);
+        const fieldDef = fieldInfo?.def;
 
         // 3. Robust Synonym Search
         if (!fieldDef) {
@@ -68,6 +103,10 @@ export async function updateDictionaries(analysis: AnalyzerOutput): Promise<Upda
             }
             continue;
         }
+
+        // Use the actual key found in ontology
+        targetField = fieldInfo.actualKey;
+        console.log(`[Updater] ✅ Found field '${targetField}' (from '${suggestion.canonicalField}')`);
 
         // 4. Update Logic
         const threshold = fieldDef.confidence_threshold || 0.85;

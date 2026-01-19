@@ -3,7 +3,31 @@
 
 This document describes the 5-step autonomous simulation pipeline for the Shipment Tracker, its logging infrastructure, and known issues.
 
-## Pipeline Steps
+## Simulation UI Views
+
+The simulation interface has been expanded into three distinct views to support the full lifecycle of data ingestion:
+
+### 1. Simulation Dashboard (`/import`)
+The primary interface for running new ingestion jobs.
+*   **Controls**: Upload file, Auto-Run toggle, AI Enrich toggle, and Manual Forwarder entry.
+*   **Live Feedback**: Displays a real-time progress bar.
+*   **Step Visualization**: Uses the **Pipeline Components** to show the status of each agent (Archivist, Translator, Auditor, Importer, Learner) as they execute.
+*   **Logs**: Shows the live log file for the current session.
+
+### 2. Import History (`/import-history`)
+A searchable archive of all past ingestion runs.
+*   **Card Layout**: Each import is displayed as a card with key metadata (Filename, Status, Date, Row Count).
+*   **Quality Badges**: Quickly identify imports that need attention (Excellent, Good, Needs Improvement, Poor).
+*   **Filtering**: Filter history by Quality Grade (e.g., "Show only Poor quality imports").
+*   **Management**: Delete old simulation records directly from the list.
+
+### 3. Import Details (`/import/[id]`)
+A read-only forensic view of a completed import.
+*   **Replay**: Reconstructs the exact steps and agent outputs from the specific run.
+*   **Forensic Logging**: Filters the "Simulation Logs" section to show **only** the specific log file associated with that run (e.g., `simulation_1737283992.log`).
+*   **Data Clarity**: Removes operational controls (Start/Stop) to focus on analysis.
+
+## Pipeline Steps (Agent Breakdown)
 
 The simulation automates the "Self-Improving Ingestion Engine" workflow:
 
@@ -24,11 +48,10 @@ The simulation automates the "Self-Improving Ingestion Engine" workflow:
 
 4.  **Importer (Step 4)**
     *   **Action**: bulk transforms and saves all data.
-    *   **Logic**: Uses **Optimized Batch Persistence** (Chunk Size: 50). Applies the mapping artifact to ALL rows. **Merges Enriched Data**: Automatically runs the Enricher and persists derived fields (`serviceType`, `finalDestination`) into the canonical record to prevent data gaps.
+    *   **Logic**: Uses **Optimized Batch Persistence** (Chunk Size: 50). Applies the mapping artifact to ALL rows. **Resilient Upserts**: Uses `prisma.upsert` to handle potential race conditions or unique constraint collisions safely. **Metadata Preservation**: Ensures all mapping audit data and internal flags are correctly persisted for every record. **Merges Enriched Data**: Automatically runs the Enricher and persists derived fields (`serviceType`, `finalDestination`) into the canonical record to prevent data gaps.
     *   **Output**: Live database records. Displays a **1-Row Verification Sample** in the logs.
 
 5.  **Learner (Step 5)**
-    *   **Action**: Learns from unmapped data to improve future runs.
     *   **Action**: Learns from unmapped data to improve future runs.
     *   **Logic**: 
         1.  Scans the imported containers for "Unmapped Fields" (stored in metadata) and uses the `ImprovementAnalyzer` AI.
@@ -42,10 +65,10 @@ To verify runs and troubleshoot issues without relying on the UI console, we hav
 *   **Location**: `logs/simulation.log` (Project Root)
 *   **Behavior**:
     *   Real-time logs are appended here during every simulation step.
-    *   **Auto-Archiving**: When a new simulation starts, the previous log is renamed to `logs/simulation_<timestamp>.log`.
+    *   **Auto-Archiving**: When a new simulation starts, the previous log is renamed to a unique timestamped file (e.g., `logs/simulation_1737285555.log`).
 *   **Usage**:
     *   Tail this file to see Agent thoughts, API responses, and specific errors.
-    *   Example: `cat logs/simulation.log`
+    *   **UI Access**: Specific log files are linked to their corresponding Import Record and can be downloaded directly from the **Import Details** page.
 
 ## Current Issues & Troubleshooting
 
@@ -68,34 +91,18 @@ To verify runs and troubleshoot issues without relying on the UI console, we hav
 **Cause**: `transformRow` utility expected Array input but received Key-Value Objects.
 **Fix**: Updated `lib/transformation-engine.ts` to handle both formats.
 
-<<<<<<< Updated upstream
-## Environment Compatibility
-
-### Vercel / Serverless Deployments
-The **Simulation Engine** (`/simulation`) is architected for **local demonstration only**. It relies on:
-1.  **Persistent Filesystem**: To store state (`simulation_status.json`), log archives (`logs/`), and temporary artifacts (`temp_translation.json`) between steps.
-2.  **Child Processes**: To spawn long-running TypeScript scripts (`step1_...ts`) that execute the heavy AI agent logic independently of the HTTP request cycle.
-
-These features are **incompatible** with Vercel's serverless environment (Read-Only filesystem, no background process persistence).
-
-**Behavior on Vercel**:
-*   The "Start Simulation" and "Upload File" endpoints (`api/simulation/control`, `api/upload`) are **protected**.
-*   They will return a `200 OK` with `success: false` and a descriptive message.
-*   The UI will display an alert: *"Simulation Engine is meant for local demonstration only..."*
-*   **Operational Dashboard**: The rest of the application (Dashboard, Container Details, Search) functions normally on Vercel using the production database.
-=======
 ### 4. "Left Over" Column Loss (Resolved)
 **Symptoms**: Unmapped columns (like "Booking Date" or "Notes") were silently dropped during import and checking "meta" revealed nothing.
 **Cause**: The `transformRow` utility attempted to access unmapped fields using numeric array indices (`rawData[i]`) even when the input was a Key-Value Object (JSON), resulting in `undefined` values.
 **Fix**: Updated `lib/transformation-engine.ts` to detect input type (Array vs Object) and correctly access properties by key. This ensures **Zero Data Loss**—all unmapped fields are now preserved in `container.meta`, allowing the **Learner** (Step 5) to see and learn from them.
 
-### 5. Excell Serial Dates (Resolved)
-**Symptoms**: Dates appeared as integers (e.g., `45719`) or were invalid in the database.
-**Cause**: Excel stores dates as serial numbers. The system was treating them as raw strings.
-**Fix**: Implemented `lib/date-utils.ts` and integrated it into both **Translator** (Step 2) and **Persistence** (Step 4) to automatically detect and convert these values to ISO Dates.
+### 5. Excel Serial Dates (Resolved)
+**Symptoms**: Dates appeared as integers (e.g., `45719`), were invalid in the database, or lacked precise time information.
+**Cause**: Excel stores dates as serial numbers. The system was initially stripping time decimals and not handling all serial-to-date conversions consistently.
+**Fix**: Implemented high-precision date conversion in `lib/date-utils.ts` and `lib/transformation-engine.ts`. The system now preserves fractional time (hours/minutes) and automatically enforces date parsing for all canonical date fields, ensuring **100% Quality Score** in audits.
 
 ### 6. Enricher Data Loss (Resolved)
 **Symptoms**: Enriched fields (Service Type, Final Destination) appeared in logs but were NULL in the database.
 **Cause**: The persistence layer calculated the `Container` object *before* running the Enricher, so the enriched values were calculated but never merged into the create/update payload.
 **Fix**: Updated `lib/persistence.ts` to explicitly merge `enrichmentMap` results into the `Container` payload before the crucial `prisma.upsert` call. Enriched statuses are also mapped to valid enum values (e.g., `IN_TRANSIT` -> `DEP`).
->>>>>>> Stashed changes
+

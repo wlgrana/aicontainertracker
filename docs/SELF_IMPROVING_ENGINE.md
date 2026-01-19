@@ -68,9 +68,9 @@ graph TD
 - **Role**: Improvement Agent.
 - **Function**: Closes the loop by analyzing both *successes* and *failures* to permanently improve the ontology.
 - **Capabilities**:
-    - **Success Discovery** (NEW): Scans successful AI mappings from Step 2 (e.g., "Ship to City" -> `final_destination`) and reinforces them as permanent dictionary synonyms.
+    - **Success Discovery** (NEW): Scans successful AI mappings from Step 2 (e.g., "Ship to City" -> `final_destination`) and reinforces them as permanent dictionary synonyms. It preserves original casing to allow the Updater's flexible matching to work effectively.
     - **Gap Analysis**: Uses AI to deduce meanings of completely unknown headers.
-    - **Dictionary Updater**: Robustly updates `container_ontology.yml` with specific handling for case-sensitivity and flexible field naming (snake_case/camelCase normalization).
+    - **Dictionary Updater**: Robustly updates `container_ontology.yml` with specific handling for case-sensitivity and flexible field naming (Standardizing on camelCase/snake_case/flatcase normalization).
 - **UI Feedback**:
     - **Future Impact Analysis**: Clearly distinguishes between "Score Improvement" (historical) and "Future Impact" (estimated gain for next import).
     - **Performance Metrics**: Shows processing time and specific dictionary updates applied.
@@ -121,7 +121,7 @@ Located in `agents/dictionaries/`:
 
 - **Dictionary Updater** (`agents/dictionary-updater.ts`): 
   - Input: Analyzer suggestions.
-  - Role: Safe file updater that modifies YAML. Now features **Smart Field Matching** to handle case variations and prefix stripping (e.g., `metadata.FinalDestination` -> `final_destination`). Includes a "Pending Queue" for low-confidence suggestions.
+  - Role: Safe file updater that modifies YAML. Now features **Robust Field Matching** (`findFieldDefinition`) which intelligently searches for definitions by checking multiple styles (original, camelCase, snake_case, and flatcase). This ensures that Learner proposals match existing ontology entries even if naming conventions differ. Includes a "Pending Queue" for low-confidence suggestions.
 
 ### 3. Background Worker
 - **Batch Improvement Worker** (`lib/jobs/batch-improvement-worker.ts`):
@@ -153,9 +153,9 @@ Located in `agents/dictionaries/`:
 
 ### Via UI (End User)
 1. Go to **Import History**.
-2. Click the **Quality Badge** on any import.
-3. If quality is not 100%, click **"Improve Batch"**.
-4. Watch the progress bar as the system autonomously corrects itself.
+2. Review the list of past imports, filtered by **Quality Badge** (Excellent, Good, etc.).
+3. Click on any row to view the forensic **Import Details** page.
+4. Review the "Learner" step logs to see what new synonyms were automatically acquired during that session.
 
 ---
 

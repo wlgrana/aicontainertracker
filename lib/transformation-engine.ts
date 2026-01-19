@@ -1,15 +1,25 @@
 
+const DATE_FIELDS = new Set([
+    'atd', 'ata', 'etd', 'eta',
+    'gateOutDate', 'emptyReturnDate',
+    'lastFreeDay', 'deliveryDate',
+    'finalDestinationEta', 'detentionFreeDay'
+]);
+
 export function excelDateToJS(serial: number): Date {
-    const utc_days = Math.floor(serial - 25569);
-    const utc_value = utc_days * 86400;
-    return new Date(utc_value * 1000);
+    // Corrected to preserve fractional time (decimals)
+    const ms = Math.round((serial - 25569) * 86400 * 1000);
+    return new Date(ms);
 }
 
 export function parseDate(value: any): string | null {
     if (!value) return null;
-    if (typeof value === 'number') {
+    if (typeof value === 'number' || (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value))) {
         // Excel serial
-        try { return excelDateToJS(value).toISOString(); } catch (e) { return null; }
+        const num = parseFloat(String(value));
+        if (num > 20000 && num < 60000) {
+            try { return excelDateToJS(num).toISOString(); } catch (e) { return null; }
+        }
     }
     if (typeof value === 'string') {
         const d = new Date(value);
@@ -18,8 +28,14 @@ export function parseDate(value: any): string | null {
     return null;
 }
 
-export function transformValue(value: any, type: string): any {
+export function transformValue(value: any, type: string, targetField?: string): any {
     if (value === null || value === undefined) return null;
+
+    // AUTO-CONVERT DATES: If it's a known date field, override any 'direct' mapping
+    if (targetField && DATE_FIELDS.has(targetField)) {
+        const parsed = parseDate(value);
+        if (parsed) return parsed;
+    }
 
     switch (type) {
         case 'date_conversion':
@@ -29,7 +45,8 @@ export function transformValue(value: any, type: string): any {
         case 'int':
             if (typeof value === 'number') return value;
             const cleaned = String(value).replace(/[^0-9.-]/g, '');
-            return parseFloat(cleaned) || 0;
+            const parsedNum = parseFloat(cleaned);
+            return isNaN(parsedNum) ? 0 : parsedNum;
         case 'clean_string':
         case 'direct':
         case 'semantic':
@@ -60,7 +77,7 @@ export function transformRow(rawData: any[], headers: string[], mapping: any) {
         const sourceHeader = rule.sourceHeader;
         const rawVal = getValue(sourceHeader);
 
-        const transformed = transformValue(rawVal, (rule as any).transformationType || 'direct');
+        const transformed = transformValue(rawVal, (rule as any).transformationType || 'direct', targetField);
 
         containerFields[targetField] = {
             value: transformed,
