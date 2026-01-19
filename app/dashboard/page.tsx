@@ -233,36 +233,7 @@ function DashboardContent() {
                     {/* VIEW: All Shipments */}
                     {activeTab === 'containers' && (
                         <>
-                            <div className="flex flex-wrap gap-4 mb-6 items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <div className="flex items-center gap-2">
-                                    <Search className="h-4 w-4 text-slate-400" />
-                                    <span className="text-xs font-bold text-slate-500 uppercase">Filters:</span>
-                                </div>
-                                <Input
-                                    placeholder="Filter Forwarder..."
-                                    value={forwarderFilter}
-                                    onChange={e => setForwarderFilter(e.target.value)}
-                                    className="w-[200px] bg-slate-50 border-slate-200"
-                                />
-                                <Input
-                                    placeholder="Filter Business Unit..."
-                                    value={buFilter}
-                                    onChange={e => setBuFilter(e.target.value)}
-                                    className="w-[200px] bg-slate-50 border-slate-200"
-                                />
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-[180px] bg-slate-50 border-slate-200">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="in_transit">In Transit (Default)</SelectItem>
-                                        <SelectItem value="all">All Containers</SelectItem>
-                                        <SelectItem value="exceptions">Exceptions</SelectItem>
-                                        <SelectItem value="DELIVERED">Delivered</SelectItem>
-                                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
 
                             <ContainerInventory
                                 containers={containers}
