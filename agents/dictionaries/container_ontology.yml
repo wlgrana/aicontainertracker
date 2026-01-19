@@ -1,5 +1,5 @@
 required_fields:
-  business_unit:
+  businessUnit:
     definition: First Brands Group business unit (brand) for this shipment
     header_synonyms:
       - BU
@@ -14,7 +14,7 @@ required_fields:
       - If no match and confidence ≥ 0.70 → flag for review
     data_type: string
     confidence_threshold: 0.85
-  container_number:
+  containerNumber:
     definition: ISO 6346 container number (4-letter owner + 6-digit serial + check digit)
     header_synonyms:
       - Container
@@ -181,7 +181,7 @@ required_fields:
       - Confirmed Destination Port Arrival (ATA)
     data_type: datetime
     confidence_threshold: 0.9
-  shipment_reference:
+  shipmentReference:
     definition: Internal Shipment ID
     header_synonyms:
       - Shipment ID
@@ -190,7 +190,7 @@ required_fields:
       - Ref
     data_type: string
     confidence_threshold: 0.95
-  current_status:
+  currentStatus:
     definition: Current lifecycle stage of the container
     header_synonyms:
       - Status
@@ -209,6 +209,31 @@ required_fields:
     data_type: enum
     confidence_threshold: 0.8
 optional_fields:
+  booking_date:
+    definition: Date the booking was created
+    header_synonyms:
+      - Booking Date
+      - Book Date
+      - BKG Date
+    data_type: date
+    confidence_threshold: 0.8
+  ocean_freight_cost:
+    definition: Ocean freight charges in USD
+    header_synonyms:
+      - OCEAN FREIGHT COSTS
+      - Ocean Freight
+      - Freight Cost
+      - Sea Freight
+    data_type: float
+    confidence_threshold: 0.8
+  final_destination_port:
+    definition: Final inland destination port (different from POD)
+    header_synonyms:
+      - Port of Destination
+      - Final Destination Port
+      - Inland Destination
+    data_type: string
+    confidence_threshold: 0.8
   hbl:
     definition: House Bill of Lading (freight forwarder's B/L)
     header_synonyms:
@@ -218,9 +243,10 @@ optional_fields:
       - H B/L
       - Forwarder B/L
       - HBL (raw index 2)
+      - Shipment / House Bill
     data_type: string
     confidence_threshold: 0.8
-  customer_po:
+  customerPo:
     definition: Customer Purchase Order number
     header_synonyms:
       - PO
@@ -258,7 +284,7 @@ optional_fields:
       - VOYAGE
     data_type: string
     confidence_threshold: 0.7
-  container_type:
+  containerType:
     definition: Container size and type (e.g., 40HC, 20GP)
     header_synonyms:
       - Type
@@ -272,7 +298,7 @@ optional_fields:
       - 20GP, 20ST, 40GP, 40HC, 40HQ, 45HC
     data_type: string
     confidence_threshold: 0.75
-  seal_number:
+  sealNumber:
     definition: Container seal number
     header_synonyms:
       - Seal
@@ -281,7 +307,7 @@ optional_fields:
       - Customs Seal
     data_type: string
     confidence_threshold: 0.7
-  last_free_day:
+  lastFreeDay:
     definition: Last day to return container without demurrage charges
     header_synonyms:
       - LFD
@@ -308,7 +334,7 @@ optional_fields:
       - Cleared
     data_type: datetime
     confidence_threshold: 0.85
-  gate_out_date:
+  gateOutDate:
     definition: Date container left the terminal
     header_synonyms:
       - Gate Out
@@ -320,7 +346,7 @@ optional_fields:
       - Acutal Gateout Date
     data_type: datetime
     confidence_threshold: 0.85
-  delivery_date:
+  deliveryDate:
     definition: Date container delivered to final destination
     header_synonyms:
       - Delivery Date
@@ -330,7 +356,7 @@ optional_fields:
       - ACTUAL DEL DATE
     data_type: datetime
     confidence_threshold: 0.85
-  empty_return_date:
+  emptyReturnDate:
     definition: Date empty container returned to carrier
     header_synonyms:
       - Empty Return
@@ -359,7 +385,7 @@ optional_fields:
       - regex: ^[0-9]+$
     data_type: integer
     confidence_threshold: 0.85
-  volume_cbm:
+  volumeCbm:
     definition: Volume in Cubic Meters (CBM)
     header_synonyms:
       - CBM
@@ -373,7 +399,7 @@ optional_fields:
       - regex: ^[0-9.]+$
     data_type: float
     confidence_threshold: 0.85
-  load_type:
+  loadType:
     definition: Container Load Type (FCL/LCL)
     header_synonyms:
       - Load Type
@@ -394,7 +420,7 @@ optional_fields:
       - Normalize to FCL or LCL
     data_type: string
     confidence_threshold: 0.8
-  service_type:
+  serviceType:
     definition: Service contract type (e.g., CY/CY, DOOR/DOOR)
     header_synonyms:
       - Service Type
@@ -406,13 +432,15 @@ optional_fields:
       - Service Code
       - OCEAN
       - SERVICE TYPE
+      - "SERV TYPE\r\nAWS / MLB"
+      - Shipping Type (FCL, LCL, Air)
     value_patterns:
       - CY/CY
       - CFS/CFS
       - DOOR/DOOR
     data_type: string
     confidence_threshold: 0.8
-  final_destination_eta:
+  finalDestinationEta:
     definition: Estimated Arrival at Final Destination (if different from POD)
     header_synonyms:
       - Final Dest ETA
@@ -422,7 +450,7 @@ optional_fields:
       - Final Destination ETA
     data_type: datetime
     confidence_threshold: 0.8
-  gross_weight:
+  grossWeight:
     definition: Total gross weight
     header_synonyms:
       - Gross Weight
@@ -466,7 +494,7 @@ optional_fields:
       - Ship to City
     data_type: string
     confidence_threshold: 0.8
-  final_destination:
+  finalDestination:
     definition: Final city/location of delivery
     header_synonyms:
       - Final Destination
@@ -815,6 +843,30 @@ pending_fields:
       separate 'notes' field if one is added later.
     action: IGNORE
     timestamp: 2026-01-17T05:25:45.840Z
-version: 1.0.21
-last_updated: 2026-01-17
+  - unmappedHeader: Shipping Type (FCL, LCL, Air)
+    canonicalField: service_type
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T09:38:13.414Z
+  - unmappedHeader: Ship to City
+    canonicalField: final_destination
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T09:38:13.415Z
+  - unmappedHeader: Port of Destination
+    canonicalField: port_of_destination
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T09:38:13.415Z
+  - unmappedHeader: Port of Destination
+    canonicalField: final_destination
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T09:43:22.505Z
+version: 1.0.26
+last_updated: 2026-01-19
 total_fields: 29

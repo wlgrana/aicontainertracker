@@ -6,6 +6,8 @@ import { updateDictionaries } from '../agents/dictionary-updater';
 import { AnalyzerInput, AnalyzerSuggestion, AnalyzerOutput } from '../types/agents';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'yaml';
+import { toCanonicalFieldName, validateFieldExists } from '../agents/field-name-utils';
 
 const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
@@ -52,13 +54,77 @@ async function main() {
             }
         }
 
-        const unmappedItems = Array.from(unmappedStats.entries()).map(([header, stats]) => ({
+        const unmappedItems: any[] = [];
+        const seenSuggestions = new Set<string>();
+        const learnerSuggestions: AnalyzerSuggestion[] = [];
+
+        // Load ontology
+        const ontologyPath = path.join(process.cwd(), 'agents/dictionaries/container_ontology.yml');
+        const ontology = yaml.parse(fs.readFileSync(ontologyPath, 'utf-8'));
+
+        for (const container of containers) {
+            const meta = container.metadata as Record<string, any>;
+            if (!meta) continue;
+
+            // 1. Discover Successful Mappings (The "Fix")
+            if (meta.mappings) {
+                for (const [rawHeader, dbField] of Object.entries(meta.mappings)) {
+                    // New logic using canonical utils
+                    const canonicalField = toCanonicalFieldName(String(dbField));
+
+                    // Verify field exists
+                    if (validateFieldExists(canonicalField, ontology)) {
+                        const key = `${rawHeader}->${canonicalField}`;
+                        if (!seenSuggestions.has(key)) {
+                            // Only propose if it's NOT already a synonym (Dictionary Updater will check too, but save work)
+                            // Actually, let Updater do the heavy lifting.
+                            learnerSuggestions.push({
+                                canonicalField: canonicalField,
+                                unmappedHeader: rawHeader,
+                                confidence: 0.95,
+                                action: 'ADD_SYNONYM',
+                                reasoning: "Discovered from successful AI translation"
+                            });
+                            seenSuggestions.add(key);
+                            console.log(`[Learner] ✅ Discovered: "${rawHeader}" → ${canonicalField}`);
+                        }
+                    } else {
+                        // console.warn(`[Learner] ⚠️  Field ${canonicalField} not in ontology, skipping`);
+                    }
+                }
+            }
+
+            // 2. Extract Unmapped Fields
+            // In Step 4, unmapped fields are stored directly in metadata root
+            // Filter out system keys if any (like _internal)
+            for (const [key, value] of Object.entries(meta)) {
+                if (key.startsWith('_')) continue; // Internal flags
+                if (key === 'mappings' || key === 'confidence' || key === 'source') continue; // Skip our new meta fields
+
+                // Also skip if it IS in the mappings (handled above) 
+                if (meta.mappings && meta.mappings[key]) continue;
+
+                if (!unmappedStats.has(key)) {
+                    unmappedStats.set(key, { values: new Set(), count: 0 });
+                }
+                const entry = unmappedStats.get(key)!;
+                entry.count++;
+                if (value && entry.values.size < 5) { // Keep sample size small
+                    entry.values.add(value);
+                }
+            }
+        }
+
+        // Convert unmapped stats to array
+        unmappedItems.push(...Array.from(unmappedStats.entries()).map(([header, stats]) => ({
             header,
             sampleValues: Array.from(stats.values),
             frequency: stats.count
-        }));
+        })));
 
-        console.log(`[Learner] Found ${unmappedItems.length} unmapped headers.`);
+
+        console.log(`[Learner] Follow-up: Found ${unmappedItems.length} unmapped headers.`);
+        console.log(`[Learner] Follow-up: Found ${learnerSuggestions.length} successful mappings to reinforce.`);
 
         // 2b. Check for Auto-Patched Fields from Auditor (Quality Gate Learning)
         const auditorPatches: AnalyzerSuggestion[] = [];
@@ -86,7 +152,7 @@ async function main() {
             }
         }
 
-        if (unmappedItems.length === 0 && auditorPatches.length === 0) {
+        if (unmappedItems.length === 0 && auditorPatches.length === 0 && learnerSuggestions.length === 0) {
             updateStatus({
                 step: 'IMPROVEMENT_REVIEW',
                 progress: 100,
@@ -107,17 +173,19 @@ async function main() {
         let allDetails: any[] = [];
         let summary = "Analysis Complete";
 
-        // 3a. Process Auditor Patches Immediately
-        if (auditorPatches.length > 0) {
-            console.log(`[Learner] Reinforcing ${auditorPatches.length} proven patches into dictionary...`);
+        // 3a. Process Auditor Patches AND Discovered Mappings Immediately
+        const highConfidenceSuggestions = [...auditorPatches, ...learnerSuggestions];
+
+        if (highConfidenceSuggestions.length > 0) {
+            console.log(`[Learner] Reinforcing ${highConfidenceSuggestions.length} proven patterns into dictionary...`);
             const patchOutput: AnalyzerOutput = {
-                suggestions: auditorPatches,
-                summary: "Reinforcing Audit Patterns"
+                suggestions: highConfidenceSuggestions,
+                summary: "Reinforcing Validated Patterns"
             };
             const patchResult = await updateDictionaries(patchOutput);
             totalSynonymsAdded += patchResult.synonymsAdded;
             allDetails.push(...patchResult.details);
-            summary += `; Reinforced ${patchResult.synonymsAdded} patterns from Auditor.`;
+            summary += `; Reinforced ${patchResult.synonymsAdded} patterns.`;
         }
 
         // 3b. Run AI Analysis on remaining unmapped items

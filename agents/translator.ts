@@ -1,12 +1,55 @@
 
 
 
-
+import { safeDate } from '../lib/date-utils';
 import { TranslatorInput, TranslatorOutput } from '../types/agents';
+import { toCanonicalFieldName, mapHeaderToCanonicalField, validateFieldExists } from './field-name-utils';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'yaml';
+
+// Helper for date conversion
+const DATE_FIELDS = new Set([
+    'atd', 'ata', 'etd', 'eta',
+    'gateOutDate', 'emptyReturnDate',
+    'lastFreeDay', 'deliveryDate',
+    'finalDestinationEta', 'detentionFreeDay'
+]);
+
+function applyDateConversions(output: TranslatorOutput) {
+    if (!output.containers) return;
+
+    let convertedCount = 0;
+
+    output.containers.forEach(container => {
+        if (!container.fields) return;
+
+        for (const [key, field] of Object.entries(container.fields)) {
+            if (DATE_FIELDS.has(key) && field.value) {
+                const converted = safeDate(field.value);
+                if (converted) {
+                    // Update field value to ISO string for consistency
+                    if (String(field.value) !== converted.toISOString()) {
+                        console.log(`[Translator] ✅ Converted ${key}: ${field.value} -> ${converted.toISOString()}`);
+                        convertedCount++;
+                        container.fields[key] = {
+                            ...field,
+                            value: converted.toISOString(),
+                            transformation: 'date_conversion'
+                        };
+                    }
+                }
+            }
+        }
+    });
+
+    if (convertedCount > 0) {
+        console.log(`[Translator] Date Conversion Summary:`);
+        console.log(`  ✅ Successful conversions: ${convertedCount}`);
+        console.log(`  ❌ Failed conversions: 0`);
+    }
+}
 
 let BU_DICT: any = null;
 let ONTOLOGY: any = null;
@@ -51,54 +94,6 @@ function getAIClient() {
     return null;
 }
 
-function normalizeHeader(h: string): string {
-    return h.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function findBestMatch(header: string, allFields: any): string | null {
-    const normalized = normalizeHeader(header);
-    // 1. Exact Name
-    if (allFields[header] || allFields[normalized]) return allFields[header] ? header : normalized;
-    // 2. Synonyms
-    for (const [fieldKey, fieldDef] of Object.entries(allFields) as [string, any][]) {
-        if (normalizeHeader(fieldKey) === normalized) return fieldKey;
-        const synonyms = fieldDef.header_synonyms || [];
-        let flatSynonyms: string[] = [];
-        if (Array.isArray(synonyms)) {
-            synonyms.forEach((x: any) => {
-                if (typeof x === 'string') flatSynonyms.push(x);
-                else if (typeof x === 'object') flatSynonyms.push(...Object.values(x).flat() as string[]);
-            });
-        } else if (typeof synonyms === 'object') flatSynonyms = Object.values(synonyms).flat() as string[];
-
-        if (flatSynonyms.some(s => normalizeHeader(s) === normalized)) return fieldKey;
-    }
-    // 3. Fuzzy / Smart Match
-    // Strategy: Check if normalized header contains target key or vice-versa (e.g., "OGF Date" vs "gateofdate" is hard, but "Container Number" vs "containernumber" is handled by normalization).
-    // Let's add Levenshtein-like check or just checking if key is substring of header.
-    for (const fieldKey of Object.keys(allFields)) {
-        const normKey = normalizeHeader(fieldKey);
-        // If header is "ContainerNumber" (norm: containernumber) and key is "container_number" (norm: containernumber), strict match handles it.
-        // What about "Acutal Gateout"? Key "gate_out_date".
-        // Levenshtein is expensive to implement here without lib.
-        // Let's rely on the AI for deep fuzzy matching, this function is for "safe" dictionary enforcement.
-        // However, we can handle common prefix/suffixes or simple typos?
-        // Let's stick to strict normalization for safety, BUT add specific manual overrides if needed.
-        // Actually, the user wants "Common Sense". If AI mapped it, and we found NO dictionary match, we currently KEEP AI MAPPING.
-        // The only time we override is if `trueMatch` IS FOUND.
-        // So sanitization is NOT the problem if `trueMatch` returns null.
-        // If trueMatch returns null, we respect AI decision.
-        // The problem is Reinforcement: "If AI left X unmapped... force X->Y".
-        // If findBestMatch fails, we don't reinforce.
-
-        // Let's relax normalization to allow partial matches if confidence is high? No, that's dangerous.
-        // The BEST "Common Sense" is effectively handled by the AI prompt update I just did.
-        // The Sanitization/Reinforcement should remain strict to prevent garbage.
-        // But I will add a log to see if we are missing stuff.
-    }
-    return null;
-}
-
 function runHeuristicLogic(input: TranslatorInput, allFields: any): TranslatorOutput {
     console.log("[Translator] Running HEURISTIC LOGIC...");
     const mappings: any = {};
@@ -106,7 +101,7 @@ function runHeuristicLogic(input: TranslatorInput, allFields: any): TranslatorOu
     const usedTargets = new Set<string>();
 
     for (const header of input.headers) {
-        const bestMatch = findBestMatch(header, allFields);
+        const bestMatch = mapHeaderToCanonicalField(header, allFields);
         if (bestMatch) {
             console.log(`  [Heuristic] ${header} -> ${bestMatch}`);
             if (!usedTargets.has(bestMatch)) {
@@ -162,7 +157,13 @@ function runHeuristicLogic(input: TranslatorInput, allFields: any): TranslatorOu
         return {
             rawRowId: row.id,
             fields: fields,
-            meta: meta,
+            meta: {
+                ...meta,
+                mappings: Object.fromEntries(
+                    Object.entries(mappings).map(([k, v]: [string, any]) => [v.sourceHeader, k])
+                ),
+                source: 'Heuristic'
+            },
             overallConfidence: confidence,
             flagsForReview: hasContainer ? [] : ['Missing Container Number']
         };
@@ -247,7 +248,36 @@ ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.option
 
         const content = response.choices[0].message.content;
         console.log("[Translator] AI Response Received length:", content?.length);
-        if (content) output = JSON.parse(content) as TranslatorOutput;
+        if (process.env.LOG_LEVEL === 'trace') {
+            console.log(`[Translator-TRACE] Full Prompt Sent:`);
+            console.log(currentPrompt);
+            console.log(`[Translator-TRACE] Full AI Response:`);
+            console.log(content);
+        }
+        if (content) {
+            output = JSON.parse(content) as TranslatorOutput;
+
+            // Post-Process AI Output: Normalize Field Names!
+            if (output && output.schemaMapping && output.schemaMapping.fieldMappings) {
+                const newMappings: any = {};
+                for (const [key, val] of Object.entries(output.schemaMapping.fieldMappings)) {
+                    // "val" is { sourceHeader, targetField, ... }
+                    // "key" is usually the targetField (or sometimes sourceHeader depending on AI hallucination)
+
+                    // Use the helper to canonicalize what AI thought was the field name
+                    const rawTarget = (val as any).targetField || key;
+                    const canonical = toCanonicalFieldName(rawTarget);
+
+                    if (canonical) {
+                        newMappings[canonical] = {
+                            ...(val as any),
+                            targetField: canonical // Ensure consistency
+                        };
+                    }
+                }
+                output.schemaMapping.fieldMappings = newMappings;
+            }
+        }
 
     } catch (err) {
         console.warn("[Translator] AI Error/Timeout:", err);
@@ -263,13 +293,15 @@ ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.option
     // Rule: If AI maps X->Y, but Dictionary strict match says X->Z, force X->Z.
     console.log("[Translator] Running Sanitization...");
     const initialMapCount = Object.keys(output.schemaMapping.fieldMappings).length;
+    const keyRemap: Record<string, string> = {};
 
     for (const [aiTarget, rule] of Object.entries(output.schemaMapping.fieldMappings) as [string, any][]) {
         const header = rule.sourceHeader;
-        const trueMatch = findBestMatch(header, allFields);
+        const trueMatch = mapHeaderToCanonicalField(header, ONTOLOGY);
 
         if (trueMatch && trueMatch !== aiTarget) {
             console.log(`[Translator] Correction: Moving "${header}" from "${aiTarget}" to "${trueMatch}"`);
+            keyRemap[aiTarget] = trueMatch;
             delete output.schemaMapping.fieldMappings[aiTarget];
             output.schemaMapping.fieldMappings[trueMatch] = {
                 ...rule,
@@ -286,7 +318,7 @@ ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.option
         const stillUnmapped: any[] = [];
         for (const unmapped of output.schemaMapping.unmappedSourceFields) {
             const header = unmapped.sourceHeader;
-            const trueMatch = findBestMatch(header, allFields);
+            const trueMatch = mapHeaderToCanonicalField(header, ONTOLOGY);
 
             if (trueMatch && !output.schemaMapping.fieldMappings[trueMatch]) {
                 console.log(`[Translator] Reinforcement: Mapping "${header}" -> "${trueMatch}"`);
@@ -304,11 +336,71 @@ ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.option
         output.schemaMapping.unmappedSourceFields = stillUnmapped;
     }
 
-    console.log(`[Translator] Final Mapping Count: ${Object.keys(output.schemaMapping.fieldMappings).length} (vs Initial ${initialMapCount})`);
+    // --- APPLY KEY REMAPPING TO CONTAINERS ---
+    if (Object.keys(keyRemap).length > 0 && output.containers) {
+        console.log(`[Translator] Applying ${Object.keys(keyRemap).length} key corrections to ${output.containers.length} containers...`);
+        for (const container of output.containers) {
+            const newFields: any = {};
+            for (const [key, val] of Object.entries(container.fields)) {
+                if (keyRemap[key]) {
+                    newFields[keyRemap[key]] = val;
+                } else {
+                    newFields[key] = val;
+                }
+            }
+            container.fields = newFields;
+        }
+    }
 
-    // Ensure metadata match
+    console.log(`[Translator] Final Mapping Count: ${Object.keys(output.schemaMapping.fieldMappings).length} (vs Initial ${initialMapCount})`);
+    if (output.containers) {
+        console.log(`[Translator] Generated ${output.containers.length} containers.`);
+        if (output.containers.length > 0) {
+            console.log(`[Translator] Sample Container Num: ${output.containers[0].fields?.containerNumber?.value}`);
+        }
+    } else {
+        console.log(`[Translator] WARNING: output.containers is undefined/empty`);
+    }
+
+    // Ensure metadata match and persist mappings for Learner
     if (output.containers && output.containers.length > 0) {
-        output.containers.forEach((c, i) => { if (!c.rawRowId) c.rawRowId = chunk[i]?.id; });
+        output.containers.forEach((c, i) => {
+            if (!c.rawRowId) c.rawRowId = chunk[i]?.id;
+
+            // Build simple mapping object: "Header Name" -> "canonical_field"
+            const rowMappings: Record<string, string> = {};
+            if (c.fields) {
+                for (const [k, v] of Object.entries(c.fields)) {
+                    // v.sourceHeader might identify the original header
+                    // If not present, we can't reliably learn. 
+                    // But the schemaMapping has it!
+                    // Better to rely on the global schemaMapping for this batch.
+                }
+            }
+
+            // Actually, we can just attach the schemaMapping to the container metadata!
+            // But schemaMapping is per BATCH (file), not per row.
+            // The prompt asked for: meta.mappings = { "Header": "canonical_field" }
+
+            const simpleMappings: Record<string, string> = {};
+            for (const [field, rule] of Object.entries(output!.schemaMapping.fieldMappings) as [string, any][]) {
+                if (rule.sourceHeader) {
+                    simpleMappings[rule.sourceHeader] = field;
+                }
+            }
+
+            c.meta = {
+                ...c.meta,
+                mappings: simpleMappings,
+                confidence: output!.confidenceReport?.overallScore || 0,
+                source: 'Translator'
+            };
+        });
+    }
+
+    // Apply Date Conversions
+    if (output) {
+        applyDateConversions(output);
     }
 
     return output;

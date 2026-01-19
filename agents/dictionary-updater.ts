@@ -3,6 +3,7 @@ import { AnalyzerOutput, AnalyzerSuggestion } from '../types/agents';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
+import { toCanonicalFieldName, normalizeHeader } from './field-name-utils';
 
 export interface UpdaterOutput {
     synonymsAdded: number;
@@ -11,72 +12,129 @@ export interface UpdaterOutput {
 }
 
 export async function updateDictionaries(analysis: AnalyzerOutput): Promise<UpdaterOutput> {
-    console.log(`[Updater] Processing ${analysis.suggestions.length} suggestions...`);
+    console.log(`[Updater] 📥 Processing ${analysis.suggestions.length} suggestions...`);
 
     const ontologyPath = path.join(process.cwd(), 'agents/dictionaries/container_ontology.yml');
-    const fileContent = fs.readFileSync(ontologyPath, 'utf-8');
-    const ontology = yaml.parse(fileContent);
 
-    let addedCount = 0;
-    let pendingCount = 0;
+    let ontology: any;
+    try {
+        const fileContent = fs.readFileSync(ontologyPath, 'utf-8');
+        ontology = yaml.parse(fileContent);
+    } catch (e) {
+        console.error(`[Updater] Failed to load ontology from ${ontologyPath}`, e);
+        return { synonymsAdded: 0, pendingAdded: 0, details: ["Error loading ontology"] };
+    }
+
+    // Ensure sections exist
+    if (!ontology.required_fields) ontology.required_fields = {};
+    if (!ontology.optional_fields) ontology.optional_fields = {};
+    if (!ontology.pending_fields) ontology.pending_fields = [];
+
+    let synonymsAdded = 0;
+    let pendingAdded = 0;
     const details: string[] = [];
+    const fieldsUpdated = new Set<string>();
 
     for (const suggestion of analysis.suggestions) {
-        // Check if we should auto-approve based on field-specific threshold
-        let fieldDef = ontology.required_fields?.[suggestion.canonicalField]
-            || ontology.optional_fields?.[suggestion.canonicalField];
+        const rawHeader = suggestion.unmappedHeader;
+        let targetField = suggestion.canonicalField;
 
-        const threshold = fieldDef?.confidence_threshold || 0.90;
+        // 1. Normalize Target Field (Handle metadata.foo -> foo, camelCase -> snake_case)
+        targetField = toCanonicalFieldName(targetField);
+
+        // 2. Find Field Definition
+        const fieldDef = ontology.required_fields[targetField] || ontology.optional_fields[targetField];
+
+        // 3. Robust Synonym Search
+        if (!fieldDef) {
+            console.log(`[Updater] ⚠️  Field '${targetField}' (from '${suggestion.canonicalField}') not found in ontology. Skipping.`);
+
+            // If high confidence, add to pending for manual review
+            if (suggestion.confidence > 0.8) {
+                const isPending = ontology.pending_fields.some((p: any) =>
+                    normalizeHeader(p.unmappedHeader) === normalizeHeader(rawHeader) &&
+                    p.canonicalField === targetField
+                );
+
+                if (!isPending) {
+                    ontology.pending_fields.push({
+                        ...suggestion,
+                        canonicalField: targetField,
+                        timestamp: new Date().toISOString()
+                    });
+                    pendingAdded++;
+                    details.push(`📋 Pending Review: "${rawHeader}" → ${targetField} (Unknown Field)`);
+                }
+            }
+            continue;
+        }
+
+        // 4. Update Logic
+        const threshold = fieldDef.confidence_threshold || 0.85;
 
         if (suggestion.action === 'ADD_SYNONYM' && suggestion.confidence >= threshold) {
-            // Add to header_synonyms
-            if (fieldDef) {
-                if (!fieldDef.header_synonyms) fieldDef.header_synonyms = [];
+            // Initialize header_synonyms if needed
+            if (!fieldDef.header_synonyms) {
+                fieldDef.header_synonyms = [];
+            }
 
-                // Handle complex synonym structure (array vs object with keys like 'atd', 'etd')
+            // Check existence (Case insensitive check)
+            const existingSynonyms = new Set<string>();
+
+            const addSynonymsToSet = (syns: any) => {
+                if (Array.isArray(syns)) {
+                    syns.forEach(s => existingSynonyms.add(normalizeHeader(s)));
+                } else if (typeof syns === 'object') {
+                    Object.values(syns).flat().forEach((s: any) => existingSynonyms.add(normalizeHeader(s)));
+                }
+            };
+            addSynonymsToSet(fieldDef.header_synonyms);
+
+            if (!existingSynonyms.has(normalizeHeader(rawHeader))) {
+                // If it's a simple array, push. If object, this is tricky.
                 if (Array.isArray(fieldDef.header_synonyms)) {
-                    if (!fieldDef.header_synonyms.includes(suggestion.unmappedHeader)) {
-                        fieldDef.header_synonyms.push(suggestion.unmappedHeader);
-                        addedCount++;
-                        details.push(`Added "${suggestion.unmappedHeader}" to ${suggestion.canonicalField}`);
-                    }
-                } else if (typeof fieldDef.header_synonyms === 'object') {
-                    // For nested synonyms (e.g. arrival_date -> ata, eta), we need to know which sub-key.
-                    // The Analyzer might not return sub-key.
-                    // For MVP, we skip complex fields or assume default.
-                    // Or check if Analyzer return matched sub-types. 
-                    // To be safe, we might skip complex fields or default to 'default'.
-                    details.push(`Skipped complex field ${suggestion.canonicalField} (nested synonyms not supported yet)`);
+                    fieldDef.header_synonyms.push(rawHeader);
+                    synonymsAdded++;
+                    fieldsUpdated.add(targetField);
+                    details.push(`✅ Added synonym: "${rawHeader}" → ${targetField}`);
+                    console.log(`[Updater] ✅ Linked "${rawHeader}" to ${targetField}`);
+                } else {
+                    // For MVP, if it's an object, we can't easily auto-add without knowing the sub-key.
+                    // But we can check if we want to convert it? No, keep it safe.
+                    details.push(`⚠️  Skipped complex field ${targetField} (nested synonyms)`);
                 }
             } else {
-                console.warn(`[Updater] Canonical field ${suggestion.canonicalField} not found.`);
+                console.log(`[Updater] ⏭️  Synonym "${rawHeader}" already exists for ${targetField}`);
             }
+
         } else if (suggestion.confidence >= 0.70) {
-            // Add to pending_fields
-            if (!ontology.pending_fields) ontology.pending_fields = [];
-            ontology.pending_fields.push({
-                ...suggestion,
-                timestamp: new Date().toISOString()
-            });
-            pendingCount++;
+            // Low confidence -> Pending
+            const isPending = ontology.pending_fields.some((p: any) =>
+                normalizeHeader(p.unmappedHeader) === normalizeHeader(rawHeader));
+
+            if (!isPending) {
+                ontology.pending_fields.push({
+                    ...suggestion,
+                    canonicalField: targetField,
+                    timestamp: new Date().toISOString()
+                });
+                pendingAdded++;
+                details.push(`📋 Added to Pending: "${rawHeader}" → ${targetField} (Conf: ${suggestion.confidence})`);
+            }
         }
     }
 
-    if (addedCount > 0 || pendingCount > 0) {
-        // Increment version
+    // Save
+    if (synonymsAdded > 0 || pendingAdded > 0) {
+        // Bump version
         const versionParts = (ontology.version || "1.0.0").split('.').map(Number);
-        versionParts[2]++; // Patch bump
+        versionParts[2]++;
         ontology.version = versionParts.join('.');
         ontology.last_updated = new Date().toISOString().split('T')[0];
 
-        // Write back
         fs.writeFileSync(ontologyPath, yaml.stringify(ontology));
-        console.log(`[Updater] Updated ontology to version ${ontology.version}`);
+        console.log(`[Updater] 💾 Saved Ontology v${ontology.version}`);
     }
 
-    return {
-        synonymsAdded: addedCount,
-        pendingAdded: pendingCount,
-        details
-    };
+    return { synonymsAdded, pendingAdded, details };
 }

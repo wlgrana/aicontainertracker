@@ -10,7 +10,7 @@ The Self-Improving Ingestion Engine is an autonomous subsystem that leverages th
 
 ## Architecture & Simulation Pipeline
 
-The system is visualized through an interactive **Simulation Dashboard** (`/simulation`) which runs the pipeline step-by-step:
+The system is visualized through an interactive **Simulation Dashboard** (`/import`) which runs the pipeline step-by-step:
 
 ```mermaid
 graph TD
@@ -18,9 +18,10 @@ graph TD
     B -->|Step 2| C(Translator)
     C -->|Step 3| D(Auditor)
     D -->|Step 4| E(Importer)
-    E -->|Step 5| F(Learner)
-    F -->|Updates| G[Dictionaries]
-    G -->|Refines| C
+    E -->|Step 4.5| F{Enricher}
+    F -->|Step 5| G(Learner)
+    G -->|Updates| H[Dictionaries]
+    H -->|Refines| C
 ```
 
 ### 1. Archivist (Step 1)
@@ -36,6 +37,7 @@ graph TD
 
 ### 3. Auditor (Step 3)
 - **Role**: Quality Gate & Self-Healing.
+- **Performance**: Now runs a **"Fast Check" (1-Row Sample)** to validate the mapping logic instantly without stalling the pipeline.
 - **UI Enhancements**:
     - **Summary Stats Card**: "Total Fields", "Exact Matches", "Discrepancies", and "Quality Score" visible at a glance.
     - **Critical Error Tracking**: Highlights critical data mismatches before they reach the persistent database.
@@ -43,14 +45,32 @@ graph TD
 ### 4. Importer (Step 4)
 - **Role**: Persistence.
 - **Function**: Applies the mapping rules and commits data to the `Container` and `Shipment` tables.
-- **Features**: Autosaves unmapped fields to `Container.metadata` to ensure no data is discarded even if unmapped.
+- **Performance**: Uses **Optimized Batch Persistence** (Chunk Size: 50) and parallel database operations to ingest thousands of rows in seconds.
+- **Verification**: Displays a **1-Row Verification Sample** in the logs to confirm successful data entry.
+- **Features**: Autosaves unmapped fields to `Container.metadata` ("Left Over" columns) to ensure no data is discarded.
+- **Zero Data Loss Guarantee**: Correctly distinguishes between Array-based (Excel) and Object-based (JSON) inputs to ensure "Left Over" columns are not silently dropped due to indexing errors.
 
-### 5. Learner (Step 5 - NEW)
+    - **Zero Data Loss Guarantee**: Correctly distinguishes between Array-based (Excel) and Object-based (JSON) inputs to ensure "Left Over" columns are not silently dropped due to indexing errors.
+
+### 5. Enricher (Step 4.5 - NEW)
+- **Role**: Post-Persistence Inference ("The Analyst").
+- **Function**: Scans the successfully imported containers and their "raw metadata" to infer missing fields.
+- **Key Logic**:
+    - **Service Type**: Infers 'FCL'/'LCL' from raw fields (e.g., `Load Type`) OR checking if `Status` column was mis-mapped (e.g., contains "FCL").
+    - **Status Truth Engine**: Triangulates status from 3 sources with strict priority: Manual Override (Locked) > Event Dates (Enricher) > Carrier Status (Raw). Infers `DEL`, `CGO`, `DEP`, etc. from physical dates.
+    - **Destination Cleaning**: Standardizes capitalization for city names.
+- **Safety**: 
+    - **Zero Overwrite**: Only runs logic if the canonical field is `null`. 
+    - **Transparency**: Writes exclusively to `aiDerived` JSON column.
+- **Toggle**: Can be enabled/disabled via the "Enrich (AI)" checkbox in the simulation UI.
+
+### 6. Learner (Step 5)
 - **Role**: Improvement Agent.
-- **Function**: Analyzes the "leftover" unmapped metadata from the Importer step.
+- **Function**: Closes the loop by analyzing both *successes* and *failures* to permanently improve the ontology.
 - **Capabilities**:
-    - **Improvement Analyzer**: Uses AI to deduce meanings of unknown headers (e.g., "Vsl Dep" = "atd").
-    - **Dictionary Updater**: Autonomously updates `header_synonyms` in `container_ontology.yml` and `business_units.yml`.
+    - **Success Discovery** (NEW): Scans successful AI mappings from Step 2 (e.g., "Ship to City" -> `final_destination`) and reinforces them as permanent dictionary synonyms.
+    - **Gap Analysis**: Uses AI to deduce meanings of completely unknown headers.
+    - **Dictionary Updater**: Robustly updates `container_ontology.yml` with specific handling for case-sensitivity and flexible field naming (snake_case/camelCase normalization).
 - **UI Feedback**:
     - **Future Impact Analysis**: Clearly distinguishes between "Score Improvement" (historical) and "Future Impact" (estimated gain for next import).
     - **Performance Metrics**: Shows processing time and specific dictionary updates applied.
@@ -69,8 +89,10 @@ The Training Dashboard is the control center for the **Autonomous Ingestion Engi
 1.  **Baseline Iteration**: The engine processes all 5 files using the *current* dictionary.
     *   *Result*: Often low scores (e.g., 40%) for new layouts.
     *   *Detection*: It identifies "Rows with Errors" (dropped rows) and "Unmapped Headers" (e.g., `CNTR ID`).
-2.  **Analysis**: The `Improvement Analyzer` looks at the unmapped headers and uses AI to deduce their meaning (e.g., learning that `CNTR ID` = `container_number`).
-3.  **Dictionary Update**: New synonyms are written to `container_ontology.yml`.
+2.  **Analysis**: The `Improvement Analyzer` scans for two signals:
+    *   **Successes**: High-confidence AI mappings from the Translator (e.g., "Booking Date" -> `booking_date`).
+    *   **Gaps**: Unmapped headers that need AI deduction.
+3.  **Dictionary Update**: New synonyms are written to `container_ontology.yml` using value-safe YAML editing and canonical field normalization (handling `metadata.foo` -> `foo`).
 4.  **Validation Iteration**: The engine re-runs ALL 5 files with the updated dictionary.
     *   *Success*: Coverage jumps to 100%.
     *   *Regression Check*: If the update caused the score to drop (e.g., broke the Standard file), it **Automatically Reverts** the dictionary to the previous state.
@@ -92,14 +114,14 @@ Located in `agents/dictionaries/`:
 - `container_ontology.yml`: Canonical definition of fields, their header synonyms, and validation rules.
 
 ### 2. New Agents
-- **Improvement Analyzer** (`agents/improvement-analyzer.ts`): 
-  - Input: Aggregated unmapped fields from `AgentProcessingLog` (Auditor stage).
+- **Improvement Analyzer** (`agents/improvement-analyzer.ts` & `scripts/step5_learner.ts`): 
+  - Input: successful mappings from `Container.metadata` and unmapped fields.
   - Output: JSON suggestions for new synonyms.
-  - Role: Acts as a semantic mapper, learning that "Vsl Dep" means "Vessel Departure".
+  - Role: Dual-mode learning (Reinforcement + Deduction).
 
 - **Dictionary Updater** (`agents/dictionary-updater.ts`): 
   - Input: Analyzer suggestions.
-  - Role: Safe file updater that modifies YAML without valid structure corruption. Manages versioning (e.g., `1.2.0` -> `1.2.1`).
+  - Role: Safe file updater that modifies YAML. Now features **Smart Field Matching** to handle case variations and prefix stripping (e.g., `metadata.FinalDestination` -> `final_destination`). Includes a "Pending Queue" for low-confidence suggestions.
 
 ### 3. Background Worker
 - **Batch Improvement Worker** (`lib/jobs/batch-improvement-worker.ts`):
@@ -110,7 +132,7 @@ Located in `agents/dictionaries/`:
 - **Trigger**: `POST /api/imports/[id]/improve` -> Creates `ImprovementJob`.
 - **Poll**: `GET /api/improvement-jobs/[id]` -> Returns status (RUNNING, COMPLETED) and progress %.
 - **UI**: `QualityReportModal` provides the user interface for viewing metrics and triggering improvements.
-- **Simulation**: `/simulation` offers a transparent, step-by-step view of the entire process with **Log Download** capabilities for debugging.
+- **Simulation**: `/import` offers a transparent, step-by-step view of the entire process with **Log Download** capabilities for debugging.
 
 ---
 
@@ -122,7 +144,7 @@ Located in `agents/dictionaries/`:
 3.  Watch as the system autonomously iterates, updates dictionaries, and maximizes its score.
 
 ### Via Simulation (Developer Mode)
-1. Go to `/simulation`.
+1. Go to `/import`.
 2. Select a file and a **Row Limit** (e.g., 25 rows).
 3. Click **Start Simulation**.
 4. Watch the pipeline progress through Archivist, Translator, Auditor, Importer, and Learner.

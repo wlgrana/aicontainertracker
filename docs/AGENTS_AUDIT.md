@@ -39,12 +39,16 @@ You are the Translator Agent for a logistics shipment tracking system. Your job 
 *   **File**: `agents/auditor.ts`
 *   **Function**: `runAuditor(input)`
 *   **Role**: **AI (Pre-Persistence Verification + Self-Healing)**. 
-    1.  **Quality Gate**: Runs *before* database import (Step 3). Simulates the transformation in-memory.
+    1.  **Quality Gate**: Runs *before* database import (Step 3). Simulates the transformation in-memory for a **1-Row Fast Check**.
     2.  **Self-Healing**: If it detects high-confidence unmapped fields (e.g., missed "ETD"), it **automatically patches** the transformation artifact (`temp_translation.json`) before the Importer runs.
     3.  **Audit**: Verifies that no data will be lost during the actual commit.
 *   **Invocation**: `scripts/step3_auditor.ts` (Step 3) and `lib/import-orchestrator.ts` (Post-Persistence check).
 *   **System Prompt**: `agents/prompts/auditor-system.md`
 *   **Logging**: Logs findings to `AgentProcessingLog`. In "Dry Run" mode (Step 3), logging is skipped to avoid foreign key errors.
+*   **Resilience**: 
+    *   **Timeout**: 30 seconds per container (increased from 15s).
+    *   **Retries**: Exponential backoff (up to 2 retries) for transient AI errors.
+    *   **Validation**: Strict input checks to ensure raw data availability.
 *   **Model**: High Reasoning (GPT-4o / DeepSeek).
 
 #### System Prompt Excerpt
@@ -54,7 +58,7 @@ You are the Auditor Agent for a logistics data system. Your job is to verify tha
 ## THE PROBLEM YOU SOLVE
 The Translator creates a mapping from raw Excel fields to database columns. But sometimes:
 1. Mapped fields don't actually get populated (data is LOST)
-2. Date conversions go wrong (data is WRONG)
+2. Date conversions go wrong (data is WRONG or Excel Serial `45719`)
 3. Valuable data has no database column (data is UNMAPPED)
 
 You catch all of these.
@@ -86,18 +90,29 @@ You are the Oracle, an intelligent logistics assistant for the Shipment Tracker 
 *   **File**: `agents/improvement-analyzer.ts`
 *   **Function**: `runImprovementAnalyzer(input)`
 *   **Role**: **AI (High Reasoning)**. 
-    1. **Gap Analysis**: Analyzes unmapped headers stored in metadata.
-    2. **Reinforcement Learning**: Consumes "Auto-Patches" from the Auditor to learn from validated corrections.
+    1. **Success Discovery**: Reinforces high-confidence AI mappings from the processed batch.
+    2. **Gap Analysis**: Analyzes unmapped headers stored in metadata.
+    3. **Reinforcement Learning**: Consumes "Auto-Patches" from the Auditor to learn from validated corrections.
 *   **Invocation**: `scripts/step5_learner.ts` (Step 5).
 *   **Model**: High Reasoning (GPT-4o / DeepSeek).
 
 ### 6. Dictionary Updater (The "Scribe")
 *   **File**: `agents/dictionary-updater.ts`
 *   **Function**: `updateDictionaries(improvements, path)`
-*   **Role**: **Heuristic/Rule-based**. Applies approved changes to the persistent YAML dictionaries (`business_units.yml`, `container_ontology.yml`).
+*   **Role**: **Heuristic/Rule-based**. Applies approved changes to the persistent YAML dictionaries. Features **Smart Canonicalization** to robustly map flexible inputs (e.g., `metadata.bookingDate`) to standard schema fields (`booking_date`).
 *   **Invocation**: `scripts/step5_learner.ts`.
 
-### 7. Improvement Orchestrator (The "Conductor")
+### 7. Enricher (The "Analyst")
+*   **File**: `agents/enricher.ts`
+*   **Function**: `runEnricher(input)`
+*   **Role**: **Deterministic/Heuristic**.
+    1.  **Inference**: Derives operational data (`ServiceType`, `Status`) from raw metadata using regex and date triangulation.
+    2.  **Safety**: Runs post-persistence and adheres to "Zero Overwrite" policy (only fills gaps).
+*   **Invocation**: `scripts/step4_importer.ts` (Step 4.5).
+*   **Output**: stored in `Container.aiDerived` (JSONB).
+*   **Model**: N/A (Rule-based Typescript).
+
+### 8. Improvement Orchestrator (The "Conductor")
 *   **File**: `agents/improvement-orchestrator.ts`
 *   **Function**: `runImprovementLoop(config)`
 *   **Role**: **Logic**. Manages the multi-iteration loop, tracking scores and deciding when to stop based on success criteria.
