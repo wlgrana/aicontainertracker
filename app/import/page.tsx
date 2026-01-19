@@ -175,8 +175,8 @@ export default function SimulationPage() {
                         <p className="text-slate-500 font-medium">Autonomous import pipeline for container tracking reports.</p>
                     </div>
 
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 w-full xl:w-auto">
                             <div className="relative group">
                                 <Button
                                     variant="outline"
@@ -188,13 +188,13 @@ export default function SimulationPage() {
                                     {uploading ? 'Uploading...' : 'Select File'}
                                 </Button>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded border border-slate-200 min-w-[200px]">
+                            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded border border-slate-200 flex-1 xl:min-w-[200px]">
                                 <FileSpreadsheet className="w-4 h-4 text-green-600" />
                                 <span className="font-mono text-slate-700 text-sm font-medium truncate max-w-[200px]">{selectedFile || "No file selected"}</span>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
                             <label className="flex items-center gap-2 text-sm text-slate-600 font-medium cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded border border-slate-200 transition-colors">
                                 <input
                                     type="checkbox"
@@ -217,7 +217,7 @@ export default function SimulationPage() {
                                 <span>Enrich (AI)</span>
                             </label>
 
-                            <div className="h-8 w-px bg-slate-200" />
+                            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
 
                             <input
                                 placeholder="Forwarder..."
@@ -226,7 +226,7 @@ export default function SimulationPage() {
                                 className="h-10 px-3 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded w-32 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
 
-                            <div className="h-8 w-px bg-slate-200" />
+                            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
 
                             <select
                                 value={containerLimit}
@@ -243,7 +243,7 @@ export default function SimulationPage() {
 
                             <Button
                                 variant="default"
-                                className="h-10 bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm px-6"
+                                className="h-10 bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm px-6 w-full sm:w-auto"
                                 onClick={() => handleControl('START')}
                                 disabled={!!loadingAction || (status.step !== 'IDLE' && status.step !== 'COMPLETE')}
                             >
