@@ -3,12 +3,13 @@ import { PrismaClient } from '@prisma/client';
 import { archiveExcelFile } from '../agents/archivist';
 import { updateStatus } from './simulation-utils';
 import * as path from 'path';
+import { getUploadPath } from '../lib/path-utils';
 
 const prisma = new PrismaClient();
 import * as fs from 'fs';
 
 const FILENAME = process.argv[2] || "Horizon Tracking Report.xlsx";
-let FILE_PATH = path.join(process.cwd(), 'uploads', FILENAME);
+let FILE_PATH = getUploadPath(FILENAME);
 
 if (!fs.existsSync(FILE_PATH)) {
     FILE_PATH = path.join(process.cwd(), FILENAME);

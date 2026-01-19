@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { getStatusPath, getPidPath } from '@/lib/path-utils';
 
-const PID_FILE = path.join(process.cwd(), 'simulation_pid.txt');
-const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
+const PID_FILE = getPidPath();
+const STATUS_FILE = getStatusPath();
 
 export async function POST(req: Request) {
     const { action, filename, containerLimit, enrichEnabled, forwarder } = await req.json(); // Add forwarder

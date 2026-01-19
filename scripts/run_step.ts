@@ -2,12 +2,13 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getStatusPath, getLogPath } from '../lib/path-utils';
 
 const step = process.argv[2];
 let logFilename = 'simulation.log';
 
 // Try to read log filename from status
-const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
+const STATUS_FILE = getStatusPath();
 try {
     if (fs.existsSync(STATUS_FILE)) {
         const status = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
@@ -19,7 +20,7 @@ try {
     // ignore
 }
 
-const LOG_FILE = path.join(process.cwd(), 'logs', logFilename);
+const LOG_FILE = getLogPath(logFilename);
 
 const scriptMap: Record<string, string> = {
     '1': 'scripts/step1_archivist.ts',

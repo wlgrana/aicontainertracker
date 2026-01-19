@@ -3,7 +3,8 @@ const DATE_FIELDS = new Set([
     'atd', 'ata', 'etd', 'eta',
     'gateOutDate', 'emptyReturnDate',
     'lastFreeDay', 'deliveryDate',
-    'finalDestinationEta', 'detentionFreeDay'
+    'finalDestinationEta', 'detentionFreeDay',
+    'trucker_appointment', 'empty_available_date'
 ]);
 
 export function excelDateToJS(serial: number): Date {

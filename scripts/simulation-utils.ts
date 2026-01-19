@@ -1,8 +1,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { getStatusPath } from '../lib/path-utils';
 
-const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
+const STATUS_FILE = getStatusPath();
 
 export interface SimulationStatus {
     step: string;

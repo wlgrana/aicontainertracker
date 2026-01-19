@@ -1,10 +1,10 @@
 
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { getStatusPath } from '@/lib/path-utils';
 
 export async function GET() {
-    const filePath = path.join(process.cwd(), 'simulation_status.json');
+    const filePath = getStatusPath();
     if (!fs.existsSync(filePath)) {
         // Return default idle
         return NextResponse.json({ step: 'IDLE', progress: 0, message: 'Waiting for simulation start...' });

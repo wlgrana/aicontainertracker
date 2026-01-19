@@ -58,7 +58,13 @@ export function mapHeaderToCanonicalField(header: string, ontology: any): string
     if (!ontology) return null;
 
     const normalizedHeader = normalizeHeader(header);
-    const allFields = { ...ontology.required_fields, ...ontology.optional_fields };
+    const allFields = {
+        ...ontology.required_fields,
+        ...ontology.optional_fields,
+        ...Object.fromEntries(
+            Object.entries(ontology.metadata_fields || {}).map(([k, v]) => [`metadata.${k}`, v])
+        )
+    };
 
     for (const [canonicalField, def] of Object.entries(allFields) as [string, any][]) {
         // 1. Exact match (normalized)

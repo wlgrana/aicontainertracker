@@ -35,13 +35,11 @@ async function checkIngestedData() {
             console.log("No containers found for this logs.");
         } else {
             containers.forEach(c => {
-                console.log(`\nContainer: ${c.containerNumber}`);
-                console.log(`  Status: ${c.currentStatus}`);
-                console.log(`  AI Operational Status: ${c.aiOperationalStatus}`);
-                console.log(`  Health Score: ${c.healthScore}`);
-                console.log(`  Days In Transit: ${c.daysInTransit}`);
-                console.log(`  Has Exception: ${c.hasException}`);
-                console.log(`  Metadata: ${JSON.stringify(c.metadata).substring(0, 100)}...`);
+                console.log(`  ETD: ${c.etd}`);
+                console.log(`  ETA: ${c.eta}`);
+                console.log(`  ATD: ${c.atd}`);
+                console.log(`  ATA: ${c.ata}`);
+                console.log(`  Metadata: ${JSON.stringify(c.metadata)}`);
             });
         }
     }

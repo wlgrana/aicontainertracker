@@ -348,7 +348,6 @@ optional_fields:
       - Out Gate
       - Terminal Departure
       - OGF DATE
-      - TRUCKER APPT
       - Acutal Gateout Date
     data_type: datetime
     confidence_threshold: 0.85
@@ -369,9 +368,6 @@ optional_fields:
       - Returned Empty
       - MTY Return
       - Container Returned
-      - EMPTY RETURN DATE
-      - EMPTY AVAIL DATE
-      - CNTR AVAIL
       - Empty Return Date
       - EReturn Date
     data_type: datetime
@@ -932,6 +928,12 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-19T12:42:53.700Z
-version: 1.0.30
+  - unmappedHeader: CNTR AVAIL
+    canonicalField: metadata.containerAvailableDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-19T13:14:47.681Z
+version: 1.0.31
 last_updated: 2026-01-19
 total_fields: 29
