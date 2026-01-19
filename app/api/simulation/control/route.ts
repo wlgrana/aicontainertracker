@@ -8,7 +8,7 @@ const PID_FILE = path.join(process.cwd(), 'simulation_pid.txt');
 const STATUS_FILE = path.join(process.cwd(), 'simulation_status.json');
 
 export async function POST(req: Request) {
-    const { action, filename, containerLimit, enrichEnabled } = await req.json();
+    const { action, filename, containerLimit, enrichEnabled, forwarder } = await req.json(); // Add forwarder
 
 
     const spawnStep = (stepArgs: string[]) => {
@@ -46,6 +46,10 @@ export async function POST(req: Request) {
         if (containerLimit) args.push(`${containerLimit}`);
         else args.push('all');
 
+        // Pass forwarder as 4th arg
+        if (forwarder) args.push(forwarder);
+        else args.push('null');
+
         // RESET STATUS IMMEDIATELY to prevent stale data flicker
         const timestamp = Date.now();
         const logFilename = `simulation_${timestamp}.log`;
@@ -59,6 +63,7 @@ export async function POST(req: Request) {
                 rowCount: 0,
                 agentData: {}, // Clear all agent data
                 enrichEnabled: !!enrichEnabled,
+                forwarder: forwarder || null,
                 logFilename: logFilename // Store the unique log filename for this run
             };
             fs.writeFileSync(STATUS_FILE, JSON.stringify(initialStatus, null, 2));

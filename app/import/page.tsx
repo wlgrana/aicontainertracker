@@ -59,6 +59,7 @@ export default function SimulationPage() {
     const [containerLimit, setContainerLimit] = useState<string>("all");
     const [autoRun, setAutoRun] = useState(true);
     const [enrichEnabled, setEnrichEnabled] = useState(true);
+    const [forwarder, setForwarder] = useState(""); // Forwarder input state
 
     // Auto-Run Logic
     useEffect(() => {
@@ -93,7 +94,8 @@ export default function SimulationPage() {
                     action: action.toLowerCase(),
                     filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
                     containerLimit: action === 'START' ? containerLimit : undefined,
-                    enrichEnabled: action === 'START' ? enrichEnabled : undefined
+                    enrichEnabled: action === 'START' ? enrichEnabled : undefined,
+                    forwarder: action === 'START' ? forwarder : undefined // Pass forwarder
                 })
             });
             setTimeout(() => {
@@ -214,6 +216,15 @@ export default function SimulationPage() {
                                 <BrainCircuit className={cn("w-4 h-4", enrichEnabled ? "text-purple-500 fill-purple-500" : "text-slate-400")} />
                                 <span>Enrich (AI)</span>
                             </label>
+
+                            <div className="h-8 w-px bg-slate-200" />
+
+                            <input
+                                placeholder="Forwarder..."
+                                value={forwarder}
+                                onChange={(e) => setForwarder(e.target.value)}
+                                className="h-10 px-3 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded w-32 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
 
                             <div className="h-8 w-px bg-slate-200" />
 

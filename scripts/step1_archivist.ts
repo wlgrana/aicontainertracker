@@ -45,7 +45,9 @@ async function main() {
         const limitArg = process.argv[3];
         const rowLimit = limitArg && limitArg !== 'all' ? parseInt(limitArg, 10) : undefined;
 
-        console.log(`[Archivist] Processing ${FILENAME} (Limit: ${rowLimit || 'ALL'})...`);
+        const forwarderArg = process.argv[4];
+
+        console.log(`[Archivist] Processing ${FILENAME} (Limit: ${rowLimit || 'ALL'}, Forwarder: ${forwarderArg || 'None'})...`);
 
         const archiveResult = await archiveExcelFile({
             filePath: FILE_PATH,
@@ -68,6 +70,7 @@ async function main() {
         await prisma.importLog.update({
             where: { fileName: archiveResult.importLogId },
             data: {
+                forwarder: forwarderArg && forwarderArg !== 'null' && forwarderArg !== 'undefined' ? forwarderArg : null,
                 rowsProcessed: archiveResult.rowCount,
                 aiAnalysis: {
                     phase: 'ARCHIVIST',
