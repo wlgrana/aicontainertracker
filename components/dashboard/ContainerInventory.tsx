@@ -110,7 +110,14 @@ export function ContainerInventory({
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
 
+    // New Filters
+    const [healthFilter, setHealthFilter] = useState("all");
+    const [buFilter, setBuFilter] = useState("all");
 
+    // Extract unique BUs
+    const uniqueBUs = useMemo(() => {
+        return Array.from(new Set(initialContainers.map(c => c.businessUnit).filter(Boolean)));
+    }, [initialContainers]);
 
     // Metrics
     const totalContainers = totalItems;
@@ -121,13 +128,18 @@ export function ContainerInventory({
     // Filter Logic
     const filteredContainers = useMemo(() => {
         return initialContainers.filter(c => {
-            return (
+            const matchesSearch =
                 c.containerNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (c.carrier || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (c.currentStatus || "").toLowerCase().includes(searchQuery.toLowerCase())
-            );
+                (c.currentStatus || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+            const { healthKey } = calculateRowData(c);
+            const matchesHealth = healthFilter === "all" ? true : healthKey.toLowerCase() === healthFilter;
+            const matchesBU = buFilter === "all" ? true : c.businessUnit === buFilter;
+
+            return matchesSearch && matchesHealth && matchesBU;
         });
-    }, [initialContainers, searchQuery]);
+    }, [initialContainers, searchQuery, healthFilter, buFilter]);
 
     // Sort Logic
     const sortedContainers = useMemo(() => {
@@ -213,7 +225,18 @@ export function ContainerInventory({
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-
+                        <div className="h-6 w-px bg-slate-200" />
+                        <Select value={buFilter} onValueChange={setBuFilter}>
+                            <SelectTrigger className="w-[160px] border-none bg-transparent font-bold text-xs uppercase tracking-wide text-slate-600 shadow-none">
+                                <SelectValue placeholder="Business Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All BUs</SelectItem>
+                                {uniqueBUs.map(bu => (
+                                    <SelectItem key={bu} value={bu}>{bu}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardHeader>
 
