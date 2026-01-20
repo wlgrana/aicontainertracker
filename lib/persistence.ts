@@ -5,6 +5,78 @@ import { AgentStage, ProcessingStatus } from '@prisma/client';
 
 import { safeDate } from './date-utils';
 
+// Cache of valid TransitStage names
+let VALID_STAGES_CACHE: Set<string> | null = null;
+
+async function getValidStages(): Promise<Set<string>> {
+    if (VALID_STAGES_CACHE) return VALID_STAGES_CACHE;
+
+    const stages = await prisma.transitStage.findMany({
+        select: { stageName: true }
+    });
+
+    VALID_STAGES_CACHE = new Set(stages.map(s => s.stageName));
+    return VALID_STAGES_CACHE;
+}
+
+/**
+ * Smart Status Handler - Implements "Zero Data Loss" for status codes
+ * 
+ * @param carrierStatusCode - Raw status from carrier (e.g., "BCN", "RTN")
+ * @returns Object with rawStatus (always populated) and currentStatus (validated or null)
+ */
+async function handleStatus(carrierStatusCode: string | null): Promise<{
+    rawStatus: string | null;
+    currentStatus: string | null;
+}> {
+    if (!carrierStatusCode) {
+        return { rawStatus: null, currentStatus: null };
+    }
+
+    // Get valid stages from database
+    const validStages = await getValidStages();
+
+    // Check if carrier code matches a known stage exactly
+    if (validStages.has(carrierStatusCode)) {
+        return {
+            rawStatus: carrierStatusCode,
+            currentStatus: carrierStatusCode
+        };
+    }
+
+    // Try common mappings
+    const COMMON_MAPPINGS: Record<string, string> = {
+        'BCN': 'Booked',
+        'BKD': 'Booked',
+        'RTN': 'Empty Return',
+        'OGE': 'Out Gate Empty',
+        'OGF': 'Out Gate Full',
+        'DIS': 'Discharged',
+        'DSCH': 'Discharged',
+        'AVL': 'Released',
+        'REL': 'Released',
+        'RLS': 'Released',
+    };
+
+    const mappedValue = COMMON_MAPPINGS[carrierStatusCode.toUpperCase()];
+
+    if (mappedValue && validStages.has(mappedValue)) {
+        console.log(`[Status] Mapped "${carrierStatusCode}" → "${mappedValue}"`);
+        return {
+            rawStatus: carrierStatusCode,
+            currentStatus: mappedValue
+        };
+    }
+
+    // Unknown status - store raw, leave currentStatus null for user to map
+    console.warn(`[Status] Unknown status code "${carrierStatusCode}" - storing as raw, validation needed`);
+    return {
+        rawStatus: carrierStatusCode,
+        currentStatus: null
+    };
+}
+
+
 export async function persistMappedData(
     importLogId: string,
     translatorOutput: TranslatorOutput,
@@ -21,13 +93,6 @@ export async function persistMappedData(
             rowIdToMappingMap.set(c.rawRowId, c);
         }
     });
-
-    // Valid Status Codes - FETCH DYNAMICALLY
-    const dbStages = await prisma.transitStage.findMany({ select: { stageCode: true } });
-    const VALID_STAGES = dbStages.length > 0
-        ? dbStages.map(s => s.stageCode)
-        : ["BOOK", "CEP", "CGI", "STUF", "LOA", "DEP", "TS1", "TSD", "TSL", "TS1D", "ARR", "DIS", "INSP", "CUS", "REL", "AVL", "CGO", "OFD", "DEL", "STRP", "RET", "O"]; // Fallback if DB empty
-
 
     // Helper to derive BU from Consignee
     const deriveBusinessUnit = (consignee: any): string | null => {
@@ -123,9 +188,14 @@ export async function persistMappedData(
             }
 
             const rawStatus = f.currentStatus?.value;
+
+            // Handle status with smart mapping (Zero Data Loss)
+            const statusResult = await handleStatus(rawStatus);
+
             // PRIORITY: 2. Enriched (Date-based) > 3. Carrier (Raw)
             // Note: Manual (1) is handled by locking check below.
-            const validStatus = enrichedStatus || ((rawStatus && VALID_STAGES.includes(rawStatus)) ? rawStatus : null);
+            // If we have enriched status, use it for currentStatus but keep rawStatus from carrier
+            const finalCurrentStatus = enrichedStatus || statusResult.currentStatus;
 
             const derivedBU = f.businessUnit?.value || deriveBusinessUnit(f.consignee?.value);
 
@@ -134,6 +204,8 @@ export async function persistMappedData(
             // Full Payload for Creation
             const containerData: any = {
                 containerNumber: cNum,
+                rawStatus: statusResult.rawStatus,        // NEW: Always store carrier's value
+                currentStatus: finalCurrentStatus,        // NEW: Validated value or NULL
                 carrier: f.carrier?.value,
                 pol: f.pol?.value,
                 pod: f.pod?.value,
@@ -163,14 +235,12 @@ export async function persistMappedData(
                 aiDerived: enrichmentMap?.get(cNum) || undefined
             };
 
-            // Only set currentStatus if we have a valid value (prevents foreign key constraint errors)
-            if (validStatus) {
-                containerData.currentStatus = validStatus;
-            }
 
 
             // Calculate Update Payload (Pre-Locking)
             const updatePayload: any = {
+                rawStatus: statusResult.rawStatus,        // NEW: Update raw value
+                currentStatus: finalCurrentStatus,        // NEW: Update validated value
                 atd: safeDate(f.atd?.value),
                 ata: safeDate(f.ata?.value),
                 etd: safeDate(f.etd?.value),
@@ -192,7 +262,6 @@ export async function persistMappedData(
                 gateOutDate: safeDate(f.gateOutDate?.value),
                 lastFreeDay: safeDate(f.lastFreeDay?.value),
                 emptyReturnDate: safeDate(f.emptyReturnDate?.value),
-                currentStatus: validStatus || undefined, // Only update if we have a valid status
                 meta: mappedContainer.meta || undefined,
                 aiLastUpdated: new Date()
             };

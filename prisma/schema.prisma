@@ -118,7 +118,11 @@ model Shipment {
 model Container {
   containerNumber     String              @id
   containerType       String?
-  currentStatus       String?
+  
+  // Flexible status approach - Zero Data Loss
+  rawStatus           String?             // Carrier's original code (BCN, RTN, OGE, etc.)
+  currentStatus       String?             // Validated canonical value (optional)
+  
   currentLocation     String?
   currentVessel       String?
   currentVoyage       String?
@@ -187,7 +191,10 @@ model Container {
   aceStatusLogs       ACEStatusLog[]
   activityLogs        ActivityLog[]
   attentionFlags      AttentionFlag[]
+  
+  // Make the foreign key relationship optional
   stage               TransitStage?       @relation(fields: [currentStatus], references: [stageName])
+  
   importLog           ImportLog?          @relation(fields: [importLogId], references: [fileName])
   events              ContainerEvent[]
   rawRows             RawRow[]
@@ -195,6 +202,9 @@ model Container {
   shipmentContainers  ShipmentContainer[]
   statusOverrides     StatusOverride[]
   agentProcessingLogs AgentProcessingLog[]
+  
+  // Add index on rawStatus for performance
+  @@index([rawStatus])
 }
 
 
