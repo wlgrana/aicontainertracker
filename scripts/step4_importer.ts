@@ -37,13 +37,30 @@ const deriveBusinessUnit = (consignee: any): string | null => {
 };
 
 async function main() {
+    console.log('[IMPORTER] Starting...');
+    console.log('[IMPORTER] CWD:', process.cwd());
+    console.log('[IMPORTER] Environment:', {
+        VERCEL: process.env.VERCEL,
+        NODE_ENV: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
+    });
+
     try {
         console.log(">>> STEP 4: IMPORTER (Persistence) <<<");
-        updateStatus({ step: 'IMPORT', progress: 60, message: 'Starting Bulk Import...' });
+        console.log('[IMPORTER] Step 1: Updating status...');
+        await updateStatus({ step: 'IMPORT', progress: 60, message: 'Starting Bulk Import...' });
 
-        if (!fs.existsSync(ARTIFACT_PATH)) throw new Error("No approved detection found. Run Step 2 (Analysis) first.");
+        console.log('[IMPORTER] Step 2: Checking for artifact...');
+        console.log('[IMPORTER] Artifact path:', ARTIFACT_PATH);
+        if (!fs.existsSync(ARTIFACT_PATH)) {
+            console.error('[IMPORTER] Artifact not found at:', ARTIFACT_PATH);
+            throw new Error("No approved detection found. Run Step 2 (Analysis) first.");
+        }
+
+        console.log('[IMPORTER] Step 3: Reading artifact...');
         const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf-8'));
         const mapping = artifact.schemaMapping;
+        console.log('[IMPORTER] Artifact loaded, mapping keys:', Object.keys(mapping.fieldMappings).length);
 
         // Fetch ALL Rows
         const rawRows = await prisma.rawRow.findMany({

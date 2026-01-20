@@ -39,22 +39,21 @@ export default function ImportDetailsPage() {
     const fetchLogs = () => {
         fetch('/api/simulation/logs/list').then(r => r.json()).then(d => {
             const allFiles = d.files || [];
-            // Filter to show ONLY the log file associated with this import (if known)
-            if (status?.logFilename) {
-                setLogFiles(allFiles.filter((f: any) => f.name === status.logFilename));
+            // Filter to show ONLY the log file associated with this import
+            // Use params.id to identify the import, which should match the importLogId
+            const importId = params.id as string;
+            if (importId) {
+                // Match by importLogId (which is the fileName without .log extension)
+                setLogFiles(allFiles.filter((f: any) => f.importLogId === importId));
             } else {
-                // If we don't know the filename, maybe show nothing or all? 
-                // User said "only the 1 log file that is associated".
-                // We'll show nothing if no match found for safety, or just the latest if we can guess.
-                // But relying on status.logFilename is best.
                 setLogFiles([]);
             }
         }).catch(console.error);
     };
 
     useEffect(() => {
-        if (status) fetchLogs();
-    }, [status]);
+        fetchLogs();
+    }, [params.id]);
 
     if (!status) return (
         <div className="flex items-center justify-center min-h-screen">

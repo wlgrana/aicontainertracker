@@ -11,20 +11,35 @@ const prisma = new PrismaClient();
  * Main Translator function - exported for Vercel direct execution
  */
 export async function runTranslatorStep() {
-    const FILENAME = getActiveFilename();
+    console.log('[TRANSLATOR] Starting...');
+    console.log('[TRANSLATOR] CWD:', process.cwd());
+    console.log('[TRANSLATOR] Environment:', {
+        VERCEL: process.env.VERCEL,
+        NODE_ENV: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
+    });
+
+    const FILENAME = await getActiveFilename();
+    console.log('[TRANSLATOR] Active filename:', FILENAME);
+
     const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+    console.log('[TRANSLATOR] Artifact path:', ARTIFACT_PATH);
 
     try {
         console.log(">>> STEP 2: TRANSLATOR (Schema Discovery) <<<");
-        updateStatus({ step: 'TRANSLATOR', progress: 40, message: 'Identifying Schema Pattern with AI...' });
+        console.log('[TRANSLATOR] Step 1: Updating status...');
+        await updateStatus({ step: 'TRANSLATOR', progress: 40, message: 'Identifying Schema Pattern with AI...' });
 
+        console.log('[TRANSLATOR] Step 2: Fetching raw rows from database...');
         const rawRows = await prisma.rawRow.findMany({
             where: { importLogId: FILENAME },
             orderBy: { rowNumber: 'asc' }
         });
+        console.log('[TRANSLATOR] Fetched', rawRows.length, 'raw rows');
 
         if (rawRows.length === 0) throw new Error("No raw rows found. Run Step 1 first.");
         const headers = JSON.parse(rawRows[0].originalHeaders || '[]');
+        console.log('[TRANSLATOR] Parsed headers:', headers.length, 'columns');
 
         const containerFields = [
             "containerNumber", "currentStatus", "currentLocation", "carrier", "pol", "pod", "finalDestination",

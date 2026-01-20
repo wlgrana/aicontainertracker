@@ -9,7 +9,27 @@ const PID_FILE = getPidPath();
 const STATUS_FILE = getStatusPath();
 
 export async function POST(req: Request) {
-    const { action, filename, containerLimit, enrichEnabled, forwarder } = await req.json(); // Add forwarder
+    console.log('=== SIMULATION CONTROL CALLED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Environment:', {
+        VERCEL: process.env.VERCEL,
+        VERCEL_ENV: process.env.VERCEL_ENV,
+        NODE_ENV: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1',
+        nodeVersion: process.version
+    });
+
+    let body;
+    try {
+        body = await req.json();
+        console.log('Request body:', JSON.stringify(body, null, 2));
+    } catch (e) {
+        console.error('Failed to parse request body:', e);
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const { action, filename, containerLimit, enrichEnabled, forwarder } = body;
+    console.log('Parsed params:', { action, filename, containerLimit, enrichEnabled, forwarder });
 
 
     const spawnStep = (stepArgs: string[]) => {
@@ -43,6 +63,7 @@ export async function POST(req: Request) {
     };
 
     if (action === 'start') {
+        console.log('[START] Initiating simulation...');
         const args = ['1'];
         if (filename) args.push(filename);
         else args.push('Horizon Tracking Report.xlsx'); // No quotes needed for shell: false
@@ -55,12 +76,16 @@ export async function POST(req: Request) {
         if (forwarder) args.push(forwarder);
         else args.push('null');
 
+        console.log('[START] Args prepared:', args);
+
         // RESET STATUS IMMEDIATELY to prevent stale data flicker
         const timestamp = Date.now();
         // Generate log filename: filename_INVOCATIONMETHOD_timestamp.log (remove .xlsx extension if present)
         const baseFilename = (filename || 'unknown').replace(/\.xlsx$/i, '').replace(/[^a-z0-9_-]/gi, '_');
         const invocationMethod = 'FRONTEND'; // API calls are always from frontend
         const logFilename = `${baseFilename}_${invocationMethod}_${timestamp}.log`;
+
+        console.log('[START] Generated log filename:', logFilename);
 
         try {
             const initialStatus = {
@@ -74,14 +99,35 @@ export async function POST(req: Request) {
                 forwarder: forwarder || null,
                 logFilename: logFilename // Store the unique log filename for this run
             };
+            console.log('[START] Writing initial status:', JSON.stringify(initialStatus, null, 2));
             fs.writeFileSync(STATUS_FILE, JSON.stringify(initialStatus, null, 2));
+            console.log('[START] Status file written successfully');
         } catch (e) {
-            console.error("Failed to reset status on start:", e);
+            console.error('[START] Failed to reset status on start:', e);
+            console.error('[START] Error stack:', e instanceof Error ? e.stack : 'No stack');
+            return NextResponse.json({
+                success: false,
+                error: `Failed to initialize: ${e instanceof Error ? e.message : String(e)}`,
+                stack: e instanceof Error ? e.stack : undefined
+            }, { status: 500 });
         }
 
         // No more log rotation/renaming. Each run gets a new file.
 
-        spawnStep(args);
+        console.log('[START] About to spawn step with args:', args);
+        try {
+            spawnStep(args);
+            console.log('[START] Step spawned successfully');
+        } catch (e) {
+            console.error('[START] Failed to spawn step:', e);
+            console.error('[START] Error stack:', e instanceof Error ? e.stack : 'No stack');
+            return NextResponse.json({
+                success: false,
+                error: `Failed to spawn process: ${e instanceof Error ? e.message : String(e)}`,
+                stack: e instanceof Error ? e.stack : undefined
+            }, { status: 500 });
+        }
+
         return NextResponse.json({ success: true, message: `Simulation Started (Step 1) with ${filename || 'default'}` });
     }
 

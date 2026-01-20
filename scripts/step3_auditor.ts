@@ -12,13 +12,30 @@ const FILENAME = getActiveFilename();
 const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
 
 async function main() {
+    console.log('[AUDITOR] Starting...');
+    console.log('[AUDITOR] CWD:', process.cwd());
+    console.log('[AUDITOR] Environment:', {
+        VERCEL: process.env.VERCEL,
+        NODE_ENV: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
+    });
+
     try {
         console.log(`>>> STEP 3: AUDITOR PREVIEW (Quality Gate) <<<`);
-        updateStatus({ step: 'AUDITOR', progress: 40, message: 'Simulating Import & Auditing (1 Sample)...' });
+        console.log('[AUDITOR] Step 1: Updating status...');
+        await updateStatus({ step: 'AUDITOR', progress: 40, message: 'Simulating Import & Auditing (1 Sample)...' });
 
-        if (!fs.existsSync(ARTIFACT_PATH)) throw new Error("No approved detection found. Run Step 2 (Analysis) first.");
+        console.log('[AUDITOR] Step 2: Checking for artifact...');
+        console.log('[AUDITOR] Artifact path:', ARTIFACT_PATH);
+        if (!fs.existsSync(ARTIFACT_PATH)) {
+            console.error('[AUDITOR] Artifact not found at:', ARTIFACT_PATH);
+            throw new Error("No approved detection found. Run Step 2 (Analysis) first.");
+        }
+
+        console.log('[AUDITOR] Step 3: Reading artifact...');
         const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf-8'));
         const mapping = artifact.schemaMapping;
+        console.log('[AUDITOR] Artifact loaded, mapping keys:', Object.keys(mapping.fieldMappings).length);
 
         // Fetch Sample Rows (we don't need all 1000 for a preview)
         const rawRows = await prisma.rawRow.findMany({

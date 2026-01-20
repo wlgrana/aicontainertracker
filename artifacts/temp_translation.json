@@ -210,20 +210,6 @@
         "confidence": 0.95,
         "transformationType": "semantic",
         "notes": "Auto-patched by Auditor (Quality Gate)"
-      },
-      "TRUCKER APPT": {
-        "sourceHeader": "TRUCKER APPT",
-        "targetField": "metadata.truckerAppointment",
-        "confidence": 0.95,
-        "transformationType": "semantic",
-        "notes": "Auto-patched by Auditor (Quality Gate)"
-      },
-      "EMPTY AVAIL DATE": {
-        "sourceHeader": "EMPTY AVAIL DATE",
-        "targetField": "metadata.emptyAvailableDate",
-        "confidence": 0.95,
-        "transformationType": "semantic",
-        "notes": "Auto-patched by Auditor (Quality Gate)"
       }
     },
     "unmappedSourceFields": [
@@ -240,7 +226,7 @@
   },
   "containers": [
     {
-      "rawRowId": "717e3981-74b6-4516-abc9-9f15d79da1ae",
+      "rawRowId": "e4b905ff-f4df-4e25-b4a9-37531b2ad728",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127446",
@@ -313,7 +299,7 @@
       ]
     },
     {
-      "rawRowId": "7d979683-e2e1-44fa-82e2-41dd52f38db2",
+      "rawRowId": "49f8e954-03dc-46f9-a927-53060091fe14",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127318",
@@ -386,7 +372,7 @@
       ]
     },
     {
-      "rawRowId": "d233daec-f79f-40dc-a59b-b36dcc978a88",
+      "rawRowId": "a78ec357-6275-401d-a805-5039bd6e9e6e",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127445",
@@ -459,7 +445,7 @@
       ]
     },
     {
-      "rawRowId": "88c7e5d6-68c0-4bbd-b8ce-d7a7f3d7fded",
+      "rawRowId": "f3af5bac-0d37-431e-bff2-20f82ef345ff",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127319",
@@ -532,7 +518,7 @@
       ]
     },
     {
-      "rawRowId": "4cd93abf-ed88-4d75-a8db-60f4d310af38",
+      "rawRowId": "a09a9f64-80dc-403b-9535-c36b8ca26e71",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127447",

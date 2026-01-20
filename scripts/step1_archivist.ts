@@ -17,48 +17,76 @@ export async function runArchivistStep(config: {
     rowLimit?: number;
     forwarder?: string;
 }) {
+    console.log('[ARCHIVIST] Starting...');
+    console.log('[ARCHIVIST] Config:', JSON.stringify(config, null, 2));
+    console.log('[ARCHIVIST] CWD:', process.cwd());
+    console.log('[ARCHIVIST] Environment:', {
+        VERCEL: process.env.VERCEL,
+        NODE_ENV: process.env.NODE_ENV,
+        isVercel: process.env.VERCEL === '1'
+    });
+
     const FILENAME = config.filename || "Horizon Tracking Report.xlsx";
+    console.log('[ARCHIVIST] Target filename:', FILENAME);
+
     let FILE_PATH = getUploadPath(FILENAME);
+    console.log('[ARCHIVIST] Initial file path from getUploadPath:', FILE_PATH);
 
     if (!fs.existsSync(FILE_PATH)) {
+        console.log('[ARCHIVIST] File not found at upload path, trying root...');
         FILE_PATH = path.join(process.cwd(), FILENAME);
+        console.log('[ARCHIVIST] Trying path:', FILE_PATH);
+
         if (!fs.existsSync(FILE_PATH)) {
-            console.error(`[Archivist] File not found: ${FILENAME} (Checked uploads/ and root)`);
-            updateStatus({ step: 'IDLE', progress: 0, message: `Error: File ${FILENAME} not found` });
+            console.error(`[ARCHIVIST] File not found: ${FILENAME}`);
+            console.error(`[ARCHIVIST] Checked paths: ${getUploadPath(FILENAME)}, ${FILE_PATH}`);
+            await updateStatus({ step: 'IDLE', progress: 0, message: `Error: File ${FILENAME} not found` });
             throw new Error(`File not found: ${FILENAME}`);
         }
     }
+    console.log('[ARCHIVIST] File found at:', FILE_PATH);
 
     try {
         // --- RESET ---
-        updateStatus({ step: 'RESET', progress: 5, message: 'Wiping Database...' });
+        console.log('[ARCHIVIST] Step 1: Updating status to RESET...');
+        await updateStatus({ step: 'RESET', progress: 5, message: 'Wiping Database...' });
         console.log("⚠️  RESETTING DATABASE...");
 
         console.log("✅ Database Wipe Disabled (Preserving Data).");
 
         // --- ARCHIVIST ---
-        updateStatus({ step: 'ARCHIVIST', progress: 10, message: `Ingesting ${FILENAME}...`, agentData: {} });
+        console.log('[ARCHIVIST] Step 2: Updating status to ARCHIVIST...');
+        await updateStatus({ step: 'ARCHIVIST', progress: 10, message: `Ingesting ${FILENAME}...`, agentData: {} });
 
-        console.log(`[Archivist] Processing ${FILENAME} (Limit: ${config.rowLimit || 'ALL'}, Forwarder: ${config.forwarder || 'None'})...`);
+        console.log(`[ARCHIVIST] Step 3: Processing ${FILENAME} (Limit: ${config.rowLimit || 'ALL'}, Forwarder: ${config.forwarder || 'None'})...`);
 
+        console.log('[ARCHIVIST] Step 4: Calling archiveExcelFile...');
         const archiveResult = await archiveExcelFile({
             filePath: FILE_PATH,
             fileName: FILENAME,
             uploadedBy: "SIMULATION",
             rowLimit: config.rowLimit
         });
+        console.log('[ARCHIVIST] archiveExcelFile completed:', {
+            importLogId: archiveResult.importLogId,
+            rowCount: archiveResult.rowCount,
+            headerCount: archiveResult.headers.length
+        });
 
         // Fetch sample for dashboard
+        console.log('[ARCHIVIST] Step 5: Fetching sample raw rows...');
         const rawRows = await prisma.rawRow.findMany({
             where: { importLogId: archiveResult.importLogId },
             orderBy: { rowNumber: 'asc' },
             take: 1
         });
+        console.log('[ARCHIVIST] Fetched', rawRows.length, 'sample rows');
 
         const sampleRow = rawRows.length > 0 ? JSON.parse(rawRows[0].data) : {};
         const headers = archiveResult.headers;
 
         // LOGGING: Update ImportLog with analysis info
+        console.log('[ARCHIVIST] Step 6: Updating ImportLog with analysis...');
         await prisma.importLog.update({
             where: { fileName: archiveResult.importLogId },
             data: {
@@ -72,8 +100,10 @@ export async function runArchivistStep(config: {
                 }
             }
         });
+        console.log('[ARCHIVIST] ImportLog updated successfully');
 
-        updateStatus({
+        console.log('[ARCHIVIST] Step 7: Updating final status...');
+        await updateStatus({
             step: 'ARCHIVIST_COMPLETE',
             progress: 25,
             message: `Ingested ${archiveResult.rowCount} rows from ${FILENAME}. Waiting for approval...`,
@@ -95,6 +125,7 @@ export async function runArchivistStep(config: {
         });
 
         console.log("STEP 1 Complete. Waiting for user.");
+        console.log('[ARCHIVIST] Returning success result');
 
         return {
             success: true,
@@ -104,8 +135,10 @@ export async function runArchivistStep(config: {
         };
 
     } catch (error) {
-        console.error("Step 1 Failed:", error);
-        updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
+        console.error("[ARCHIVIST] ERROR:", error);
+        console.error("[ARCHIVIST] Error message:", error instanceof Error ? error.message : String(error));
+        console.error("[ARCHIVIST] Error stack:", error instanceof Error ? error.stack : 'No stack');
+        await updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
         throw error;
     } finally {
         await prisma.$disconnect();

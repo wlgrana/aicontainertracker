@@ -80,6 +80,13 @@ export default function SimulationPage() {
     }, [status, autoRun]);
 
     const handleControl = async (action: string, filenameOverride?: string) => {
+        console.log('[UI] Calling action:', action, 'at', new Date().toISOString());
+        console.log('[UI] Filename override:', filenameOverride);
+        console.log('[UI] Selected file:', selectedFile);
+        console.log('[UI] Container limit:', containerLimit);
+        console.log('[UI] Enrich enabled:', enrichEnabled);
+        console.log('[UI] Forwarder:', forwarder);
+
         setLoadingAction(action);
 
         // Optimistic UI Update: Clear immediately on START to prevent stale data flicker
@@ -89,22 +96,53 @@ export default function SimulationPage() {
         }
 
         try {
-            await fetch('/api/simulation/control', {
+            const requestBody = {
+                action: action.toLowerCase(),
+                filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
+                containerLimit: action === 'START' ? containerLimit : undefined,
+                enrichEnabled: action === 'START' ? enrichEnabled : undefined,
+                forwarder: action === 'START' ? forwarder : undefined
+            };
+
+            console.log('[UI] Request body:', JSON.stringify(requestBody, null, 2));
+            console.log('[UI] Sending request to /api/simulation/control...');
+
+            const response = await fetch('/api/simulation/control', {
                 method: 'POST',
-                body: JSON.stringify({
-                    action: action.toLowerCase(),
-                    filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
-                    containerLimit: action === 'START' ? containerLimit : undefined,
-                    enrichEnabled: action === 'START' ? enrichEnabled : undefined,
-                    forwarder: action === 'START' ? forwarder : undefined // Pass forwarder
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
             });
+
+            console.log('[UI] Response status:', response.status);
+            console.log('[UI] Response ok:', response.ok);
+
+            const data = await response.json();
+            console.log('[UI] Response data:', JSON.stringify(data, null, 2));
+
+            if (!response.ok || !data.success) {
+                const errorMessage = `Error: ${data.error || 'Unknown error'}\n\nStatus: ${response.status}\n\nStack: ${data.stack || 'No stack trace'}`;
+                console.error('[UI] Request failed:', errorMessage);
+                alert(errorMessage);
+            } else {
+                console.log('[UI] Request successful:', data.message);
+            }
+
             setTimeout(() => {
-                fetch('/api/simulation/status?t=' + Date.now()).then(r => r.json()).then(setStatus);
+                console.log('[UI] Fetching updated status...');
+                fetch('/api/simulation/status?t=' + Date.now())
+                    .then(r => r.json())
+                    .then(statusData => {
+                        console.log('[UI] Updated status:', statusData);
+                        setStatus(statusData);
+                    })
+                    .catch(err => console.error('[UI] Status fetch error:', err));
                 setLoadingAction(null);
             }, 500);
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error('[UI] Fetch error:', e);
+            console.error('[UI] Error message:', e.message);
+            console.error('[UI] Error stack:', e.stack);
+            alert(`Network error: ${e.message}\n\nStack: ${e.stack || 'No stack trace'}`);
             setLoadingAction(null);
         }
     };
