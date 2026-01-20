@@ -8,53 +8,44 @@ import { getUploadPath } from '../lib/path-utils';
 const prisma = new PrismaClient();
 import * as fs from 'fs';
 
-const FILENAME = process.argv[2] || "Horizon Tracking Report.xlsx";
-let FILE_PATH = getUploadPath(FILENAME);
+/**
+ * Main Archivist function - exported for Vercel direct execution
+ * @param config Configuration object with filename, rowLimit, and forwarder
+ */
+export async function runArchivistStep(config: {
+    filename?: string;
+    rowLimit?: number;
+    forwarder?: string;
+}) {
+    const FILENAME = config.filename || "Horizon Tracking Report.xlsx";
+    let FILE_PATH = getUploadPath(FILENAME);
 
-if (!fs.existsSync(FILE_PATH)) {
-    FILE_PATH = path.join(process.cwd(), FILENAME);
     if (!fs.existsSync(FILE_PATH)) {
-        console.error(`[Archivist] File not found: ${FILENAME} (Checked uploads/ and root)`);
-        // updateStatus fails here if DB connection needed? No, standard util.
-        updateStatus({ step: 'IDLE', progress: 0, message: `Error: File ${FILENAME} not found` });
-        process.exit(1);
+        FILE_PATH = path.join(process.cwd(), FILENAME);
+        if (!fs.existsSync(FILE_PATH)) {
+            console.error(`[Archivist] File not found: ${FILENAME} (Checked uploads/ and root)`);
+            updateStatus({ step: 'IDLE', progress: 0, message: `Error: File ${FILENAME} not found` });
+            throw new Error(`File not found: ${FILENAME}`);
+        }
     }
-}
 
-async function main() {
     try {
         // --- RESET ---
         updateStatus({ step: 'RESET', progress: 5, message: 'Wiping Database...' });
         console.log("⚠️  RESETTING DATABASE...");
 
-        // await prisma.agentProcessingLog.deleteMany();
-        // CLEAN DB (Optional, for simulation reset) - DISABLED PER USER REQUEST
-        // try { await prisma.agentProcessingLog.deleteMany(); } catch (e) { } // Ignore if missing
-        // try { await prisma.improvementJob.deleteMany(); } catch (e) { }
-        // await prisma.activityLog.deleteMany();
-        // await prisma.containerEvent.deleteMany();
-        // await prisma.shipmentContainer.deleteMany();
-        // await prisma.shipment.deleteMany();
-        // await prisma.container.deleteMany();
-        // await prisma.rawRow.deleteMany();
-        // await prisma.importLog.deleteMany();
-
         console.log("✅ Database Wipe Disabled (Preserving Data).");
 
         // --- ARCHIVIST ---
         updateStatus({ step: 'ARCHIVIST', progress: 10, message: `Ingesting ${FILENAME}...`, agentData: {} });
-        const limitArg = process.argv[3];
-        const rowLimit = limitArg && limitArg !== 'all' ? parseInt(limitArg, 10) : undefined;
 
-        const forwarderArg = process.argv[4];
-
-        console.log(`[Archivist] Processing ${FILENAME} (Limit: ${rowLimit || 'ALL'}, Forwarder: ${forwarderArg || 'None'})...`);
+        console.log(`[Archivist] Processing ${FILENAME} (Limit: ${config.rowLimit || 'ALL'}, Forwarder: ${config.forwarder || 'None'})...`);
 
         const archiveResult = await archiveExcelFile({
             filePath: FILE_PATH,
             fileName: FILENAME,
             uploadedBy: "SIMULATION",
-            rowLimit: rowLimit
+            rowLimit: config.rowLimit
         });
 
         // Fetch sample for dashboard
@@ -71,7 +62,7 @@ async function main() {
         await prisma.importLog.update({
             where: { fileName: archiveResult.importLogId },
             data: {
-                forwarder: forwarderArg && forwarderArg !== 'null' && forwarderArg !== 'undefined' ? forwarderArg : null,
+                forwarder: config.forwarder && config.forwarder !== 'null' && config.forwarder !== 'undefined' ? config.forwarder : null,
                 rowsProcessed: archiveResult.rowCount,
                 aiAnalysis: {
                     phase: 'ARCHIVIST',
@@ -97,7 +88,7 @@ async function main() {
                 archivist: {
                     filename: FILENAME,
                     rowCount: archiveResult.rowCount,
-                    headers: headers, // Full list
+                    headers: headers,
                     sampleRow: sampleRow
                 }
             }
@@ -105,13 +96,38 @@ async function main() {
 
         console.log("STEP 1 Complete. Waiting for user.");
 
+        return {
+            success: true,
+            filename: FILENAME,
+            rowCount: archiveResult.rowCount,
+            headers: headers
+        };
+
     } catch (error) {
         console.error("Step 1 Failed:", error);
         updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
-        process.exit(1);
+        throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-main();
+// ✅ Only run as script if called directly (for local spawn)
+async function main() {
+    const limitArg = process.argv[3];
+    const rowLimit = limitArg && limitArg !== 'all' ? parseInt(limitArg, 10) : undefined;
+    const forwarderArg = process.argv[4];
+
+    await runArchivistStep({
+        filename: process.argv[2] || "Horizon Tracking Report.xlsx",
+        rowLimit: rowLimit,
+        forwarder: forwarderArg
+    });
+}
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[Archivist] Error:', err);
+        process.exit(1);
+    });
+}

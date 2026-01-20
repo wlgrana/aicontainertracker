@@ -6,10 +6,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const prisma = new PrismaClient();
-const FILENAME = getActiveFilename();
-const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
 
-async function main() {
+/**
+ * Main Translator function - exported for Vercel direct execution
+ */
+export async function runTranslatorStep() {
+    const FILENAME = getActiveFilename();
+    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+
     try {
         console.log(">>> STEP 2: TRANSLATOR (Schema Discovery) <<<");
         updateStatus({ step: 'TRANSLATOR', progress: 40, message: 'Identifying Schema Pattern with AI...' });
@@ -48,7 +52,7 @@ async function main() {
                 rawData: JSON.parse(r.data)
             })),
             existingSchemaFields: containerFields,
-            transitStages: transitStages.map(s => ({ code: s.stageCode, name: s.stageName, definition: s.definition }))
+            transitStages: transitStages.map(s => ({ code: s.stageCode, name: s.stageName, definition: null }))
         });
 
         // NORMALIZE MAPPING KEYS to camelCase (DB Schema format)
@@ -140,13 +144,29 @@ async function main() {
         });
         console.log("STEP 2 Complete. Waiting for user approval to run Bulk Ingestion.");
 
+        return {
+            success: true,
+            mappedFields: mappedTargetFields.size,
+            unmappedFields: trueUnmappedHeaders.length
+        };
+
     } catch (error) {
         updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
         console.error("Step 2 Failed:", error);
-        process.exit(1);
+        throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-main();
+// ✅ Only run as script if called directly (for local spawn)
+async function main() {
+    await runTranslatorStep();
+}
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[Translator] Error:', err);
+        process.exit(1);
+    });
+}
