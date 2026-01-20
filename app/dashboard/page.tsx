@@ -48,7 +48,7 @@ function DashboardContent() {
     // Filters
     const [forwarderFilter, setForwarderFilter] = useState("");
     const [buFilter, setBuFilter] = useState("");
-    const [statusFilter, setStatusFilter] = useState("in_transit");
+    const [statusFilter, setStatusFilter] = useState("all");
 
     const [data, setData] = useState<{
         attention: any[];
