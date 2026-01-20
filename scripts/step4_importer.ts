@@ -8,9 +8,6 @@ import * as path from 'path';
 import { runEnricher } from '../agents/enricher';
 import { AgentStage } from '@prisma/client';
 
-const FILENAME = getActiveFilename();
-const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
-
 const ALL_CONTAINER_FIELDS = [
     "containerNumber", "currentStatus", "currentLocation", "carrier", "pol", "pod", "finalDestination",
     "eta", "ata", "etd", "atd", "finalDestinationEta",
@@ -36,7 +33,14 @@ const deriveBusinessUnit = (consignee: any): string | null => {
     return null;
 };
 
-async function main() {
+
+
+/**
+ * Main Importer function - exported for Vercel direct execution
+ */
+export async function runImporterStep(config?: {
+    filename?: string;
+}) {
     console.log('[IMPORTER] Starting...');
     console.log('[IMPORTER] CWD:', process.cwd());
     console.log('[IMPORTER] Environment:', {
@@ -44,6 +48,9 @@ async function main() {
         NODE_ENV: process.env.NODE_ENV,
         isVercel: process.env.VERCEL === '1'
     });
+
+    const FILENAME = config?.filename || await getActiveFilename();
+    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
 
     try {
         console.log(">>> STEP 4: IMPORTER (Persistence) <<<");
@@ -122,7 +129,7 @@ async function main() {
         // --- ENRICHER (Pre-Persistence Inference) ---
         // We run this BEFORE persistence so we can validate it during the write.
         // Conceptually this is Step 3 in the user's mental model.
-        const { enrichEnabled } = getActiveOptions();
+        const { enrichEnabled } = await getActiveOptions();
         const enrichmentMap = new Map<string, any>();
         let enrichedCount = 0;
         let enrichmentTotalFields = 0;
@@ -296,13 +303,30 @@ async function main() {
         console.log(`\nIssues:`);
         console.log(`  (See logs above for specific warnings)`);
 
+        return {
+            success: true,
+            importedCount: MAPPED_CONTAINERS.length,
+            enrichedCount
+        };
+
     } catch (error) {
         console.error("Step 4 Failed:", error);
         updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
-        process.exit(1);
+        throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-main();
+// ✅ Only run as script if called directly (for local spawn)
+async function main() {
+    await runImporterStep();
+}
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[Importer] Error:', err);
+        process.exit(1);
+    });
+}
+

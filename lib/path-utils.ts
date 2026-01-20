@@ -46,3 +46,16 @@ export function getStatusPath(): string {
 export function getPidPath(): string {
     return path.join(getBaseStoragePath(), 'simulation_pid.txt');
 }
+
+export function getArtifactPath(filename?: string): string {
+    const dir = path.join(getBaseStoragePath(), 'artifacts');
+    if (!fs.existsSync(dir)) {
+        try {
+            fs.mkdirSync(dir, { recursive: true });
+        } catch (e) {
+            console.error(`Failed to create artifact directory: ${dir}`, e);
+        }
+    }
+    return filename ? path.join(dir, filename) : dir;
+}
+

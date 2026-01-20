@@ -51,6 +51,111 @@ function applyDateConversions(output: TranslatorOutput) {
     }
 }
 
+// Status Code Normalization Mappings
+// Maps vendor-specific status codes to standard TransitStage names
+const STATUS_CODE_MAPPINGS: Record<string, string> = {
+    // Horizon-specific codes
+    'BCN': 'Booked',              // Been Containerized / Booking Confirmed
+    'RTN': 'Empty Returned',      // Returned to depot
+    'OGE': 'Empty Returned',      // Out Gate Empty
+    'STR': 'Delivered',           // Stripped/Delivered
+    'DIS': 'Discharged',          // Discharged from vessel
+    'AVL': 'Customs Cleared',     // Available/Released from customs
+    'VSL': 'In Transit',          // On Vessel
+    'LCL': 'Booked',              // Less than Container Load (pre-shipment consolidation)
+
+    // Standard codes that may need normalization
+    'BOOK': 'Booked',
+    'BOOKED': 'Booked',
+    'DEP': 'In Transit',          // Vessel Departed
+    'DEPARTED': 'In Transit',
+    'ARR': 'Arrived',
+    'ARRIVED': 'Arrived',
+    'LOAD': 'Loaded',
+    'LOADED': 'Loaded',
+    'DISCH': 'Discharged',
+    'DISCHARGED': 'Discharged',
+    'CUSTOMS': 'Customs Cleared',
+    'CLEARED': 'Customs Cleared',
+    'DELIVERY': 'Out for Delivery',
+    'DLVD': 'Delivered',
+    'DELIVERED': 'Delivered',
+    'EMPTY': 'Empty Returned',
+    'RETURNED': 'Empty Returned',
+
+    // Additional common variations
+    'IN_TRANSIT': 'In Transit',
+    'INTRANSIT': 'In Transit',
+    'ON_VESSEL': 'In Transit',
+    'VESSEL': 'In Transit',
+    'GATE_OUT': 'Loaded',
+    'GATEOUT': 'Loaded',
+    'GATE_IN': 'Arrived',
+    'GATEIN': 'Arrived',
+};
+
+/**
+ * Normalize a status code to a standard TransitStage name
+ * @param statusCode - The raw status code from vendor data
+ * @returns Normalized status name, or the original if no mapping exists
+ */
+function normalizeStatusCode(statusCode: string | null | undefined): string | null {
+    if (!statusCode) return null;
+
+    const normalized = String(statusCode).trim().toUpperCase();
+
+    // Check direct mapping
+    if (STATUS_CODE_MAPPINGS[normalized]) {
+        const mapped = STATUS_CODE_MAPPINGS[normalized];
+        console.log(`[Translator] Status normalization: "${statusCode}" → "${mapped}"`);
+        return mapped;
+    }
+
+    // If no mapping found, return the original value
+    // The database should handle validation
+    return statusCode.trim();
+}
+
+/**
+ * Apply status code normalization to all containers
+ */
+function applyStatusNormalization(output: TranslatorOutput) {
+    if (!output.containers) return;
+
+    let normalizedCount = 0;
+
+    output.containers.forEach(container => {
+        if (!container.fields) return;
+
+        // Check for status-related fields
+        const statusFields = ['currentStatus', 'status', 'containerStatus'];
+
+        for (const fieldName of statusFields) {
+            const field = container.fields[fieldName];
+            if (field && field.value) {
+                const originalValue = String(field.value);
+                const normalized = normalizeStatusCode(originalValue);
+
+                if (normalized && normalized !== originalValue) {
+                    normalizedCount++;
+                    container.fields[fieldName] = {
+                        ...field,
+                        value: normalized,
+                        originalValue: originalValue,
+                        transformation: 'status_normalization'
+                    };
+                }
+            }
+        }
+    });
+
+    if (normalizedCount > 0) {
+        console.log(`[Translator] Status Normalization Summary:`);
+        console.log(`  ✅ Normalized ${normalizedCount} status codes`);
+    }
+}
+
+
 let BU_DICT: any = null;
 let ONTOLOGY: any = null;
 
@@ -401,6 +506,11 @@ ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.option
     // Apply Date Conversions
     if (output) {
         applyDateConversions(output);
+    }
+
+    // Apply Status Code Normalization
+    if (output) {
+        applyStatusNormalization(output);
     }
 
     return output;

@@ -6,12 +6,13 @@ import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const FILENAME = getActiveFilename();
 
-// We read the TEMP translation artifact, because data is NOT in DB yet.
-const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
-
-async function main() {
+/**
+ * Main Auditor function - exported for Vercel direct execution
+ */
+export async function runAuditorStep(config?: {
+    filename?: string;
+}) {
     console.log('[AUDITOR] Starting...');
     console.log('[AUDITOR] CWD:', process.cwd());
     console.log('[AUDITOR] Environment:', {
@@ -19,6 +20,9 @@ async function main() {
         NODE_ENV: process.env.NODE_ENV,
         isVercel: process.env.VERCEL === '1'
     });
+
+    const FILENAME = config?.filename || await getActiveFilename();
+    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
 
     try {
         console.log(`>>> STEP 3: AUDITOR PREVIEW (Quality Gate) <<<`);
@@ -188,13 +192,31 @@ async function main() {
         });
         console.log("STEP 3 (Auditor) Complete.");
 
+        return {
+            success: true,
+            verifiedCount,
+            discrepancyCount,
+            patchedCount: patches.size
+        };
+
     } catch (error) {
         console.error("Step 3 Failed:", error);
         updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
-        process.exit(1);
+        throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-main();
+// ✅ Only run as script if called directly (for local spawn)
+async function main() {
+    await runAuditorStep();
+}
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[Auditor] Error:', err);
+        process.exit(1);
+    });
+}
+

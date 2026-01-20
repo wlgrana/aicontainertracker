@@ -10,9 +10,17 @@ import * as yaml from 'yaml';
 import { validateFieldExists } from '../agents/field-name-utils';
 
 const prisma = new PrismaClient();
-const FILENAME = getActiveFilename();
 
-async function main() {
+
+
+/**
+ * Main Learner function - exported for Vercel direct execution
+ */
+export async function runLearnerStep(config?: {
+    filename?: string;
+}) {
+    const FILENAME = config?.filename || await getActiveFilename();
+
     try {
         console.log(">>> STEP 5: LEARNER (Improvement Agent) <<<");
         updateStatus({ step: 'IMPROVEMENT', progress: 10, message: 'Initializing Learner...' });
@@ -26,7 +34,10 @@ async function main() {
         if (containers.length === 0) {
             console.log("[Learner] No containers found. Skipping improvement.");
             updateStatus({ step: 'IMPROVEMENT_REVIEW', progress: 100, message: 'No data to analyze.' });
-            return;
+            return {
+                success: true,
+                synonymsAdded: 0
+            };
         }
 
         updateStatus({ step: 'IMPROVEMENT', progress: 30, message: 'Scanning for unmapped data...' });
@@ -166,7 +177,10 @@ async function main() {
                 }
             });
             console.log("STEP 5 Complete: Nothing to learn.");
-            return;
+            return {
+                success: true,
+                synonymsAdded: 0
+            };
         }
 
         let totalSynonymsAdded = 0;
@@ -233,14 +247,31 @@ async function main() {
         console.log("STEP 5 Complete.");
         console.log("Learnings:", JSON.stringify({ synonymsAdded: totalSynonymsAdded, details: allDetails }, null, 2));
 
+        return {
+            success: true,
+            synonymsAdded: totalSynonymsAdded,
+            details: allDetails
+        };
+
     } catch (error) {
         console.error("Step 5 Failed:", error);
         updateStatus({ step: 'IDLE', progress: 0, message: `Error: ${error instanceof Error ? error.message : String(error)}` });
-        process.exit(1);
+        throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-main();
+// ✅ Only run as script if called directly (for local spawn)
+async function main() {
+    await runLearnerStep();
+}
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('[Learner] Error:', err);
+        process.exit(1);
+    });
+}
+
 

@@ -1,3 +1,8 @@
+console.log('========================================');
+console.log('[ARCHIVIST SCRIPT] EXECUTING AT:', new Date().toISOString());
+console.log('[ARCHIVIST SCRIPT] Process ID:', process.pid);
+console.log('[ARCHIVIST SCRIPT] Arguments:', process.argv);
+console.log('========================================');
 
 import { PrismaClient } from '@prisma/client';
 import { archiveExcelFile } from '../agents/archivist';

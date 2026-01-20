@@ -3,10 +3,12 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getStatusPath, getLogPath } from '../lib/path-utils';
+import { LogStream } from '../lib/log-stream';
 
 const step = process.argv[2];
 let logFilename = 'simulation.log';
 let importFilename = 'Unknown';
+let importLogId = 'Unknown';
 
 // Try to read log filename and import filename from status
 const STATUS_FILE = getStatusPath();
@@ -18,13 +20,29 @@ try {
         }
         if (status.filename) {
             importFilename = status.filename;
+            // Use the original filename (without timestamp suffix) as importLogId
+            importLogId = status.filename;
         }
     }
 } catch (e) {
     // ignore
 }
 
+console.log('[RUN_STEP] Initializing with:', { step, logFilename, importFilename, importLogId });
+
 const LOG_FILE = getLogPath(logFilename);
+
+// Initialize LogStream for database-backed logging
+const logStream = new LogStream(logFilename, importLogId);
+
+// Helper function to write to both filesystem and database
+function writeLog(content: string) {
+    // Write to database via LogStream
+    logStream.write(content);
+
+    // Also write to stdout for immediate visibility
+    process.stdout.write(content);
+}
 
 // Write metadata header for Step 1 only
 if (step === '1') {
@@ -40,6 +58,7 @@ if (step === '1') {
   Environment:       ${environment}
   Invocation Method: ${invocationMethod}
   Import File:       ${importFilename}
+  Import Log ID:     ${importLogId}
   Log File:          ${logFilename}
   Node Version:      ${process.version}
   Platform:          ${process.platform}
@@ -47,13 +66,7 @@ if (step === '1') {
 
 `;
 
-    try {
-        const logDir = path.dirname(LOG_FILE);
-        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-        fs.writeFileSync(LOG_FILE, header);
-    } catch (e) {
-        console.error('Failed to write log header:', e);
-    }
+    writeLog(header);
 }
 
 const scriptMap: Record<string, string> = {
@@ -71,14 +84,7 @@ if (!script) {
 }
 
 const banner = `\n\n>>> RUNNING STEP ${step} [${new Date().toISOString()}] <<<\n`;
-console.log(banner);
-try {
-    // Ensure directory exists
-    const logDir = path.dirname(LOG_FILE);
-    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-
-    fs.appendFileSync(LOG_FILE, banner);
-} catch (e) { }
+writeLog(banner);
 
 // FORCE TRACE LOGGING for detailed debugging
 process.env.LOG_LEVEL = 'trace';
@@ -91,18 +97,23 @@ const child = spawn(process.execPath, [tsxPath, script, ...process.argv.slice(3)
 });
 
 child.stdout.on('data', d => {
-    process.stdout.write(d);
-    try { fs.appendFileSync(LOG_FILE, d); } catch (e) { }
+    const output = d.toString();
+    writeLog(output);
 });
 
 child.stderr.on('data', d => {
-    process.stderr.write(d);
-    try { fs.appendFileSync(LOG_FILE, d); } catch (e) { }
+    const output = d.toString();
+    writeLog(output);
 });
 
-child.on('close', code => {
+child.on('close', async (code) => {
     const msg = `\n[Step ${step}] Exited with code ${code}\n`;
-    console.log(msg);
-    try { fs.appendFileSync(LOG_FILE, msg); } catch (e) { }
+    writeLog(msg);
+
+    // Close the log stream to flush final data to database
+    console.log('[RUN_STEP] Closing log stream and flushing to database...');
+    await logStream.close();
+    console.log('[RUN_STEP] Log stream closed successfully');
+
     process.exit(code || 0);
 });

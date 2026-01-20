@@ -156,7 +156,8 @@ export async function archiveExcelFile(input: ArchivistInput): Promise<Archivist
             rowsFailed: 0,
             errorLog: null,
             summary: Prisma.JsonNull,
-            completedAt: null
+            completedAt: null,
+            simulationLog: '' // Initialize empty log for LogStream
         },
         create: {
             fileName: input.fileName,
@@ -164,6 +165,7 @@ export async function archiveExcelFile(input: ArchivistInput): Promise<Archivist
             importedBy: input.uploadedBy || 'SYSTEM',
             importedOn: new Date(),
             status: 'PROCESSING',
+            simulationLog: '' // Initialize empty log for LogStream
         }
     });
 

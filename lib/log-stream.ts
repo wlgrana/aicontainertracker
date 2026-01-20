@@ -101,13 +101,34 @@ export class LogStream {
  * Get log content - ALWAYS from database
  */
 export async function getLogContent(importLogId: string): Promise<string> {
+    console.log('[getLogContent] Attempting to retrieve log for importLogId:', importLogId);
+
     try {
         const log = await prisma.importLog.findUnique({
             where: { fileName: importLogId },
             select: { simulationLog: true }
         });
-        return log?.simulationLog || 'Log not available yet. The simulation may still be initializing.';
+
+        console.log('[getLogContent] Query result:', {
+            found: !!log,
+            hasSimulationLog: !!log?.simulationLog,
+            simulationLogLength: log?.simulationLog?.length || 0
+        });
+
+        if (!log) {
+            console.warn('[getLogContent] No ImportLog record found with fileName:', importLogId);
+            return 'Log not available yet. The simulation may still be initializing.';
+        }
+
+        if (!log.simulationLog) {
+            console.warn('[getLogContent] ImportLog found but simulationLog is null/empty');
+            return 'Log not available yet. The simulation may still be initializing.';
+        }
+
+        console.log('[getLogContent] Successfully retrieved log, length:', log.simulationLog.length);
+        return log.simulationLog;
     } catch (e) {
+        console.error('[getLogContent] Database error:', e);
         return `Error reading log from database: ${e}`;
     }
 }

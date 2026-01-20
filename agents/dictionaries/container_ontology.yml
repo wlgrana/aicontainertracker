@@ -934,6 +934,12 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-19T13:14:47.681Z
-version: 1.0.31
-last_updated: 2026-01-19
+  - unmappedHeader: Trucker Appointment
+    canonicalField: metadata.truckerAppointment
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-20T18:56:41.708Z
+version: 1.0.32
+last_updated: 2026-01-20
 total_fields: 29
