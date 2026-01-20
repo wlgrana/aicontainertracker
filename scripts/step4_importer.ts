@@ -2,6 +2,7 @@
 import { prisma } from '../lib/prisma';
 import { persistMappedData } from '../lib/persistence';
 import { updateStatus, getActiveFilename, getActiveOptions } from './simulation-utils';
+import { getArtifactPath } from '../lib/path-utils';
 import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -50,7 +51,7 @@ export async function runImporterStep(config?: {
     });
 
     const FILENAME = config?.filename || await getActiveFilename();
-    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+    const ARTIFACT_PATH = getArtifactPath('temp_translation.json');
 
     try {
         console.log(">>> STEP 4: IMPORTER (Persistence) <<<");

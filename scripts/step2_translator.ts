@@ -2,6 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 import { runTranslator } from '../agents/translator';
 import { updateStatus, getActiveFilename } from './simulation-utils';
+import { getArtifactPath } from '../lib/path-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -22,7 +23,7 @@ export async function runTranslatorStep() {
     const FILENAME = await getActiveFilename();
     console.log('[TRANSLATOR] Active filename:', FILENAME);
 
-    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+    const ARTIFACT_PATH = getArtifactPath('temp_translation.json');
     console.log('[TRANSLATOR] Artifact path:', ARTIFACT_PATH);
 
     try {

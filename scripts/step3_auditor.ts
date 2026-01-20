@@ -2,6 +2,7 @@
 import { prisma } from '../lib/prisma';
 import { runAuditor } from '../agents/auditor'; // We reuse the agent logic
 import { updateStatus, getActiveFilename } from './simulation-utils';
+import { getArtifactPath } from '../lib/path-utils';
 import { transformRow } from '../lib/transformation-engine';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -22,7 +23,7 @@ export async function runAuditorStep(config?: {
     });
 
     const FILENAME = config?.filename || await getActiveFilename();
-    const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+    const ARTIFACT_PATH = getArtifactPath('temp_translation.json');
 
     try {
         console.log(`>>> STEP 3: AUDITOR PREVIEW (Quality Gate) <<<`);

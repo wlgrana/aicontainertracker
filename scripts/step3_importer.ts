@@ -2,12 +2,13 @@
 import { PrismaClient } from '@prisma/client';
 import { persistMappedData } from '../lib/import-orchestrator';
 import { updateStatus, getActiveFilename } from './simulation-utils';
+import { getArtifactPath } from '../lib/path-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const prisma = new PrismaClient();
 const FILENAME = getActiveFilename();
-const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+const ARTIFACT_PATH = getArtifactPath('temp_translation.json');
 
 const ALL_CONTAINER_FIELDS = [
     "containerNumber", "currentStatus", "currentLocation", "carrier", "pol", "pod", "finalDestination",

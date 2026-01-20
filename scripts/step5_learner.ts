@@ -1,6 +1,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { updateStatus, getActiveFilename } from './simulation-utils';
+import { getArtifactPath } from '../lib/path-utils';
 import { runImprovementAnalyzer } from '../agents/improvement-analyzer';
 import { updateDictionaries } from '../agents/dictionary-updater';
 import { AnalyzerInput, AnalyzerSuggestion, AnalyzerOutput } from '../types/agents';
@@ -139,7 +140,7 @@ export async function runLearnerStep(config?: {
 
         // 2b. Check for Auto-Patched Fields from Auditor (Quality Gate Learning)
         const auditorPatches: AnalyzerSuggestion[] = [];
-        const ARTIFACT_PATH = path.join(process.cwd(), 'artifacts', 'temp_translation.json');
+        const ARTIFACT_PATH = getArtifactPath('temp_translation.json');
 
         if (fs.existsSync(ARTIFACT_PATH)) {
             try {

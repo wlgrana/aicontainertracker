@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { getArtifactPath } from '@/lib/path-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const runsDir = path.join(process.cwd(), 'artifacts/runs');
+        const runsDir = path.join(getArtifactPath(), 'runs');
         console.log(`[API] Checking runs dir: ${runsDir}`);
 
         if (!fs.existsSync(runsDir)) {
