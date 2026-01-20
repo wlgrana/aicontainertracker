@@ -24,6 +24,7 @@ model ImportLog {
   forwarder       String?
   completedAt     DateTime?
   summary         Json?
+  simulationLog   String?          // Full simulation log content for Vercel compatibility
   aceStatusLogs   ACEStatusLog[]
   containers      Container[]
   containerEvents ContainerEvent[]

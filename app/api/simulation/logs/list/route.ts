@@ -1,25 +1,22 @@
 
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { listLogs } from '@/lib/log-stream';
 
 export async function GET() {
-    const logsDir = path.join(process.cwd(), 'logs');
-
-    if (!fs.existsSync(logsDir)) {
-        return NextResponse.json({ files: [] });
-    }
-
     try {
-        const files = fs.readdirSync(logsDir).filter(f => f.endsWith('.log') || f.endsWith('.txt'));
-        // Sort by modification time desc
-        const sortedFiles = files.map(file => {
-            const stats = fs.statSync(path.join(logsDir, file));
-            return { name: file, time: stats.mtime.getTime(), size: stats.size };
-        }).sort((a, b) => b.time - a.time);
+        const logs = await listLogs();
 
-        return NextResponse.json({ files: sortedFiles });
+        // Format for frontend compatibility
+        const files = logs.map(log => ({
+            name: `${log.fileName}.log`,
+            importLogId: log.fileName,
+            time: log.importedOn.getTime(),
+            hasLog: log.hasLog
+        }));
+
+        return NextResponse.json({ files });
     } catch (e) {
+        console.error('[API] Failed to list logs:', e);
         return NextResponse.json({ files: [], error: String(e) });
     }
 }

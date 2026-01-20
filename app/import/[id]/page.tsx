@@ -638,7 +638,7 @@ export default function ImportDetailsPage() {
                                             </div>
                                         </div>
                                         <a
-                                            href={`/api/simulation/logs/download?filename=${f.name}`}
+                                            href={`/api/simulation/logs/download?importLogId=${f.importLogId || f.name.replace('.log', '')}`}
                                             download={f.name}
                                             className="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
                                         >

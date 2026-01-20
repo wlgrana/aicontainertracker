@@ -260,12 +260,12 @@ export default function SimulationPage() {
                             {status.step !== 'IDLE' && status.step !== 'COMPLETE' ? (
                                 <Button
                                     variant="destructive"
-                                    className="h-12 px-6 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-sm font-bold w-full xl:w-auto justify-center"
+                                    className="h-14 w-14 p-0 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex items-center justify-center shrink-0"
                                     onClick={() => handleControl('STOP')}
                                     disabled={!!loadingAction}
+                                    title="Stop Ingestion"
                                 >
-                                    <Square className="w-5 h-5 mr-2 fill-current" />
-                                    Stop Ingestion
+                                    <Square className="w-8 h-8 fill-current" />
                                 </Button>
                             ) : (
                                 <Button
@@ -865,7 +865,7 @@ export default function SimulationPage() {
                                             </div>
                                         </div>
                                         <a
-                                            href={`/api/simulation/logs/download?filename=${f.name}`}
+                                            href={`/api/simulation/logs/download?importLogId=${f.importLogId || f.name.replace('.log', '')}`}
                                             download={f.name}
                                             className="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
                                         >

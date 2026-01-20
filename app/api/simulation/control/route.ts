@@ -31,7 +31,11 @@ export async function POST(req: Request) {
             detached: false, // Keep attached to main process to avoid popups
             stdio: 'ignore', // 'ignore' is crucial for detached on Windows to not pop up
             shell: false,     // Disable shell to prevent cmd.exe popup
-            windowsHide: true // Explicitly hide window
+            windowsHide: true, // Explicitly hide window
+            env: {
+                ...process.env,
+                INVOKED_BY: 'FRONTEND' // Mark that this was invoked from the UI
+            }
         });
 
         if (child.pid) fs.writeFileSync(PID_FILE, String(child.pid));
@@ -53,7 +57,10 @@ export async function POST(req: Request) {
 
         // RESET STATUS IMMEDIATELY to prevent stale data flicker
         const timestamp = Date.now();
-        const logFilename = `simulation_${timestamp}.log`;
+        // Generate log filename: filename_INVOCATIONMETHOD_timestamp.log (remove .xlsx extension if present)
+        const baseFilename = (filename || 'unknown').replace(/\.xlsx$/i, '').replace(/[^a-z0-9_-]/gi, '_');
+        const invocationMethod = 'FRONTEND'; // API calls are always from frontend
+        const logFilename = `${baseFilename}_${invocationMethod}_${timestamp}.log`;
 
         try {
             const initialStatus = {

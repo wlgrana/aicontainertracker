@@ -6,8 +6,9 @@ import { getStatusPath, getLogPath } from '../lib/path-utils';
 
 const step = process.argv[2];
 let logFilename = 'simulation.log';
+let importFilename = 'Unknown';
 
-// Try to read log filename from status
+// Try to read log filename and import filename from status
 const STATUS_FILE = getStatusPath();
 try {
     if (fs.existsSync(STATUS_FILE)) {
@@ -15,12 +16,45 @@ try {
         if (status.logFilename) {
             logFilename = status.logFilename;
         }
+        if (status.filename) {
+            importFilename = status.filename;
+        }
     }
 } catch (e) {
     // ignore
 }
 
 const LOG_FILE = getLogPath(logFilename);
+
+// Write metadata header for Step 1 only
+if (step === '1') {
+    const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    const environment = isProduction ? 'PRODUCTION (Vercel)' : 'LOCAL';
+    const invocationMethod = process.env.INVOKED_BY || 'SCRIPT';
+
+    const header = `
+═══════════════════════════════════════════════════════════════
+  IMPORT RUN METADATA
+═══════════════════════════════════════════════════════════════
+  Timestamp:         ${new Date().toISOString()}
+  Environment:       ${environment}
+  Invocation Method: ${invocationMethod}
+  Import File:       ${importFilename}
+  Log File:          ${logFilename}
+  Node Version:      ${process.version}
+  Platform:          ${process.platform}
+═══════════════════════════════════════════════════════════════
+
+`;
+
+    try {
+        const logDir = path.dirname(LOG_FILE);
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        fs.writeFileSync(LOG_FILE, header);
+    } catch (e) {
+        console.error('Failed to write log header:', e);
+    }
+}
 
 const scriptMap: Record<string, string> = {
     '1': 'scripts/step1_archivist.ts',

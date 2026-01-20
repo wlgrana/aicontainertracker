@@ -132,9 +132,8 @@ export async function persistMappedData(
             const mblValue = f.mbl?.value || f.mbl_or_booking?.value;
 
             // Full Payload for Creation
-            const containerData = {
+            const containerData: any = {
                 containerNumber: cNum,
-                currentStatus: validStatus,
                 carrier: f.carrier?.value,
                 pol: f.pol?.value,
                 pod: f.pod?.value,
@@ -164,6 +163,12 @@ export async function persistMappedData(
                 aiDerived: enrichmentMap?.get(cNum) || undefined
             };
 
+            // Only set currentStatus if we have a valid value (prevents foreign key constraint errors)
+            if (validStatus) {
+                containerData.currentStatus = validStatus;
+            }
+
+
             // Calculate Update Payload (Pre-Locking)
             const updatePayload: any = {
                 atd: safeDate(f.atd?.value),
@@ -187,7 +192,7 @@ export async function persistMappedData(
                 gateOutDate: safeDate(f.gateOutDate?.value),
                 lastFreeDay: safeDate(f.lastFreeDay?.value),
                 emptyReturnDate: safeDate(f.emptyReturnDate?.value),
-                currentStatus: validStatus,
+                currentStatus: validStatus || undefined, // Only update if we have a valid status
                 meta: mappedContainer.meta || undefined,
                 aiLastUpdated: new Date()
             };

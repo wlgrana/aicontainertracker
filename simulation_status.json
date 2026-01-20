@@ -1,13 +1,13 @@
 {
-  "step": "IMPROVEMENT_REVIEW",
-  "progress": 100,
-  "message": "Analysis complete. No confident updates found.",
-  "filename": "test_file_2_msc.xlsx",
+  "step": "IDLE",
+  "progress": 0,
+  "message": "Error: \nInvalid `containerUpserts.push(prisma.container.upsert()` invocation in\nC:\\Users\\Will Grana\\.gemini\\antigravity\\scratch\\aicontainertracker\\lib\\persistence.ts:220:52\n\n  217 }\n  218 \n  219 // Use upsert to handle both creation and updates safely (Fixes race conditions)\n→ 220 containerUpserts.push(prisma.container.upsert(\nForeign key constraint failed on the field: `Container_currentStatus_fkey (index)`",
+  "filename": "Horizon Tracking Report.xlsx",
   "rowCount": 0,
   "agentData": {
     "archivist": {
       "filename": "Horizon Tracking Report.xlsx",
-      "rowCount": 5,
+      "rowCount": 176,
       "headers": [
         "SHIPMENT ID",
         "Status",
@@ -74,7 +74,7 @@
       }
     },
     "translator": {
-      "mappedCount": 5,
+      "mappedCount": 0,
       "confidence": {
         "overallScore": 0.8,
         "summary": "Heuristic Fallback Generated",
@@ -85,7 +85,7 @@
         "flaggedForReview": 0
       },
       "sampleContainer": {
-        "rawRowId": "4fd6051b-ec29-4a40-bec5-389e7ae2e41f",
+        "rawRowId": "717e3981-74b6-4516-abc9-9f15d79da1ae",
         "fields": {},
         "meta": {
           "SHIPMENT ID": "S25030127446",
@@ -361,13 +361,6 @@
             "confidence": 0.99,
             "transformationType": "direct",
             "notes": "Heuristic Reinforcement"
-          },
-          "CNTR AVAIL": {
-            "sourceHeader": "CNTR AVAIL",
-            "targetField": "metadata.containerAvailableDate",
-            "confidence": 0.95,
-            "transformationType": "semantic",
-            "notes": "Auto-patched by Auditor (Quality Gate)"
           }
         },
         "unmappedSourceFields": [
@@ -379,160 +372,122 @@
             "potentialMeaning": "Unknown"
           }
         ],
-        "missingSchemaFields": [],
+        "missingSchemaFields": [
+          "currentLocation"
+        ],
         "detectedForwarder": "Unknown"
       },
       "schemaStats": {
-        "sourceColumns": 31,
-        "schemaFields": 30,
-        "mapped": 30,
-        "unmapped": 1
-      },
-      "stats": {
-        "populated": 155,
-        "empty": -5,
-        "unmapped": 0,
-        "avgFieldsPerContainer": "31.0"
-      },
-      "importSample": [
-        {
-          "containerNumber": "TCNU3094950",
-          "currentStatus": "BCN",
-          "currentLocation": null,
-          "carrier": "YMJA",
-          "pol": "Ningbo, CN",
-          "pod": "Los Angeles, CA",
-          "finalDestination": "Edgerton, KS",
-          "eta": "2025-03-17T04:13:00.000Z",
-          "ata": "2025-03-17T04:13:00.000Z",
-          "etd": "2025-03-03T00:00:00.000Z",
-          "atd": "2025-03-03T05:30:00.000Z",
-          "finalDestinationEta": "2025-03-31T00:00:00.000Z",
-          "lastFreeDay": "2025-03-29T00:00:00.000Z",
-          "emptyReturnDate": "2025-04-03T11:07:00.000Z",
-          "gateOutDate": "2025-03-28T15:09:00.000Z",
-          "pieces": "128",
-          "grossWeight": "4955",
-          "volumeCbm": "16.05",
-          "sealNumber": "YMAT099440",
-          "containerType": "40HC",
-          "mbl": "YMJAW232595336",
-          "hbl": "YMJAW232595336B",
-          "shipmentReference": "S25030127446",
-          "consignee": "HORIZON GLOBAL AMERICAS INC",
-          "shipper": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
-          "customerPo": "4500033779",
-          "businessUnit": "Horizon Global",
-          "deliveryDate": "2025-03-31T00:00:00.000Z",
-          "loadType": null,
-          "serviceType": "MLB"
-        }
-      ]
+        "sourceColumns": 30,
+        "schemaFields": 26,
+        "mapped": 29,
+        "unmapped": 1,
+        "missing": 1
+      }
     },
     "auditor": {
       "verifiedCount": 0,
       "discrepancyCount": 1,
       "sampleAnalysis": {
-        "container": "TCNU3094950",
+        "container": "YMMU6538367",
         "raw": {
-          "SHIPMENT ID": "S25030127446",
+          "SHIPMENT ID": "S25030128062",
           "Status": "BCN",
           "CONSIGNEE": "HORIZON GLOBAL AMERICAS INC",
-          "VENDOR": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
-          "CONTAINER": "TCNU3094950",
+          "VENDOR": "STACI LTD",
+          "CONTAINER": "YMMU6538367",
           "SIZE": "40HC",
-          "SEAL": "YMAT099440",
-          "PCS": 128,
-          "CBM": 16.05,
-          "WGT": 4955,
-          "HBL": "YMJAW232595336B",
-          "MBL": "YMJAW232595336",
-          "CUSTOMER PO": 4500033779,
+          "SEAL": "YMAS098976",
+          "PCS": 376,
+          "CBM": 11.9,
+          "WGT": 6116,
+          "HBL": "SHKG6988700",
+          "MBL": "YMJAE300683039",
+          "CUSTOMER PO": "4500033646",
           "CARRIER": "YMJA",
-          "SERV TYPE\r\nAWS / MLB": "MLB",
-          "ETD POL": 45719,
-          "POL": "Ningbo, CN",
-          "ETA POD": 45733.17569444444,
-          "POD": "Los Angeles, CA",
-          "FINAL DESTINATION": "Edgerton, KS",
-          "FINAL DEST ETA": 45747,
-          "ATD": 45719.229166666664,
-          "ATA POD": 45733.17569444444,
-          "CNTR AVAIL": 45743,
-          "OGF DATE": 45744.63125,
-          "TRUCKER APPT": 45747,
-          "ACTUAL DEL DATE": 45747,
-          "EMPTY AVAIL DATE": 45750.46319444444,
-          "EMPTY RETURN DATE": 45750.46319444444,
-          "LFD": 45745
+          "SERV TYPE\r\nAWS / MLB": "AWS",
+          "ETD POL": 45721,
+          "POL": "Hong Kong, HK",
+          "ETA POD": 45756.558333333334,
+          "POD": "Houston, TX",
+          "FINAL DESTINATION": "McAllen, TX",
+          "FINAL DEST ETA": 45765,
+          "ATD": 45721.833333333336,
+          "ATA POD": 45756.558333333334,
+          "CNTR AVAIL": 45763,
+          "OGF DATE": 45765,
+          "TRUCKER APPT": 45765,
+          "ACTUAL DEL DATE": 45765,
+          "EMPTY AVAIL DATE": 45765,
+          "EMPTY RETURN DATE": 45765,
+          "LFD": 45769
         },
         "db": {
           "metadata": {
-            "CNTR AVAIL": 45743
+            "CNTR AVAIL": 45763
           },
-          "shipmentReference": "S25030127446",
+          "shipmentReference": "S25030128062",
           "currentStatus": "BCN",
           "consignee": "HORIZON GLOBAL AMERICAS INC",
-          "shipper": "ZHEJIANG HONGLI (A/LIST) TOOLS CO LTD",
-          "containerNumber": "TCNU3094950",
+          "shipper": "STACI LTD",
+          "containerNumber": "YMMU6538367",
           "containerType": "40HC",
-          "sealNumber": "YMAT099440",
-          "pieces": "128",
-          "volumeCbm": "16.05",
-          "grossWeight": "4955",
-          "hbl": "YMJAW232595336B",
-          "mbl": "YMJAW232595336",
-          "customerPo": "4500033779",
+          "sealNumber": "YMAS098976",
+          "pieces": "376",
+          "volumeCbm": "11.9",
+          "grossWeight": "6116",
+          "hbl": "SHKG6988700",
+          "mbl": "YMJAE300683039",
+          "customerPo": "4500033646",
           "carrier": "YMJA",
-          "serviceType": "MLB",
-          "etd": "2025-03-03T00:00:00.000Z",
-          "pol": "Ningbo, CN",
-          "eta": "2025-03-17T04:13:00.000Z",
-          "pod": "Los Angeles, CA",
-          "finalDestination": "Edgerton, KS",
-          "finalDestinationEta": "2025-03-31T00:00:00.000Z",
-          "atd": "2025-03-03T05:30:00.000Z",
-          "ata": "2025-03-17T04:13:00.000Z",
-          "gateOutDate": "2025-03-28T15:09:00.000Z",
-          "metadata.truckerAppointment": "45747",
-          "deliveryDate": "2025-03-31T00:00:00.000Z",
-          "metadata.emptyAvailableDate": "45750.46319444444",
-          "emptyReturnDate": "2025-04-03T11:07:00.000Z",
-          "lastFreeDay": "2025-03-29T00:00:00.000Z"
+          "serviceType": "AWS",
+          "etd": "2025-03-05T00:00:00.000Z",
+          "pol": "Hong Kong, HK",
+          "eta": "2025-04-09T13:24:00.000Z",
+          "pod": "Houston, TX",
+          "finalDestination": "McAllen, TX",
+          "finalDestinationEta": "2025-04-18T00:00:00.000Z",
+          "atd": "2025-03-05T20:00:00.000Z",
+          "ata": "2025-04-09T13:24:00.000Z",
+          "gateOutDate": "2025-04-18T00:00:00.000Z",
+          "metadata.truckerAppointment": "45765",
+          "deliveryDate": "2025-04-18T00:00:00.000Z",
+          "metadata.emptyAvailableDate": "45765",
+          "emptyReturnDate": "2025-04-18T00:00:00.000Z",
+          "lastFreeDay": "2025-04-22T00:00:00.000Z"
         },
         "unmapped": [
-          "CNTR AVAIL"
+          "CNTR AVAIL",
+          "TRUCKER APPT",
+          "EMPTY AVAIL DATE"
         ],
-        "captureRate": 0.93,
+        "captureRate": 0.38,
         "proposedPatches": {
-          "CNTR AVAIL": "metadata.containerAvailableDate"
+          "CNTR AVAIL": "metadata.containerAvailableDate",
+          "TRUCKER APPT": "metadata.truckerAppointment",
+          "EMPTY AVAIL DATE": "metadata.emptyAvailableDate"
         }
       },
-      "patchedCount": 1
-    },
-    "learner": {
-      "scoreImprovement": 0,
-      "newSynonyms": [],
-      "analysisSummary": "Analysis Complete; Reinforced 0 patterns.; AI learned 0 new synonyms."
+      "patchedCount": 3
     }
   },
   "enrichEnabled": true,
-  "forwarder": "steven",
-  "logFilename": "simulation_1768826899126.log",
-  "timestamp": 1768828704005,
+  "forwarder": null,
+  "logFilename": "Horizon_Tracking_Report_SCRIPT_1768907712677.log",
+  "timestamp": 1768907803624,
   "metrics": {
     "source": {
       "filename": "Horizon Tracking Report.xlsx",
-      "totalRows": 5,
+      "totalRows": 176,
       "totalCols": 30
     },
     "baseline": {},
     "final": {},
     "improvement": {},
     "translation": {
-      "mapped": 5,
+      "mapped": 0,
       "confidence": 0.8,
-      "unmappedFields": 0
+      "unmappedFields": 1
     }
   }
 }

@@ -210,6 +210,20 @@
         "confidence": 0.95,
         "transformationType": "semantic",
         "notes": "Auto-patched by Auditor (Quality Gate)"
+      },
+      "TRUCKER APPT": {
+        "sourceHeader": "TRUCKER APPT",
+        "targetField": "metadata.truckerAppointment",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
+      },
+      "EMPTY AVAIL DATE": {
+        "sourceHeader": "EMPTY AVAIL DATE",
+        "targetField": "metadata.emptyAvailableDate",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
       }
     },
     "unmappedSourceFields": [
@@ -226,7 +240,7 @@
   },
   "containers": [
     {
-      "rawRowId": "4fd6051b-ec29-4a40-bec5-389e7ae2e41f",
+      "rawRowId": "717e3981-74b6-4516-abc9-9f15d79da1ae",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127446",
@@ -299,7 +313,7 @@
       ]
     },
     {
-      "rawRowId": "9b8151c9-03be-4580-877e-044da10ac317",
+      "rawRowId": "7d979683-e2e1-44fa-82e2-41dd52f38db2",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127318",
@@ -372,7 +386,7 @@
       ]
     },
     {
-      "rawRowId": "d586e9aa-f461-4795-b19b-f0255c45076c",
+      "rawRowId": "d233daec-f79f-40dc-a59b-b36dcc978a88",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127445",
@@ -445,7 +459,7 @@
       ]
     },
     {
-      "rawRowId": "ea509750-339f-4ac1-a62f-1dff8c9574ca",
+      "rawRowId": "88c7e5d6-68c0-4bbd-b8ce-d7a7f3d7fded",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127319",
@@ -518,7 +532,7 @@
       ]
     },
     {
-      "rawRowId": "e95cdf55-3690-4ef7-96b4-7d831c4d9ed6",
+      "rawRowId": "4cd93abf-ed88-4d75-a8db-60f4d310af38",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25030127447",
@@ -605,6 +619,6 @@
   "_meta": {
     "isSample": true,
     "sampleSize": 5,
-    "totalAvailableRows": 5
+    "totalAvailableRows": 176
   }
 }
