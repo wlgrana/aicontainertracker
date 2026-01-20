@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,14 @@ export default function SimulationPage() {
     const [availableFiles, setAvailableFiles] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // ============================================
+    // RACE CONDITION PROTECTION (Layer 1 & 2)
+    // ============================================
+    const [isProcessing, setIsProcessing] = useState(false);
+    const processingRef = useRef(false);
+    const lastRequestTime = useRef(0);
+    const lastAction = useRef<string>('');
 
     useEffect(() => {
         fetch('/api/simulation/files').then(r => r.json()).then(d => {
@@ -62,25 +70,32 @@ export default function SimulationPage() {
     const [enrichEnabled, setEnrichEnabled] = useState(true);
     const [forwarder, setForwarder] = useState(""); // Forwarder input state
 
-    // Auto-Run Logic
-    useEffect(() => {
-        if (!autoRun || !status) return;
+    // ============================================
+    // DEBOUNCED ACTION HANDLER (prevents rapid clicks)
+    // ============================================
+    const handleControl = useCallback(async (action: string, filenameOverride?: string) => {
+        const now = Date.now();
+        const actionKey = action.toUpperCase();
 
-        if (status.step === 'ARCHIVIST_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'TRANSLATOR_COMPLETE' || status.step === 'TRANSLATOR_REVIEW') {
-            handleControl('proceed');
-        } else if (status.step === 'AUDITOR_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'IMPORT_COMPLETE') {
-            handleControl('proceed');
-        } else if (status.step === 'IMPROVEMENT_REVIEW') {
-            handleControl('finish');
+        // Layer 1: Prevent duplicate requests within 500ms
+        if (now - lastRequestTime.current < 500 && lastAction.current === actionKey) {
+            console.log(`[UI] Ignoring duplicate ${actionKey} request (too soon - ${now - lastRequestTime.current}ms)`);
+            return;
         }
-    }, [status, autoRun]);
 
-    const handleControl = async (action: string, filenameOverride?: string) => {
-        console.log('[UI] Calling action:', action, 'at', new Date().toISOString());
+        // Layer 2: Check if already processing
+        if (processingRef.current || isProcessing) {
+            console.log(`[UI] Ignoring ${actionKey} request (already processing)`);
+            return;
+        }
+
+        // Mark as processing
+        processingRef.current = true;
+        setIsProcessing(true);
+        lastRequestTime.current = now;
+        lastAction.current = actionKey;
+
+        console.log(`[UI] Calling action: ${actionKey} at ${new Date().toISOString()}`);
         console.log('[UI] Filename override:', filenameOverride);
         console.log('[UI] Selected file:', selectedFile);
         console.log('[UI] Container limit:', containerLimit);
@@ -119,10 +134,22 @@ export default function SimulationPage() {
             const data = await response.json();
             console.log('[UI] Response data:', JSON.stringify(data, null, 2));
 
+            // Layer 3: Filter out race condition errors
             if (!response.ok || !data.success) {
-                const errorMessage = `Error: ${data.error || 'Unknown error'}\n\nStatus: ${response.status}\n\nStack: ${data.stack || 'No stack trace'}`;
-                console.error('[UI] Request failed:', errorMessage);
-                alert(errorMessage);
+                const isRaceCondition =
+                    data.message?.includes('Cannot proceed from current state') ||
+                    data.message?.includes('already processing') ||
+                    data.message?.includes('No work to do') ||
+                    data.error?.includes('Cannot proceed');
+
+                if (isRaceCondition) {
+                    console.log('[UI] Race condition detected, ignoring error silently');
+                } else {
+                    // Real error - show to user
+                    const errorMessage = `Error: ${data.error || 'Unknown error'}\n\nStatus: ${response.status}\n\nStack: ${data.stack || 'No stack trace'}`;
+                    console.error('[UI] Request failed:', errorMessage);
+                    alert(errorMessage);
+                }
             } else {
                 console.log('[UI] Request successful:', data.message);
             }
@@ -142,10 +169,24 @@ export default function SimulationPage() {
             console.error('[UI] Fetch error:', e);
             console.error('[UI] Error message:', e.message);
             console.error('[UI] Error stack:', e.stack);
-            alert(`Network error: ${e.message}\n\nStack: ${e.stack || 'No stack trace'}`);
+
+            // Layer 3: Don't show error for race conditions
+            const isRaceCondition =
+                e.message?.includes('Cannot proceed') ||
+                e.message?.includes('already processing');
+
+            if (!isRaceCondition) {
+                alert(`Network error: ${e.message}\n\nStack: ${e.stack || 'No stack trace'}`);
+            }
             setLoadingAction(null);
+        } finally {
+            // Release lock after delay to allow status to update
+            setTimeout(() => {
+                processingRef.current = false;
+                setIsProcessing(false);
+            }, 1000);
         }
-    };
+    }, [selectedFile, containerLimit, enrichEnabled, forwarder, isProcessing]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
@@ -171,6 +212,47 @@ export default function SimulationPage() {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
+
+    // ============================================
+    // AUTO-RUN LOGIC (Layer 4: Auto-Proceed Coordination)
+    // ============================================
+    useEffect(() => {
+        if (!autoRun || !status) return;
+
+        // Layer 4: Don't auto-proceed if user is actively clicking
+        if (processingRef.current || isProcessing) {
+            console.log('[UI] Auto-proceed skipped - user action in progress');
+            return;
+        }
+
+        // Small delay to allow status to stabilize
+        const timer = setTimeout(() => {
+            // Double-check processing state after delay
+            if (processingRef.current || isProcessing) {
+                console.log('[UI] Auto-proceed cancelled - processing started during delay');
+                return;
+            }
+
+            if (status.step === 'ARCHIVIST_COMPLETE') {
+                console.log('[UI] Auto-proceed: ARCHIVIST_COMPLETE -> proceed');
+                handleControl('proceed');
+            } else if (status.step === 'TRANSLATOR_COMPLETE' || status.step === 'TRANSLATOR_REVIEW') {
+                console.log('[UI] Auto-proceed: TRANSLATOR -> proceed');
+                handleControl('proceed');
+            } else if (status.step === 'AUDITOR_COMPLETE') {
+                console.log('[UI] Auto-proceed: AUDITOR_COMPLETE -> proceed');
+                handleControl('proceed');
+            } else if (status.step === 'IMPORT_COMPLETE') {
+                console.log('[UI] Auto-proceed: IMPORT_COMPLETE -> proceed');
+                handleControl('proceed');
+            } else if (status.step === 'IMPROVEMENT_REVIEW') {
+                console.log('[UI] Auto-proceed: IMPROVEMENT_REVIEW -> finish');
+                handleControl('finish');
+            }
+        }, 300); // 300ms delay to allow status to stabilize
+
+        return () => clearTimeout(timer);
+    }, [status, autoRun, handleControl, isProcessing]);
 
     if (!status) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -300,7 +382,7 @@ export default function SimulationPage() {
                                     variant="destructive"
                                     className="h-14 w-14 p-0 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex items-center justify-center shrink-0"
                                     onClick={() => handleControl('STOP')}
-                                    disabled={!!loadingAction}
+                                    disabled={!!loadingAction || isProcessing}
                                     title="Stop Ingestion"
                                 >
                                     <Square className="w-8 h-8 fill-current" />
@@ -310,10 +392,10 @@ export default function SimulationPage() {
                                     variant="default"
                                     className="h-14 w-14 p-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex items-center justify-center shrink-0"
                                     onClick={() => handleControl('START')}
-                                    disabled={!!loadingAction}
+                                    disabled={!!loadingAction || isProcessing}
                                     title="Start Ingestion"
                                 >
-                                    {loadingAction === 'START' ? (
+                                    {loadingAction === 'START' || isProcessing ? (
                                         <Loader2 className="w-8 h-8 animate-spin" />
                                     ) : (
                                         <Play className="w-8 h-8 fill-current ml-1" />
