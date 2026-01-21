@@ -428,7 +428,11 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                         <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             {logisticsCard.title}
                         </CardTitle>
-                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setEditingGroup(logisticsCard)}>
+                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => {
+                            // Flatten sections into a single fields array for the edit dialog
+                            const flattenedFields = logisticsCard.sections.flatMap((section: any) => section.fields);
+                            setEditingGroup({ ...logisticsCard, fields: flattenedFields });
+                        }}>
                             <Pencil className="h-3 w-3 text-slate-300 hover:text-indigo-600" />
                         </Button>
                     </CardHeader>
