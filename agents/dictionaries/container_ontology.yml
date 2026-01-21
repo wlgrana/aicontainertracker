@@ -266,6 +266,7 @@ optional_fields:
       - Customer PO (raw index 22)
       - PO/Reference
       - Cust Ref
+      - PO NO.
     data_type: string
     confidence_threshold: 0.75
   vessel_name:
@@ -371,6 +372,7 @@ optional_fields:
       - Container Returned
       - Empty Return Date
       - EReturn Date
+      - EMPTY RETRN DATE
     data_type: datetime
     confidence_threshold: 0.85
   pieces:
@@ -451,6 +453,7 @@ optional_fields:
       - ETA Place of Delivery
       - Door ETA
       - Final Destination ETA
+      - ETA FINAL DEST
     data_type: datetime
     confidence_threshold: 0.8
   grossWeight:
@@ -510,6 +513,7 @@ optional_fields:
       - Final Destination (raw index 9)
       - FINAL DESTINATION (raw index 9)
       - HOUSTON,TX
+      - F. Dest
     data_type: string
     confidence_threshold: 0.8
   metadata.remarks:
@@ -953,6 +957,30 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-20T23:37:23.416Z
-version: 1.0.33
-last_updated: 2026-01-20
+  - unmappedHeader: BOOKING DESTINATION
+    canonicalField: metadata.bookingDestination
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T19:57:26.255Z
+  - unmappedHeader: RAIL DEPARTURE DATE
+    canonicalField: metadata.railDepartureDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T19:57:26.255Z
+  - unmappedHeader: RAIL ARRIVAL DATE
+    canonicalField: metadata.railArrivalDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T19:57:26.255Z
+  - unmappedHeader: CUSTOMER LFD PER DIEM
+    canonicalField: metadata.customerLfdPerDiem
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T19:57:26.255Z
+version: 1.0.34
+last_updated: 2026-01-21
 total_fields: 29

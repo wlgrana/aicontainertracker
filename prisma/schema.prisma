@@ -88,7 +88,7 @@ model TransitStage {
   dcsaEventType     String?
   dcsaEventCategory String?
   dcsaFacilityType  String?
-  containers        Container[]
+  // Removed containers relation to support flexible status (Zero Data Loss)
   previousEvents    ContainerEvent[] @relation("PreviousStageEvents")
   containerEvents   ContainerEvent[] @relation("StageEvents")
   dcsaEventMaps     DCSAEventMap[]
@@ -221,8 +221,9 @@ model Container {
   activityLogs        ActivityLog[]
   attentionFlags      AttentionFlag[]
   
-  // Make the foreign key relationship optional
-  stage               TransitStage?       @relation(fields: [currentStatus], references: [stageName])
+  // Removed stage relation to support flexible status (Zero Data Loss)
+  // currentStatus can now be null for unknown carrier codes
+  // rawStatus always preserves the original carrier value
   
   importLog           ImportLog?          @relation(fields: [importLogId], references: [fileName])
   events              ContainerEvent[]

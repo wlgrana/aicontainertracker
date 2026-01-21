@@ -124,11 +124,28 @@ export async function POST(req: Request) {
                 }
 
                 if (currentStep === 'IMPORT_COMPLETE') {
-                    console.log('[VERCEL] Running Step 5 (Learner) inline...');
-                    const { runLearnerStep } = await import('@/scripts/step5_learner');
-                    const result = await runLearnerStep();
-                    console.log('[VERCEL] Step 5 completed:', result);
-                    return NextResponse.json({ success: true, message: 'Step 5 Complete', result });
+                    // Skip Step 5 (Learner) on Vercel - requires filesystem writes
+                    console.log('[VERCEL] Skipping Step 5 (Learner) - filesystem writes not supported');
+
+                    // Mark as complete and skip to finish
+                    try {
+                        const current = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
+                        const next = {
+                            ...current,
+                            step: 'COMPLETE',
+                            progress: 100,
+                            message: 'Import Complete (Learner skipped on Vercel)'
+                        };
+                        fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2));
+                    } catch (e) {
+                        console.error('[VERCEL] Failed to update status:', e);
+                    }
+
+                    return NextResponse.json({
+                        success: true,
+                        message: 'Import Complete (Step 5 skipped - not supported on Vercel)',
+                        note: 'Dictionary learning requires local filesystem access'
+                    });
                 }
 
                 return NextResponse.json({ success: false, message: 'Cannot proceed from current state.' });

@@ -329,58 +329,115 @@ export async function getDashboardData(
 
 export async function getContainerDetails(id: string) {
     if (!id) return null;
-    const container = await prisma.container.findUnique({
-        where: { containerNumber: id },
-        include: {
-            events: {
-                orderBy: { eventDateTime: 'desc' },
-                include: {
-                    stage: true
-                }
-            },
-            shipmentContainers: {
-                include: {
-                    shipment: {
-                        include: {
-                            shipmentEvents: { orderBy: { eventDateTime: 'desc' } }
+
+    try {
+        const container = await prisma.container.findUnique({
+            where: { containerNumber: id },
+            include: {
+                events: {
+                    orderBy: { eventDateTime: 'desc' },
+                    include: {
+                        stage: true
+                    }
+                },
+                shipmentContainers: {
+                    include: {
+                        shipment: {
+                            include: {
+                                shipmentEvents: { orderBy: { eventDateTime: 'desc' } }
+                            }
                         }
                     }
+                },
+                attentionFlags: {
+                    where: { resolved: false },
+                    orderBy: { flaggedOn: 'desc' }
+                },
+                activityLogs: {
+                    orderBy: { createdAt: 'desc' }
+                },
+                statusOverrides: {
+                    orderBy: { overriddenAt: 'desc' }
                 }
-            },
-            attentionFlags: {
-                where: { resolved: false },
-                orderBy: { flaggedOn: 'desc' }
-            },
-            activityLogs: {
-                orderBy: { createdAt: 'desc' }
-            },
-            statusOverrides: {
-                orderBy: { overriddenAt: 'desc' }
-            },
-            stage: true
-        }
-    });
-
-    if (!container) return null;
-
-    // Fetch Raw Row Data if linked
-    let rawRowData = null;
-    const meta = container.metadata as any;
-    if (meta && meta._internal && meta._internal.rawRowId) {
-        const rawRow = await prisma.rawRow.findUnique({
-            where: { id: meta._internal.rawRowId }
+            }
         });
-        if (rawRow && rawRow.data) {
-            try {
-                rawRowData = JSON.parse(rawRow.data);
-            } catch (e) { }
-        }
-    }
 
-    return {
-        ...container,
-        rawRowData // Attach raw data for lineage view
-    };
+        if (!container) return null;
+
+        // Fetch Raw Row Data if linked
+        let rawRowData = null;
+        const meta = container.metadata as any;
+        if (meta && meta._internal && meta._internal.rawRowId) {
+            try {
+                const rawRow = await prisma.rawRow.findUnique({
+                    where: { id: meta._internal.rawRowId }
+                });
+                if (rawRow && rawRow.data) {
+                    rawRowData = JSON.parse(rawRow.data);
+                }
+            } catch (e) {
+                console.error('Error fetching raw row data:', e);
+            }
+        }
+
+        // Serialize all dates and complex objects to ensure they're safe for Server Components
+        const serializedContainer = JSON.parse(JSON.stringify({
+            ...container,
+            rawRowData,
+            // Ensure all dates are properly serialized
+            createdAt: container.createdAt?.toISOString(),
+            updatedAt: container.updatedAt?.toISOString(),
+            statusLastUpdated: container.statusLastUpdated?.toISOString(),
+            atd: container.atd?.toISOString(),
+            eta: container.eta?.toISOString(),
+            ata: container.ata?.toISOString(),
+            etd: container.etd?.toISOString(),
+            lastFreeDay: container.lastFreeDay?.toISOString(),
+            gateOutDate: container.gateOutDate?.toISOString(),
+            deliveryDate: container.deliveryDate?.toISOString(),
+            emptyReturnDate: container.emptyReturnDate?.toISOString(),
+            finalDestinationEta: container.finalDestinationEta?.toISOString(),
+            // Serialize events
+            events: container.events?.map(event => ({
+                ...event,
+                eventDateTime: event.eventDateTime?.toISOString()
+            })) || [],
+            // Serialize shipment containers
+            shipmentContainers: container.shipmentContainers?.map(sc => ({
+                ...sc,
+                shipment: sc.shipment ? {
+                    ...sc.shipment,
+                    bookingDate: sc.shipment.bookingDate?.toISOString(),
+                    shipmentEvents: sc.shipment.shipmentEvents?.map(se => ({
+                        ...se,
+                        eventDateTime: se.eventDateTime?.toISOString()
+                    })) || []
+                } : null
+            })) || [],
+            // Serialize attention flags
+            attentionFlags: container.attentionFlags?.map(flag => ({
+                ...flag,
+                flaggedOn: flag.flaggedOn?.toISOString(),
+                resolvedDate: flag.resolvedDate?.toISOString()
+            })) || [],
+            // Serialize activity logs
+            activityLogs: container.activityLogs?.map(log => ({
+                ...log,
+                createdAt: log.createdAt?.toISOString()
+            })) || [],
+            // Serialize status overrides
+            statusOverrides: container.statusOverrides?.map(override => ({
+                ...override,
+                overriddenAt: override.overriddenAt?.toISOString()
+            })) || []
+        }));
+
+        return serializedContainer;
+    } catch (error) {
+        console.error('Error fetching container details:', error);
+        // Return null instead of throwing to prevent Server Components error
+        return null;
+    }
 }
 
 export async function getTransitStages() {
