@@ -41,7 +41,8 @@ function DashboardContent() {
     // Pagination State
     const pageParam = searchParams.get('page');
     const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
-    const itemsPerPage = 50;
+    const itemsPerPageParam = searchParams.get('perPage');
+    const [itemsPerPage, setItemsPerPage] = useState(itemsPerPageParam ? parseInt(itemsPerPageParam, 10) : 25);
 
     const [activeTab, setActiveTab] = useState(defaultTab);
 
@@ -103,6 +104,14 @@ function DashboardContent() {
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString());
         params.set('page', newPage.toString());
+        router.push(`/dashboard?${params.toString()}`);
+    };
+
+    const handleItemsPerPageChange = (newItemsPerPage: number) => {
+        setItemsPerPage(newItemsPerPage);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('perPage', newItemsPerPage.toString());
+        params.set('page', '1'); // Reset to first page
         router.push(`/dashboard?${params.toString()}`);
     };
 
@@ -228,6 +237,7 @@ function DashboardContent() {
                                 currentPage={currentPage}
                                 itemsPerPage={itemsPerPage}
                                 onPageChange={handlePageChange}
+                                onItemsPerPageChange={handleItemsPerPageChange}
                                 stats={stats}
                             />
                         </>

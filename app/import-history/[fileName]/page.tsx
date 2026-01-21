@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Clock, Database, CheckCircle2, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Clock, Database, CheckCircle2, AlertCircle, TrendingUp, Loader2, Calendar, TruckIcon, FileSpreadsheet, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,7 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
     const [containers, setContainers] = useState<any[]>([]);
     const [containersTotalCount, setContainersTotalCount] = useState(0);
     const [containersPage, setContainersPage] = useState(1);
+    const [containersItemsPerPage, setContainersItemsPerPage] = useState(25);
     const [containersLoading, setContainersLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
 
     useEffect(() => {
         fetchContainers();
-    }, [containersPage]);
+    }, [containersPage, containersItemsPerPage]);
 
     const fetchImportDetails = async () => {
         setLoading(true);
@@ -86,7 +87,7 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
     const fetchContainers = async () => {
         setContainersLoading(true);
         try {
-            const response = await fetch(`/api/import-history/${encodeURIComponent(fileName)}/containers?page=${containersPage}&limit=50`);
+            const response = await fetch(`/api/import-history/${encodeURIComponent(fileName)}/containers?page=${containersPage}&limit=${containersItemsPerPage}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch containers');
             }
@@ -177,62 +178,115 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
             <div className="max-w-6xl mx-auto space-y-6">
                 {/* Header */}
                 <header className="space-y-4">
-                    <Button
-                        variant="ghost"
-                        onClick={() => router.push('/import-history')}
-                        className="gap-2 text-slate-600 hover:text-slate-900"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Import History
-                    </Button>
+                    <div className="flex items-center justify-between">
+                        <Button
+                            variant="ghost"
+                            onClick={() => router.push('/import-history')}
+                            className="gap-2 text-slate-600 hover:text-slate-900"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Import History
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="gap-2"
+                        >
+                            Re-import
+                        </Button>
+                    </div>
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Data Ingestion Engine</h1>
                         <p className="text-slate-500 font-medium">Autonomous import pipeline with AI-powered validation</p>
                     </div>
                 </header>
 
-                {/* File Info Bar */}
-                <Card className="border-slate-200 shadow-sm">
+                {/* Import Metadata Card */}
+                <Card className="border-slate-200 shadow-sm bg-white">
                     <CardContent className="p-6">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                    <FileText className="w-6 h-6" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* File Name */}
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                                    <FileSpreadsheet className="w-5 h-5 text-blue-600" />
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <h3 className="font-bold text-lg text-slate-900 truncate">{details.fileName}</h3>
-                                    <div className="flex items-center gap-3 text-sm text-slate-500 flex-wrap">
-                                        {details.forwarder && (
-                                            <>
-                                                <span className="font-medium">{details.forwarder}</span>
-                                                <div className="w-px h-3 bg-slate-200" />
-                                            </>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">File Name</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="font-mono text-sm text-slate-900 truncate" title={details.fileName}>
+                                            {details.fileName}
+                                        </div>
+                                        {details.fileStoragePath && (
+                                            <button
+                                                onClick={() => handleDownload('download')}
+                                                className="shrink-0 w-6 h-6 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors"
+                                                title="Download file"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                            </button>
                                         )}
-                                        <span>{formatFileSize(details.fileSizeBytes)}</span>
-                                        <div className="w-px h-3 bg-slate-200" />
-                                        <span className="capitalize">{details.importSource.toLowerCase()}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                {details.fileStoragePath && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDownload('download')}
-                                        className="gap-2"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        Download File
-                                    </Button>
-                                )}
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="gap-2"
-                                >
-                                    Re-import
-                                </Button>
+
+                            {/* Import Date */}
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                                    <Calendar className="w-5 h-5 text-green-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">Import Date</div>
+                                    <div className="text-sm font-semibold text-slate-900">
+                                        {new Date(details.importedOn).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                        {new Date(details.importedOn).toLocaleTimeString('en-US', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Forwarder */}
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                                    <TruckIcon className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">Forwarder</div>
+                                    <div className="text-sm font-semibold text-slate-900">
+                                        {details.forwarder || <span className="text-slate-400 italic">Not specified</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Import Statistics Row */}
+                        <div className="mt-6 pt-6 border-t border-slate-100">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">Rows Processed</div>
+                                    <div className="text-2xl font-black text-slate-900">{details.rowsProcessed || 0}</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-xs font-bold text-green-600 uppercase mb-1">Created</div>
+                                    <div className="text-2xl font-black text-green-600">{details.containersCreated || 0}</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-xs font-bold text-blue-600 uppercase mb-1">Updated</div>
+                                    <div className="text-2xl font-black text-blue-600">{details.containersUpdated || 0}</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-xs font-bold text-indigo-600 uppercase mb-1">Total Items</div>
+                                    <div className="text-2xl font-black text-indigo-600">
+                                        {(details.containersCreated || 0) + (details.containersUpdated || 0)}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
@@ -245,8 +299,12 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
                             containers={containers}
                             totalItems={containersTotalCount}
                             currentPage={containersPage}
-                            itemsPerPage={50}
+                            itemsPerPage={containersItemsPerPage}
                             onPageChange={setContainersPage}
+                            onItemsPerPageChange={(newValue) => {
+                                setContainersItemsPerPage(newValue);
+                                setContainersPage(1); // Reset to first page
+                            }}
                             title="Import Manifest Details"
                             showImportButton={false}
                         />

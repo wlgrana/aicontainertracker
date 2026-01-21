@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PipelineStep } from '@/components/simulation/PipelineStep';
-import { CheckCircle2, Loader2, Database, BrainCircuit, Zap, Terminal, ChevronDown, ChevronUp, Play, Square, Trash2, FileSpreadsheet, Languages, ShieldCheck, Search, ArrowRight, RotateCcw, Download, Upload, FileText } from 'lucide-react';
+import { CheckCircle2, Loader2, Database, BrainCircuit, Zap, Terminal, ChevronDown, ChevronUp, Play, Square, Trash2, FileSpreadsheet, Languages, ShieldCheck, Search, ArrowRight, RotateCcw, Download, Upload, FileText, Calendar, Package, TruckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 
@@ -13,9 +13,24 @@ export default function ImportDetailsPage() {
     const [status, setStatus] = useState<any>(null);
     const [logFiles, setLogFiles] = useState<any[]>([]);
     const [stepTimes, setStepTimes] = useState<Record<string, { end: number, duration: number }>>({});
+    const [importLog, setImportLog] = useState<any>(null);
 
     // In a real implementation, we would use params.id to fetch a specific historical import.
     // For now, we read the current global simulation status to replicate the view.
+
+    useEffect(() => {
+        // Fetch import log metadata
+        const importId = params.id as string;
+        if (importId) {
+            fetch(`/api/import-logs/${encodeURIComponent(importId)}`)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('[Import Details] Loaded import log:', data);
+                    setImportLog(data);
+                })
+                .catch(console.error);
+        }
+    }, [params.id]);
 
     useEffect(() => {
         // Fetch status immediately
@@ -107,6 +122,88 @@ export default function ImportDetailsPage() {
                     </div>
                     {/* Upload Bar Removed as requested */}
                 </div>
+
+                {/* Import Metadata Card */}
+                {importLog && (
+                    <Card className="border-slate-200 shadow-sm bg-white">
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* File Name */}
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                                        <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">File Name</div>
+                                        <div className="font-mono text-sm text-slate-900 truncate" title={importLog.fileName}>
+                                            {importLog.fileName}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Import Date */}
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                                        <Calendar className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Import Date</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {new Date(importLog.importedOn).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {new Date(importLog.importedOn).toLocaleTimeString('en-US', {
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Forwarder */}
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                                        <TruckIcon className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Forwarder</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {importLog.forwarder || <span className="text-slate-400 italic">Not specified</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Import Statistics Row */}
+                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Rows Processed</div>
+                                        <div className="text-2xl font-black text-slate-900">{importLog.rowsProcessed || 0}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-green-600 uppercase mb-1">Created</div>
+                                        <div className="text-2xl font-black text-green-600">{importLog.containersCreated || 0}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-blue-600 uppercase mb-1">Updated</div>
+                                        <div className="text-2xl font-black text-blue-600">{importLog.containersUpdated || 0}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-indigo-600 uppercase mb-1">Total Items</div>
+                                        <div className="text-2xl font-black text-indigo-600">
+                                            {(importLog.containersCreated || 0) + (importLog.containersUpdated || 0)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="relative h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div

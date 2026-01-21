@@ -44,6 +44,7 @@ interface ContainerInventoryProps {
     currentPage: number;
     itemsPerPage: number;
     onPageChange: (page: number) => void;
+    onItemsPerPageChange?: (itemsPerPage: number) => void; // Optional callback for changing items per page
     stats?: {
         totalExceptions: number;
         inTransitCount: number;
@@ -107,6 +108,7 @@ export function ContainerInventory({
     currentPage,
     itemsPerPage,
     onPageChange,
+    onItemsPerPageChange,
     stats,
     title = "Master Inventory Ledger",
     showImportButton = true
@@ -175,6 +177,61 @@ export function ContainerInventory({
         });
     }, [filteredContainers]);
 
+    // Pagination Controls Component (reusable for top and bottom)
+    const PaginationControls = () => (
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <p className="text-xs font-bold text-slate-500">
+                    Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
+                </p>
+                {onItemsPerPageChange && (
+                    <>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-500">Show:</span>
+                            <Select
+                                value={itemsPerPage.toString()}
+                                onValueChange={(value) => {
+                                    onItemsPerPageChange(parseInt(value));
+                                    onPageChange(1); // Reset to first page when changing items per page
+                                }}
+                            >
+                                <SelectTrigger className="w-[70px] h-7 text-xs font-bold border-slate-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="25">25</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                    <SelectItem value="100">100</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="text-xs font-bold border-slate-200"
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage * itemsPerPage >= totalItems}
+                    className="text-xs font-bold border-slate-200"
+                >
+                    Next
+                </Button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
             {/* Quick Stats Cards - HIDDEN REQUEST */}
@@ -220,29 +277,85 @@ export function ContainerInventory({
                         )}
                     </div>
 
-                    {/* Filter Bar */}
+                    {/* Combined Filter Bar & Pagination Controls */}
                     <div className="flex gap-4 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                            <Input
-                                placeholder="Search containers..."
-                                className="pl-9 bg-transparent border-none focus-visible:ring-0 font-medium text-sm h-9"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                        {/* Left side: Search and Filters */}
+                        <div className="flex gap-4 items-center flex-1">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input
+                                    placeholder="Search containers..."
+                                    className="pl-9 bg-transparent border-none focus-visible:ring-0 font-medium text-sm h-9"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="h-6 w-px bg-slate-200" />
+                            <Select value={buFilter} onValueChange={setBuFilter}>
+                                <SelectTrigger className="w-[160px] border-none bg-transparent font-bold text-xs uppercase tracking-wide text-slate-600 shadow-none">
+                                    <SelectValue placeholder="Business Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All BUs</SelectItem>
+                                    {uniqueBUs.map(bu => (
+                                        <SelectItem key={bu} value={bu}>{bu}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
+
+                        {/* Right side: Pagination Controls */}
                         <div className="h-6 w-px bg-slate-200" />
-                        <Select value={buFilter} onValueChange={setBuFilter}>
-                            <SelectTrigger className="w-[160px] border-none bg-transparent font-bold text-xs uppercase tracking-wide text-slate-600 shadow-none">
-                                <SelectValue placeholder="Business Unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All BUs</SelectItem>
-                                {uniqueBUs.map(bu => (
-                                    <SelectItem key={bu} value={bu}>{bu}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-4">
+                            <p className="text-xs font-bold text-slate-500 whitespace-nowrap">
+                                Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
+                            </p>
+                            {onItemsPerPageChange && (
+                                <>
+                                    <div className="h-4 w-px bg-slate-200" />
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-slate-500">Show:</span>
+                                        <Select
+                                            value={itemsPerPage.toString()}
+                                            onValueChange={(value) => {
+                                                onItemsPerPageChange(parseInt(value));
+                                                onPageChange(1);
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[70px] h-7 text-xs font-bold border-slate-200">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="25">25</SelectItem>
+                                                <SelectItem value="50">50</SelectItem>
+                                                <SelectItem value="100">100</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </>
+                            )}
+                            <div className="h-4 w-px bg-slate-200" />
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
+                                    className="text-xs font-bold border-slate-200 h-7"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onPageChange(currentPage + 1)}
+                                    disabled={currentPage * itemsPerPage >= totalItems}
+                                    className="text-xs font-bold border-slate-200 h-7"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </CardHeader>
 
@@ -411,30 +524,8 @@ export function ContainerInventory({
                 </CardContent>
 
                 {/* Pagination Footer */}
-                <div className="bg-slate-50/50 border-t border-slate-100 px-8 py-4 flex items-center justify-between">
-                    <p className="text-xs font-bold text-slate-500">
-                        Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            className="text-xs font-bold border-slate-200"
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange(currentPage + 1)}
-                            disabled={currentPage * itemsPerPage >= totalItems}
-                            className="text-xs font-bold border-slate-200"
-                        >
-                            Next
-                        </Button>
-                    </div>
+                <div className="bg-slate-50/50 border-t border-slate-100 px-8 py-4">
+                    <PaginationControls />
                 </div>
             </Card>
         </div>
