@@ -115,6 +115,27 @@ function DashboardContent() {
         router.push(`/dashboard?${params.toString()}`);
     };
 
+    const handleBuFilterChange = (newBuFilter: string) => {
+        setBuFilter(newBuFilter);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1'); // Reset to first page when filter changes
+        router.push(`/dashboard?${params.toString()}`);
+    };
+
+    const handleForwarderFilterChange = (newForwarderFilter: string) => {
+        setForwarderFilter(newForwarderFilter);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1'); // Reset to first page when filter changes
+        router.push(`/dashboard?${params.toString()}`);
+    };
+
+    const handleStatusFilterChange = (newStatusFilter: string) => {
+        setStatusFilter(newStatusFilter);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', '1'); // Reset to first page when filter changes
+        router.push(`/dashboard?${params.toString()}`);
+    };
+
     // Only show full page loader on INITIAL load when we have no data at all
     if (!data) {
         return (
@@ -239,6 +260,8 @@ function DashboardContent() {
                                 onPageChange={handlePageChange}
                                 onItemsPerPageChange={handleItemsPerPageChange}
                                 stats={stats}
+                                buFilter={buFilter}
+                                onBuFilterChange={handleBuFilterChange}
                             />
                         </>
                     )}

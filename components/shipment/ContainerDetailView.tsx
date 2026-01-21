@@ -328,7 +328,16 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+
+                        <div className="flex items-center gap-3">
+                            {/* Status Display */}
+                            <Badge className="h-8 px-3 text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                {data.aiOperationalStatus || 'No Status'}
+                            </Badge>
+
+                            {/* Vertical Separator */}
+                            <div className="h-6 w-px bg-slate-300"></div>
+
                             {/* Run Enricher Button */}
                             <Button
                                 variant="outline"
@@ -341,84 +350,11 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                                 Enricher
                             </Button>
 
-                            {/* Status Dropdown */}
-                            <Select onValueChange={handleStatusChange} defaultValue={data.currentStatus}>
-                                <SelectTrigger className="w-[160px] h-8 text-sm font-bold bg-slate-50 border-slate-200 focus:ring-indigo-500">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {statusOptions.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
                             <OracleChat containerId={data.containerNumber} />
                         </div>
                     </div>
                 </div>
             </header>
-
-            {/* AI STATUS BANNER - COMPACT */}
-            {(data.aiOperationalStatus || data.aiAttentionCategory) && (
-                <div className="bg-slate-900 text-white border-b border-slate-800">
-                    <div className="max-w-7xl mx-auto px-6 py-2">
-                        <div className="flex gap-4 items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className={cn(
-                                    "p-2 rounded-lg shrink-0",
-                                    data.aiUrgencyLevel === 'CRITICAL' ? "bg-red-500/20 text-red-400" :
-                                        data.aiUrgencyLevel === 'HIGH' ? "bg-orange-500/20 text-orange-400" :
-                                            data.aiUrgencyLevel === 'MEDIUM' ? "bg-yellow-500/20 text-yellow-400" :
-                                                "bg-green-500/20 text-green-400"
-                                )}>
-                                    <Bot className="h-5 w-5" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <Badge className={cn(
-                                            "font-bold text-xs",
-                                            data.aiUrgencyLevel === 'CRITICAL' ? "bg-red-500 text-white" :
-                                                data.aiUrgencyLevel === 'HIGH' ? "bg-orange-500 text-white" :
-                                                    data.aiUrgencyLevel === 'MEDIUM' ? "bg-yellow-500 text-black" :
-                                                        "bg-green-500 text-white"
-                                        )}>
-                                            {data.aiOperationalStatus || "STATUS UNKNOWN"}
-                                        </Badge>
-                                        <span className="text-xs font-medium text-slate-400">
-                                            Conf: {data.aiDataConfidence || "N/A"}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm font-medium text-white truncate">
-                                        {data.aiStatusReason || "No status reason provided."}
-                                    </p>
-                                    {data.aiAttentionHeadline && (
-                                        <div className="flex items-center gap-1 mt-0.5 text-xs text-yellow-400">
-                                            <AlertTriangle className="h-3 w-3" />
-                                            {data.aiAttentionHeadline}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex gap-6 shrink-0">
-                                <div className="text-right">
-                                    <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Days in Transit</div>
-                                    <div className="text-xl font-black">{data.daysInTransit ?? "--"}</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Health Score</div>
-                                    <div className={cn("text-xl font-black",
-                                        (data.healthScore || 0) > 80 ? "text-green-400" :
-                                            (data.healthScore || 0) > 50 ? "text-yellow-400" : "text-red-400"
-                                    )}>{data.healthScore ?? "--"}/100</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
 
             <main className="flex-1 max-w-7xl mx-auto w-full p-4 space-y-4">
 
@@ -799,7 +735,7 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
             </main>
 
             {/* EDIT DIALOG */}
-            < Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
+            <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
                 <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit {editingGroup?.title}</DialogTitle>
@@ -843,8 +779,8 @@ export default function ContainerDetailView({ initialData, transitStages }: Cont
                         </form>
                     )}
                 </DialogContent>
-            </Dialog >
+            </Dialog>
 
-        </div >
+        </div>
     );
 }

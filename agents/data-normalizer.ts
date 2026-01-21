@@ -247,11 +247,13 @@ export async function normalizeData(row: any, mapping: SchemaMapping): Promise<N
     const now = new Date();
     let daysInTransit = 0;
 
-    // Calculate Days In Transit (from ATD/ETD to Now)
+    // Calculate Days In Transit (from ATD/ETD to Delivery or Now)
     const departureDate = parseDate(getVal('departure_date')) || parseDate(getVal('etd'));
     if (departureDate) {
         const start = new Date(departureDate);
-        const diffTime = Math.abs(now.getTime() - start.getTime());
+        // For delivered containers, calculate to delivery date; otherwise to now
+        const endDate = deliveryDateVal ? new Date(deliveryDateVal) : now;
+        const diffTime = Math.abs(endDate.getTime() - start.getTime());
         daysInTransit = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
@@ -260,27 +262,37 @@ export async function normalizeData(row: any, mapping: SchemaMapping): Promise<N
     const lfd = parseDate(getVal('last_free_day'));
     if (lfd) {
         const lfdDate = new Date(lfd);
-        if (now > lfdDate && !emptyReturnVal) {
-            healthScore -= 50; // Critical hit if past LFD and not returned
-        } else if ((lfdDate.getTime() - now.getTime()) < (2 * 24 * 60 * 60 * 1000) && !emptyReturnVal) {
-            healthScore -= 20; // Risk if < 2 days
+        // Only penalize if past LFD AND not delivered AND not returned
+        if (now > lfdDate && !deliveryDateVal && !emptyReturnVal) {
+            healthScore -= 50; // Critical hit if past LFD and not delivered/returned
+        } else if ((lfdDate.getTime() - now.getTime()) < (2 * 24 * 60 * 60 * 1000) && !deliveryDateVal && !emptyReturnVal) {
+            healthScore -= 20; // Risk if < 2 days and not delivered/returned
         }
-    } else {
-        healthScore -= 10; // Penalty for missing LFD
+    } else if (!deliveryDateVal && !emptyReturnVal) {
+        // Only penalize for missing LFD if container is still active
+        healthScore -= 10;
     }
 
-    // Determine AI Standard Status
-    let aiStatus = 'In Transit';
-    if (stageName === 'RET' || emptyReturnVal) aiStatus = 'Completed';
-    else if (stageName === 'CGO' || gateOutVal) aiStatus = 'Gated Out';
+    // Determine AI Standard Status - Complete mapping for all stage codes
+    let aiStatus = 'In Transit'; // Default
+    if (stageName === 'DEL' || deliveryDateVal) aiStatus = 'Delivered';
+    else if (stageName === 'RET' || emptyReturnVal) aiStatus = 'Completed';
+    else if (stageName === 'CGO') aiStatus = 'Gated Out';
+    else if (stageName === 'OFD') aiStatus = 'Out for Delivery';
+    else if (stageName === 'STRP') aiStatus = 'Empty Return';
+    else if (['REL', 'AVL'].includes(stageName)) aiStatus = 'Available for Pickup';
+    else if (['DIS', 'INSP'].includes(stageName)) aiStatus = 'Discharged';
     else if (stageName === 'ARR' || parseDate(getVal('port_arrival_date'))) aiStatus = 'Arrived at Port';
     else if (stageName === 'CUS') aiStatus = 'Customs Hold';
+    else if (['BOOK', 'CEP', 'CGI', 'STUF', 'LOA'].includes(stageName)) aiStatus = 'Booked';
+    else if (['DEP', 'TS1', 'TSD', 'TSL', 'TS1D'].includes(stageName)) aiStatus = 'In Transit';
 
     // Determine Attention Category
     let attention = 'Routine';
-    if (healthScore < 60) attention = 'Critical';
+    if (deliveryDateVal || emptyReturnVal) attention = 'Resolved';
+    else if (healthScore < 60) attention = 'Critical';
     else if (healthScore < 90) attention = 'Warning';
-    else if (aiStatus === 'Completed') attention = 'Resolved';
+
 
 
     return {

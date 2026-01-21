@@ -125,11 +125,13 @@ export async function getDashboardData(
 
         // Business Unit Filter
         if (businessUnit && businessUnit !== 'all') {
-            // Merge with existing shipmentContainers filter if simpler, or just add logic
-            // If forwarder is also present, we need to be careful not to overwrite `shipmentContainers`
+            // If forwarder filter already exists, merge BU into the same shipment filter
             if (where.shipmentContainers) {
-                // Merge into existing `some.shipment`
-                where.shipmentContainers.some.shipment.businessUnit = { contains: businessUnit, mode: 'insensitive' };
+                // Properly merge into existing shipment filter
+                where.shipmentContainers.some.shipment = {
+                    ...where.shipmentContainers.some.shipment,
+                    businessUnit: { contains: businessUnit, mode: 'insensitive' }
+                };
             } else {
                 where.shipmentContainers = {
                     some: {

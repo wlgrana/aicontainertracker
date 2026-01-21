@@ -52,6 +52,8 @@ interface ContainerInventoryProps {
     };
     title?: string; // Optional custom title
     showImportButton?: boolean; // Optional flag to show/hide import button
+    buFilter?: string; // Controlled BU filter from parent
+    onBuFilterChange?: (buFilter: string) => void; // Callback when BU filter changes
 }
 
 // 1. Status Mapping Reference
@@ -111,27 +113,31 @@ export function ContainerInventory({
     onItemsPerPageChange,
     stats,
     title = "Master Inventory Ledger",
-    showImportButton = true
+    showImportButton = true,
+    buFilter: controlledBuFilter,
+    onBuFilterChange
 }: ContainerInventoryProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
 
-    // New Filters
+    // New Filters (only health filter is client-side now)
     const [healthFilter, setHealthFilter] = useState("all");
-    const [buFilter, setBuFilter] = useState("all");
 
-    // Extract unique BUs
+    // Use controlled BU filter from parent if provided, otherwise use local state
+    const buFilter = controlledBuFilter ?? "all";
+
+    // Extract unique BUs from the server-filtered results
     const uniqueBUs = useMemo(() => {
         return Array.from(new Set(initialContainers.map(c => c.businessUnit).filter(Boolean)));
     }, [initialContainers]);
 
-    // Metrics
+    // Metrics - use server stats which reflect the filtered data
     const totalContainers = totalItems;
     const totalExceptions = stats?.totalExceptions ?? initialContainers.filter(c => c.hasException).length;
     const totalDemurrage = stats?.totalDemurrage ?? initialContainers.reduce((sum, c) => sum + (c.estimatedDemurrage || 0), 0);
     const inTransitCount = stats?.inTransitCount ?? initialContainers.filter(c => ['DEP', 'HSEA', 'CGO'].includes(c.currentStatus)).length;
 
-    // Filter Logic
+    // Filter Logic - REMOVED BU filtering since it's now server-side
     const filteredContainers = useMemo(() => {
         return initialContainers.filter(c => {
             const matchesSearch =
@@ -141,11 +147,11 @@ export function ContainerInventory({
 
             const { healthKey } = calculateRowData(c);
             const matchesHealth = healthFilter === "all" ? true : healthKey.toLowerCase() === healthFilter;
-            const matchesBU = buFilter === "all" ? true : c.businessUnit === buFilter;
+            // BU filtering removed - now handled server-side
 
-            return matchesSearch && matchesHealth && matchesBU;
+            return matchesSearch && matchesHealth;
         });
-    }, [initialContainers, searchQuery, healthFilter, buFilter]);
+    }, [initialContainers, searchQuery, healthFilter]);
 
     // Sort Logic
     const sortedContainers = useMemo(() => {
@@ -291,7 +297,7 @@ export function ContainerInventory({
                                 />
                             </div>
                             <div className="h-6 w-px bg-slate-200" />
-                            <Select value={buFilter} onValueChange={setBuFilter}>
+                            <Select value={buFilter} onValueChange={(value) => onBuFilterChange?.(value)}>
                                 <SelectTrigger className="w-[160px] border-none bg-transparent font-bold text-xs uppercase tracking-wide text-slate-600 shadow-none">
                                     <SelectValue placeholder="Business Unit" />
                                 </SelectTrigger>

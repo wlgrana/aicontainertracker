@@ -18,7 +18,7 @@ export async function runExceptionClassifier(containerId: string) {
     // If the container is operationally complete, do NOT run expensive AI checks or flag it.
 
     // Stages considered "Complete" or "Safe from Port Risk"
-    const COMPLETED_STAGES = ['REL', 'AVL', 'CGO', 'DEL', 'RET'];
+    const COMPLETED_STAGES = ['REL', 'AVL', 'CGO', 'DEL', 'RET', 'STRP', 'OFD'];
 
     // Calculate days since Gate Out (if applicable)
     const daysSinceGateOut = container.gateOutDate
@@ -27,7 +27,8 @@ export async function runExceptionClassifier(containerId: string) {
 
     const isOperationallyComplete =
         (container.stage?.stageName && COMPLETED_STAGES.includes(container.stage.stageName)) ||
-        (container.gateOutDate && daysSinceGateOut > 14);
+        (container.gateOutDate && daysSinceGateOut > 14) ||
+        container.deliveryDate !== null;  // Also check delivery date
 
     if (isOperationallyComplete) {
         // CLEANUP ROUTINE: Clear "Zombie Alerts"
