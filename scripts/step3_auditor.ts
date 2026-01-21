@@ -157,6 +157,7 @@ export async function runAuditorStep(config?: {
             patchMsg = ` (Auto-Patched ${patches.size} missing fields)`;
         }
 
+
         console.log(`Audit Preview Complete: ${verifiedCount} Verified / ${discrepancyCount} Issues in Sample.`);
 
         // If sampleAnalysis is still null (e.g. all audits failed), create a dummy one so UI doesn't spin
@@ -177,6 +178,16 @@ export async function runAuditorStep(config?: {
                 proposedPatches: {}
             };
         }
+
+        // UPDATE IMPORTLOG WITH AUDITOR METRICS
+        console.log('[AUDITOR] Updating ImportLog with discrepancy metrics...');
+        await prisma.importLog.update({
+            where: { fileName: FILENAME },
+            data: {
+                discrepanciesFound: discrepancyCount,
+                discrepanciesPatched: patches.size
+            }
+        });
 
         updateStatus({
             step: 'AUDITOR_COMPLETE',

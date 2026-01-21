@@ -90,18 +90,27 @@ export async function runArchivistStep(config: {
         const sampleRow = rawRows.length > 0 ? JSON.parse(rawRows[0].data) : {};
         const headers = archiveResult.headers;
 
-        // LOGGING: Update ImportLog with analysis info
-        console.log('[ARCHIVIST] Step 6: Updating ImportLog with analysis...');
+        // Capture file metadata
+        const fileStats = fs.statSync(FILE_PATH);
+        const importSource = process.env.INVOKED_BY === 'FRONTEND' ? 'MANUAL' : 'SIMULATION';
+        const startTime = new Date();
+
+        // LOGGING: Update ImportLog with analysis info and file metadata
+        console.log('[ARCHIVIST] Step 6: Updating ImportLog with analysis and file metadata...');
         await prisma.importLog.update({
             where: { fileName: archiveResult.importLogId },
             data: {
                 forwarder: config.forwarder && config.forwarder !== 'null' && config.forwarder !== 'undefined' ? config.forwarder : null,
                 rowsProcessed: archiveResult.rowCount,
+                fileStoragePath: FILE_PATH,
+                fileSizeBytes: fileStats.size,
+                importSource: importSource,
                 aiAnalysis: {
                     phase: 'ARCHIVIST',
                     detectedHeaders: headers,
                     rowCount: archiveResult.rowCount,
-                    timestamp: new Date().toISOString()
+                    timestamp: startTime.toISOString(),
+                    startTime: startTime.toISOString() // For duration calculation later
                 }
             }
         });

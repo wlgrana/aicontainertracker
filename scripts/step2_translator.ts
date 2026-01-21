@@ -123,10 +123,21 @@ export async function runTranslatorStep() {
             }
         };
 
+
         fs.writeFileSync(ARTIFACT_PATH, JSON.stringify(artifact, null, 2));
         console.log(`Schema Definition saved to ${ARTIFACT_PATH}`);
 
-        // 4. UPDATE UI STATUS
+        // 4. UPDATE IMPORTLOG WITH CONFIDENCE METRICS
+        console.log('[TRANSLATOR] Updating ImportLog with confidence metrics...');
+        await prisma.importLog.update({
+            where: { fileName: FILENAME },
+            data: {
+                overallConfidence: translatorOutput.confidenceReport.overallScore,
+                unmappedFieldsCount: trueUnmappedHeaders.length
+            }
+        });
+
+        // 5. UPDATE UI STATUS
         updateStatus({
             step: 'TRANSLATOR_REVIEW',
             progress: 45,

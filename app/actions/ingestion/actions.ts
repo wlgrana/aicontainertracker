@@ -43,88 +43,71 @@ export async function getHistoryLogs() {
     const logs = await prisma.importLog.findMany({
         orderBy: { importedOn: 'desc' },
         include: {
-            // We need containers to link to AgentProcessingLogs efficiently if we want to do it via container relation
-            containers: {
-                select: { containerNumber: true }
+            _count: {
+                select: {
+                    containers: true,
+                    rawRows: true
+                }
             }
         }
     });
 
-    // Bulk fetch quality metrics
-    // We want AgentProcessingLog where stage=AUDITOR and container.importLogId is in our logs
-    // But getting all logs might be heavy. Let's do it for the retrieved logs.
+    console.log('[getHistoryLogs] Fetched from DB:', logs.length, 'logs');
+    console.log('[getHistoryLogs] Log filenames:', logs.map(l => l.fileName));
 
-    const enrichedLogs = await Promise.all(logs.map(async (log) => {
-        // Lightweight metric calc
-        const auditLogs = await prisma.agentProcessingLog.findMany({
-            where: {
-                stage: 'AUDITOR',
-                container: { importLogId: log.fileName }
-            },
-            select: {
-                output: true,
-                confidence: true
-            }
-        });
+    // Enrich logs with quality metrics (now using denormalized data from ImportLog)
+    const enrichedLogs = logs.map((log) => {
+        // Type assertion for new fields (Prisma types will sync after IDE refresh)
+        const logData = log as any;
 
-        // Default metrics
-        let avgCaptureRate = 0;
+        // Calculate quality grade from overall confidence
+        const confidence = logData.overallConfidence ? parseFloat(logData.overallConfidence.toString()) : 0;
         let qualityGrade = 'NEEDS_IMPROVEMENT';
-        let qualityTiers = { excellent: 0, good: 0, needsImprovement: 0, poor: 0 };
-        const uniqueUnmappedFields: string[] = [];
-        let totalContainers = 0;
-        let avgMappingConfidence = 0;
 
-        if (auditLogs.length > 0) {
-            totalContainers = auditLogs.length;
-            let totalCapture = 0;
-            let totalConfidence = 0;
-
-            for (const al of auditLogs) {
-                const out = (al.output as any) || {};
-                const total = Number(out.totalFields) || 20;
-                const mapped = Number(out.mappedFields) || 0;
-                const rate = (total > 0 ? mapped / total : 0);
-
-                totalCapture += rate;
-                totalConfidence += (Number(al.confidence) || 0);
-
-                // Tiers
-                if (rate >= 0.90) qualityTiers.excellent++;
-                else if (rate >= 0.75) qualityTiers.good++;
-                else if (rate >= 0.60) qualityTiers.needsImprovement++;
-                else qualityTiers.poor++;
-            }
-
-            avgCaptureRate = totalCapture / auditLogs.length;
-            avgMappingConfidence = totalConfidence / auditLogs.length;
-
-            if (avgCaptureRate >= 0.90) qualityGrade = 'EXCELLENT';
-            else if (avgCaptureRate >= 0.75) qualityGrade = 'GOOD';
-            else if (avgCaptureRate >= 0.60) qualityGrade = 'NEEDS_IMPROVEMENT';
-            else qualityGrade = 'POOR';
-        }
+        if (confidence >= 0.90) qualityGrade = 'EXCELLENT';
+        else if (confidence >= 0.75) qualityGrade = 'GOOD';
+        else if (confidence >= 0.60) qualityGrade = 'NEEDS_IMPROVEMENT';
+        else qualityGrade = 'POOR';
 
         return {
             ...log,
+            // New metadata fields (now available directly from ImportLog)
+            fileSizeBytes: logData.fileSizeBytes,
+            processingDurationMs: logData.processingDurationMs,
+            containersCreated: logData.containersCreated || 0,
+            containersUpdated: logData.containersUpdated || 0,
+            containersEnriched: logData.containersEnriched || 0,
+            overallConfidence: confidence,
+            unmappedFieldsCount: logData.unmappedFieldsCount || 0,
+            discrepanciesFound: logData.discrepanciesFound || 0,
+            discrepanciesPatched: logData.discrepanciesPatched || 0,
+            importSource: logData.importSource,
+
+            // Quality metrics (simplified using denormalized data)
             qualityMetrics: {
-                totalContainers,
-                processedContainers: totalContainers,
-                avgCaptureRate,
+                totalContainers: log._count.containers,
+                processedContainers: log.rowsSucceeded,
+                avgCaptureRate: confidence,
                 minCaptureRate: 0,
                 maxCaptureRate: 1,
-                totalFieldsMapped: 0,
-                totalFieldsUnmapped: 0,
-                uniqueUnmappedFields,
-                avgMappingConfidence,
-                lowConfidenceCount: 0,
-                qualityTiers,
+                totalFieldsMapped: ((log.aiAnalysis as any)?.detectedHeaders?.length || 0) - (logData.unmappedFieldsCount || 0),
+                totalFieldsUnmapped: logData.unmappedFieldsCount || 0,
+                uniqueUnmappedFields: [],
+                avgMappingConfidence: confidence,
+                lowConfidenceCount: confidence < 0.75 ? 1 : 0,
+                qualityTiers: {
+                    excellent: confidence >= 0.90 ? 1 : 0,
+                    good: confidence >= 0.75 && confidence < 0.90 ? 1 : 0,
+                    needsImprovement: confidence >= 0.60 && confidence < 0.75 ? 1 : 0,
+                    poor: confidence < 0.60 ? 1 : 0
+                },
                 qualityGrade,
-                recommendImprovement: avgCaptureRate < 0.90
+                recommendImprovement: confidence < 0.90
             }
         };
-    }));
+    });
 
     return enrichedLogs;
 }
+
 

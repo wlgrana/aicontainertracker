@@ -215,16 +215,41 @@ export async function runImporterStep(config?: {
             });
         });
 
+        // TRACK CONTAINER COUNTS (Created vs Updated)
+        console.log('[IMPORTER] Calculating container statistics...');
+        const containerNumbers = MAPPED_CONTAINERS.map(c => c.fields.containerNumber?.value).filter(Boolean);
+
+        // Query to find which containers existed before this import
+        const existingContainers = await prisma.container.findMany({
+            where: {
+                containerNumber: { in: containerNumbers as string[] },
+                createdAt: { lt: new Date(Date.now() - 5000) } // Created more than 5 seconds ago
+            },
+            select: { containerNumber: true }
+        });
+
+        const existingSet = new Set(existingContainers.map(c => c.containerNumber));
+        const containersUpdated = existingSet.size;
+        const containersCreated = MAPPED_CONTAINERS.length - containersUpdated;
+
         // Update Log
         try {
             await prisma.importLog.update({
                 where: { fileName: FILENAME },
                 data: {
+                    containersCreated: containersCreated,
+                    containersUpdated: containersUpdated,
+                    containersEnriched: enrichedCount,
                     summary: {
                         translation: {
                             mappedContainers: MAPPED_CONTAINERS.length,
                             eventsFound: 0,
                             confidence: artifact.confidenceReport,
+                        },
+                        persistence: {
+                            created: containersCreated,
+                            updated: containersUpdated,
+                            enriched: enrichedCount
                         }
                     }
                 }
@@ -303,6 +328,28 @@ export async function runImporterStep(config?: {
 
         console.log(`\nIssues:`);
         console.log(`  (See logs above for specific warnings)`);
+
+        // FINAL: Mark import as complete and calculate duration
+        const importLog = await prisma.importLog.findUnique({
+            where: { fileName: FILENAME },
+            select: { aiAnalysis: true }
+        });
+
+        const startTime = (importLog?.aiAnalysis as any)?.startTime;
+        const endTime = new Date();
+        const durationMs = startTime ? endTime.getTime() - new Date(startTime).getTime() : null;
+
+        await prisma.importLog.update({
+            where: { fileName: FILENAME },
+            data: {
+                status: 'COMPLETED',
+                completedAt: endTime,
+                processingDurationMs: durationMs,
+                rowsSucceeded: MAPPED_CONTAINERS.length
+            }
+        });
+
+        console.log(`[IMPORTER] Import marked as COMPLETED. Duration: ${durationMs ? (durationMs / 1000).toFixed(2) + 's' : 'N/A'}`);
 
         return {
             success: true,

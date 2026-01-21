@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
-import { getHistoryLogs, deleteImportLog } from '@/app/actions/ingestion/actions';
-import { Clock, RefreshCw, FileText, Calendar, Trash2, ArrowRight, Database, ShieldCheck, Loader2 } from 'lucide-react';
+import { getHistoryLogs } from '@/app/actions/ingestion/actions';
+import { Clock, RefreshCw, FileText, Calendar, ArrowRight, Database, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,8 @@ export default function ImportHistoryPage() {
         setLoading(true);
         try {
             const data = await getHistoryLogs();
+            console.log('[Import History] Loaded logs:', data.length, 'logs');
+            console.log('[Import History] Log details:', data);
             setLogs(data);
         } catch (e) {
             console.error("Failed to load logs", e);
@@ -31,13 +33,7 @@ export default function ImportHistoryPage() {
         return () => clearInterval(interval);
     }, []);
 
-    const handleDelete = async (fileName: string, e: React.MouseEvent) => {
-        e.preventDefault();
-        if (confirm("Delete this import record? This action cannot be undone.")) {
-            await deleteImportLog(fileName);
-            loadLogs();
-        }
-    };
+
 
     const getQualityBadge = (grade: string) => {
         switch (grade) {
@@ -92,7 +88,7 @@ export default function ImportHistoryPage() {
                     ) : (
                         logs.map((log) => (
                             <Link
-                                href={`/import/${encodeURIComponent(log.fileName)}`}
+                                href={`/import-history/${encodeURIComponent(log.fileName)}`}
                                 key={log.fileName}
                                 className="block group"
                             >
@@ -151,18 +147,9 @@ export default function ImportHistoryPage() {
                                             {/* Right: Actions */}
                                             <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0 justify-end">
                                                 <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                                    onClick={(e) => handleDelete(log.fileName, e)}
-                                                    title="Delete Log"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                                <Button
                                                     variant="secondary"
                                                     size="sm"
-                                                    className="group-hover:bg-blue-600 group-hover:text-white transition-colors"
+                                                    className="bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white transition-all"
                                                 >
                                                     View Details <ArrowRight className="w-4 h-4 ml-2" />
                                                 </Button>
