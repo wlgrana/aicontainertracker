@@ -239,7 +239,8 @@ export async function getDashboardData(
                         shipment: {
                             select: {
                                 businessUnit: true,
-                                freightCost: true
+                                freightCost: true,
+                                forwarder: true
                             }
                         }
                     }
@@ -281,6 +282,7 @@ export async function getDashboardData(
             // Extract extended fields
             const businessUnit = c.businessUnit || c.shipmentContainers?.[0]?.shipment?.businessUnit || "Unassigned";
             const freightCost = c.shipmentContainers?.[0]?.shipment?.freightCost || 0;
+            const forwarder = c.shipmentContainers?.[0]?.shipment?.forwarder || null;
             const riskAssessment = c.riskAssessment || null;
 
             return {
@@ -291,6 +293,7 @@ export async function getDashboardData(
                 dailyRate,
                 businessUnit,
                 freightCost,
+                forwarder,
                 riskAssessment
             };
         };

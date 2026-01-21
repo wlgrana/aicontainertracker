@@ -49,6 +49,8 @@ interface ContainerInventoryProps {
         inTransitCount: number;
         totalDemurrage: number;
     };
+    title?: string; // Optional custom title
+    showImportButton?: boolean; // Optional flag to show/hide import button
 }
 
 // 1. Status Mapping Reference
@@ -105,7 +107,9 @@ export function ContainerInventory({
     currentPage,
     itemsPerPage,
     onPageChange,
-    stats
+    stats,
+    title = "Master Inventory Ledger",
+    showImportButton = true
 }: ContainerInventoryProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
@@ -201,17 +205,19 @@ export function ContainerInventory({
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-8 py-6 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-xl font-black text-slate-900">Master Inventory Ledger</CardTitle>
+                            <CardTitle className="text-xl font-black text-slate-900">{title}</CardTitle>
                             <p className="text-sm text-slate-500 font-medium mt-1">
                                 Showing {(currentPage - 1) * itemsPerPage + 1}-
                                 {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems.toLocaleString()} active assets
                             </p>
                         </div>
-                        <Link href="/import">
-                            <Button className="rounded-xl font-black text-xs uppercase tracking-widest px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
-                                Import Manifest
-                            </Button>
-                        </Link>
+                        {showImportButton && (
+                            <Link href="/import">
+                                <Button className="rounded-xl font-black text-xs uppercase tracking-widest px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
+                                    Import Manifest
+                                </Button>
+                            </Link>
+                        )}
                     </div>
 
                     {/* Filter Bar */}
@@ -247,6 +253,7 @@ export function ContainerInventory({
                                 <TableHead className="w-[180px] pl-8">Container</TableHead>
                                 <TableHead className="hidden md:table-cell">BU</TableHead>
                                 <TableHead className="hidden md:table-cell">Carrier</TableHead>
+                                <TableHead className="hidden md:table-cell">Forwarder</TableHead>
                                 <TableHead className="hidden md:table-cell">Status</TableHead>
                                 <TableHead>ATD</TableHead>
                                 <TableHead>ETA</TableHead>
@@ -257,7 +264,7 @@ export function ContainerInventory({
                         <TableBody>
                             {sortedContainers.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-64 text-center">
+                                    <TableCell colSpan={9} className="h-64 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3">
                                             <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <Inbox className="h-6 w-6 text-slate-400" />
@@ -355,6 +362,13 @@ export function ContainerInventory({
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell font-bold text-xs text-slate-600">
                                                 {c.carrier || "—"}
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell font-bold text-xs text-slate-600">
+                                                {c.forwarder ? (
+                                                    c.forwarder
+                                                ) : (
+                                                    <span className="text-slate-400 italic">—</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
                                                 {c.aiOperationalStatus ? (

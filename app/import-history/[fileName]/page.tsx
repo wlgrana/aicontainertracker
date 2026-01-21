@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { ContainerInventory } from '@/components/dashboard/ContainerInventory';
 
 interface ImportDetails {
     fileName: string;
@@ -44,6 +45,10 @@ interface ImportDetails {
 export default function ImportDetailsPage({ params }: { params: Promise<{ fileName: string }> }) {
     const router = useRouter();
     const [details, setDetails] = useState<ImportDetails | null>(null);
+    const [containers, setContainers] = useState<any[]>([]);
+    const [containersTotalCount, setContainersTotalCount] = useState(0);
+    const [containersPage, setContainersPage] = useState(1);
+    const [containersLoading, setContainersLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +58,12 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
 
     useEffect(() => {
         fetchImportDetails();
+        fetchContainers();
     }, [fileName]);
+
+    useEffect(() => {
+        fetchContainers();
+    }, [containersPage]);
 
     const fetchImportDetails = async () => {
         setLoading(true);
@@ -70,6 +80,23 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
             setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchContainers = async () => {
+        setContainersLoading(true);
+        try {
+            const response = await fetch(`/api/import-history/${encodeURIComponent(fileName)}/containers?page=${containersPage}&limit=50`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch containers');
+            }
+            const data = await response.json();
+            setContainers(data.containers);
+            setContainersTotalCount(data.totalCount);
+        } catch (err) {
+            console.error('Error fetching containers:', err);
+        } finally {
+            setContainersLoading(false);
         }
     };
 
@@ -210,6 +237,21 @@ export default function ImportDetailsPage({ params }: { params: Promise<{ fileNa
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Imported Containers */}
+                {!containersLoading && containers.length > 0 && (
+                    <div className="space-y-4">
+                        <ContainerInventory
+                            containers={containers}
+                            totalItems={containersTotalCount}
+                            currentPage={containersPage}
+                            itemsPerPage={50}
+                            onPageChange={setContainersPage}
+                            title="Import Manifest Details"
+                            showImportButton={false}
+                        />
+                    </div>
+                )}
 
                 {/* Progress Timeline */}
                 <div className="space-y-4">

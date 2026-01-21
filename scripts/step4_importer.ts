@@ -199,6 +199,14 @@ export async function runImporterStep(config?: {
 
         // PERSIST
         console.log("\n>>> STEP 4: PERSISTENCE (Database Write) <<<");
+
+        // Fetch forwarder from ImportLog
+        const forwarderQuery = await prisma.importLog.findUnique({
+            where: { fileName: FILENAME },
+            select: { forwarder: true }
+        });
+        const forwarder = forwarderQuery?.forwarder || undefined;
+
         const fullOutput = {
             ...artifact,
             containers: MAPPED_CONTAINERS,
@@ -213,7 +221,7 @@ export async function runImporterStep(config?: {
                 progress: 60 + Math.floor((parseInt(msg.match(/Processed (\d+)/)?.[1] || "0") / MAPPED_CONTAINERS.length) * 40),
                 message: msg
             });
-        });
+        }, forwarder);
 
         // TRACK CONTAINER COUNTS (Created vs Updated)
         console.log('[IMPORTER] Calculating container statistics...');

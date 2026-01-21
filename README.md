@@ -8,7 +8,11 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Exception Monitoring**: Real-time alerts for containers with customs holds, terminal delays, or missing documentation.
 - **Financial Exposure**: Automatic calculation of estimated demurrage based on port-specific free-time rules.
 - **Inventory Ledger**: Complete view of the entire active fleet with multi-source status updates.
-- **Forwarder Attribution**: Strict lineage tracking linking every shipment to its data provider.
+- **Forwarder Attribution**: Full forwarder tracking system with:
+  - Forwarder field on import manifest upload
+  - Automatic propagation to all shipments and containers
+  - Forwarder column in Master Inventory Ledger
+  - Import-specific manifest details with forwarder attribution
 - **Smart Filtering**: Advanced filtering by Forwarder, Business Unit, and Operational Status.
 
 ### 2. **Deep Container Intelligence & Simulation (New)**
@@ -27,7 +31,20 @@ Modern, high-fidelity logistical tracking system built with Next.js 15, Prisma, 
 - **Operational Status Classification**: AI-driven "Truth Engine" that prioritizes **Manual Overrides** > **Physical Dates** (Delivery, Gate Out) > **Carrier Status** > **AI Inference** to ensure high-fidelity tracking.
 - **Agent Processing Timeline**: A forensic audit trail visualizing every step of the AI ingestion pipeline (Archivist → Translator → Validation). Displays confidence scores, exact field mappings, and any data discrepancies preventing "black box" confusion.
 
-### 3. **AI-Driven Data Ingestion Architecture (4-Agent System)**
+### 3. **Import History & Manifest Details**
+- **Import History Dashboard**: Complete audit trail of all data imports with:
+  - Import status tracking (In Progress, Completed, Failed)
+  - Processing metrics (rows processed, containers created/updated)
+  - Data quality scores and confidence metrics
+  - Forwarder attribution for each import
+- **Import Manifest Details Page**: Deep dive into individual imports showing:
+  - **Import Manifest Details Table**: Full container inventory from the specific import (top of page)
+  - Agent execution timeline with completion status
+  - Processing statistics and data quality metrics
+  - Downloadable original file and simulation logs
+  - Re-import capability for data refresh
+
+### 4. **AI-Driven Data Ingestion Architecture (4-Agent System)**
 The system uses a robust 4-agent architecture to ensure "Zero Data Loss" and high-fidelity data mapping.
 
 #### **The Agents**

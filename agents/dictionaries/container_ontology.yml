@@ -7,6 +7,7 @@ required_fields:
       - Brand
       - Division
       - Product Line
+      - Customer
     value_source: business_units.yml dictionary
     parsing_rules:
       - Map to canonical BU via dictionary
@@ -940,6 +941,18 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-20T18:56:41.708Z
-version: 1.0.32
+  - unmappedHeader: MBL Number
+    canonicalField: mbl
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-20T23:37:23.415Z
+  - unmappedHeader: Booking Ref
+    canonicalField: metadata.bookingReference
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-20T23:37:23.416Z
+version: 1.0.33
 last_updated: 2026-01-20
 total_fields: 29

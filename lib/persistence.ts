@@ -81,7 +81,8 @@ export async function persistMappedData(
     importLogId: string,
     translatorOutput: TranslatorOutput,
     enrichmentMap?: Map<string, any>, // NEW: Accept pre-calculated enrichment
-    onProgress?: (message: string) => void
+    onProgress?: (message: string) => void,
+    forwarder?: string // NEW: Accept forwarder from import config
 ) {
     // 1. O(1) Lookup Map for matching Events & Logs to Containers
     const rowIdToContainerMap = new Map<string, string>();
@@ -364,6 +365,7 @@ export async function persistMappedData(
                             shipper: f.shipper?.value,
                             consignee: f.consignee?.value,
                             businessUnit: f.businessUnit?.value,
+                            forwarder: forwarder || null
                         },
                         update: {
                             mbl: mblValue,
@@ -371,7 +373,8 @@ export async function persistMappedData(
                             customerPo: f.customerPo?.value || undefined,
                             shipper: f.shipper?.value || undefined,
                             consignee: f.consignee?.value || undefined,
-                            businessUnit: f.businessUnit?.value || undefined
+                            businessUnit: f.businessUnit?.value || undefined,
+                            forwarder: forwarder || undefined
                         }
                     });
                 }
