@@ -75,7 +75,7 @@
         "flaggedForReview": 0
       },
       "sampleContainer": {
-        "rawRowId": "d78f4cbe-4b3b-4313-b3d0-84e8393ca065",
+        "rawRowId": "5d2d7538-6190-4635-a85b-f61baf7095e3",
         "fields": {},
         "meta": {
           "SHIPMENT ID": "S25110146856",
@@ -120,7 +120,9 @@
             "F. Dest": "finalDestination",
             "ETA FINAL DEST": "finalDestinationEta",
             "OUT GATE": "gateOutDate",
-            "EMPTY RETRN DATE": "emptyReturnDate"
+            "ACTUAL DELIVERY DATE": "deliveryDate",
+            "EMPTY RETRN DATE": "emptyReturnDate",
+            "LFD ON PORT / RAIL": "lastFreeDay"
           },
           "source": "Translator",
           "confidence": 0.8
@@ -244,6 +246,13 @@
             "transformationType": "direct",
             "notes": "Heuristic Reinforcement"
           },
+          "deliveryDate": {
+            "sourceHeader": "ACTUAL DELIVERY DATE",
+            "targetField": "deliveryDate",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
           "emptyReturnDate": {
             "sourceHeader": "EMPTY RETRN DATE",
             "targetField": "emptyReturnDate",
@@ -251,9 +260,37 @@
             "transformationType": "direct",
             "notes": "Heuristic Reinforcement"
           },
+          "lastFreeDay": {
+            "sourceHeader": "LFD ON PORT / RAIL",
+            "targetField": "lastFreeDay",
+            "confidence": 0.99,
+            "transformationType": "direct",
+            "notes": "Heuristic Reinforcement"
+          },
           "BOOKING DESTINATION": {
             "sourceHeader": "BOOKING DESTINATION",
             "targetField": "metadata.bookingDestination",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          },
+          "CONTAINER AVAILABLE": {
+            "sourceHeader": "CONTAINER AVAILABLE",
+            "targetField": "metadata.containerAvailableDate",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          },
+          "TRUCKER DELIVERY APPT DATE": {
+            "sourceHeader": "TRUCKER DELIVERY APPT DATE",
+            "targetField": "metadata.truckerDeliveryApptDate",
+            "confidence": 0.95,
+            "transformationType": "semantic",
+            "notes": "Auto-patched by Auditor (Quality Gate)"
+          },
+          "CUSTOMER LFD PER DIEM": {
+            "sourceHeader": "CUSTOMER LFD PER DIEM",
+            "targetField": "metadata.customerLfdPerDiem",
             "confidence": 0.95,
             "transformationType": "semantic",
             "notes": "Auto-patched by Auditor (Quality Gate)"
@@ -296,20 +333,6 @@
             "potentialMeaning": "Unknown"
           },
           {
-            "sourceHeader": "ACTUAL DELIVERY DATE",
-            "sampleValue": null,
-            "suggestedField": null,
-            "confidence": 0,
-            "potentialMeaning": "Unknown"
-          },
-          {
-            "sourceHeader": "LFD ON PORT / RAIL",
-            "sampleValue": null,
-            "suggestedField": null,
-            "confidence": 0,
-            "potentialMeaning": "Unknown"
-          },
-          {
             "sourceHeader": "CUSTOMER LFD PER DIEM",
             "sampleValue": null,
             "suggestedField": null,
@@ -321,16 +344,16 @@
         "detectedForwarder": "Unknown"
       },
       "schemaStats": {
-        "sourceColumns": 26,
+        "sourceColumns": 29,
         "schemaFields": 30,
-        "mapped": 18,
-        "unmapped": 8
+        "mapped": 23,
+        "unmapped": 6
       },
       "stats": {
-        "populated": 1199,
-        "empty": 97,
-        "unmapped": 504,
-        "avgFieldsPerContainer": "16.7"
+        "populated": 1335,
+        "empty": 321,
+        "unmapped": 144,
+        "avgFieldsPerContainer": "18.5"
       },
       "importSample": [
         {
@@ -346,7 +369,7 @@
           "etd": "2025-11-15T00:00:00.000Z",
           "atd": null,
           "finalDestinationEta": "2025-12-10T00:00:00.000Z",
-          "lastFreeDay": null,
+          "lastFreeDay": "2025-12-13T00:00:00.000Z",
           "emptyReturnDate": "N/A",
           "gateOutDate": "2025-12-10T00:00:00.000Z",
           "pieces": null,
@@ -361,7 +384,7 @@
           "shipper": "WAYWORLD FASTECH CORPORATION",
           "customerPo": "608786-000-010, 609654-000-010",
           "businessUnit": "TRICO PRODUCTS CORP (FIRST BRANDS)",
-          "deliveryDate": null,
+          "deliveryDate": "2025-12-10T00:00:00.000Z",
           "loadType": null,
           "serviceType": null
         }
@@ -371,54 +394,72 @@
       "verifiedCount": 0,
       "discrepancyCount": 1,
       "sampleAnalysis": {
-        "container": "GCXU5009981",
+        "container": "GAOU7833822",
         "raw": {
-          "SHIPMENT ID": "S26010152074",
-          "Status": "VSL",
+          "SHIPMENT ID": "S25110146728",
+          "Status": "OGF",
           "CUSTOMER": "TRICO PRODUCTS CORP (FIRST BRANDS)",
-          "SHIPPER": "SERA CO, LTD",
-          "CONTAINER": "GCXU5009981",
+          "SHIPPER": "ANHUI POWERGUARD TECHNOLOGY CO LTD",
+          "CONTAINER": "GAOU7833822",
           "SIZE": "40HC",
-          "HBL": "ZIMUSEL71194794",
-          "MBL": "ZIMUSEL71194794",
-          "PO NO.": "SERA251204TR",
-          "ETD POL": 46025,
-          "POL": "Busan, KR",
-          "ETA POD": 46053,
+          "HBL": "COSU6435259880",
+          "MBL": "COSU6435259880",
+          "PO NO.": "613453-000-010",
+          "ETD POL": 45971,
+          "POL": "Shanghai, CN",
+          "ETA POD": 46004,
           "POD": "Houston, TX",
           "F. Dest": "Brownsville, TX",
           "BOOKING DESTINATION": "Houston, TX",
-          "ETA FINAL DEST": 46062
+          "ETA FINAL DEST": 46007.51666666667,
+          "CONTAINER AVAILABLE": 46007,
+          "OUT GATE": 46007.51666666667,
+          "TRUCKER DELIVERY APPT DATE": 46007.51666666667,
+          "ACTUAL DELIVERY DATE": 46007.51666666667,
+          "LFD ON PORT / RAIL": 46010,
+          "CUSTOMER LFD PER DIEM": 46016.51666666667
         },
         "db": {
           "metadata": {
-            "BOOKING DESTINATION": "Houston, TX"
+            "BOOKING DESTINATION": "Houston, TX",
+            "CONTAINER AVAILABLE": 46007,
+            "TRUCKER DELIVERY APPT DATE": 46007.51666666667,
+            "CUSTOMER LFD PER DIEM": 46016.51666666667
           },
-          "shipmentReference": "S26010152074",
-          "currentStatus": "VSL",
+          "shipmentReference": "S25110146728",
+          "currentStatus": "OGF",
           "businessUnit": "TRICO PRODUCTS CORP (FIRST BRANDS)",
-          "shipper": "SERA CO, LTD",
-          "containerNumber": "GCXU5009981",
+          "shipper": "ANHUI POWERGUARD TECHNOLOGY CO LTD",
+          "containerNumber": "GAOU7833822",
           "containerType": "40HC",
-          "hbl": "ZIMUSEL71194794",
-          "mbl": "ZIMUSEL71194794",
-          "customerPo": "SERA251204TR",
-          "etd": "2026-01-03T00:00:00.000Z",
-          "pol": "Busan, KR",
-          "eta": "2026-01-31T00:00:00.000Z",
+          "hbl": "COSU6435259880",
+          "mbl": "COSU6435259880",
+          "customerPo": "613453-000-010",
+          "etd": "2025-11-10T00:00:00.000Z",
+          "pol": "Shanghai, CN",
+          "eta": "2025-12-13T00:00:00.000Z",
           "pod": "Houston, TX",
           "finalDestination": "Brownsville, TX",
-          "finalDestinationEta": "2026-02-09T00:00:00.000Z"
+          "finalDestinationEta": "2025-12-16T12:24:00.000Z",
+          "gateOutDate": "2025-12-16T12:24:00.000Z",
+          "deliveryDate": "2025-12-16T12:24:00.000Z",
+          "lastFreeDay": "2025-12-19T00:00:00.000Z"
         },
         "unmapped": [
-          "BOOKING DESTINATION"
+          "BOOKING DESTINATION",
+          "CONTAINER AVAILABLE",
+          "TRUCKER DELIVERY APPT DATE",
+          "CUSTOMER LFD PER DIEM"
         ],
-        "captureRate": 0.94,
+        "captureRate": 0.63,
         "proposedPatches": {
-          "BOOKING DESTINATION": "metadata.bookingDestination"
+          "BOOKING DESTINATION": "metadata.bookingDestination",
+          "CONTAINER AVAILABLE": "metadata.containerAvailableDate",
+          "TRUCKER DELIVERY APPT DATE": "metadata.truckerDeliveryApptDate",
+          "CUSTOMER LFD PER DIEM": "metadata.customerLfdPerDiem"
         }
       },
-      "patchedCount": 1
+      "patchedCount": 4
     },
     "learner": {
       "scoreImprovement": 0,
@@ -428,8 +469,8 @@
   },
   "enrichEnabled": true,
   "forwarder": null,
-  "logFilename": "TRICO_PRODCTS_CORP_TRACKING_REPORT_FRONTEND_1769025520396.log",
-  "timestamp": 1769025582333,
+  "logFilename": "TRICO_PRODCTS_CORP_TRACKING_REPORT_FRONTEND_1769030562864.log",
+  "timestamp": 1769030636387,
   "metrics": {
     "source": {
       "filename": "TRICO PRODCTS CORP TRACKING REPORT.xlsx",
@@ -442,7 +483,7 @@
     "translation": {
       "mapped": 72,
       "confidence": 0.8,
-      "unmappedFields": 504
+      "unmappedFields": 144
     }
   }
 }

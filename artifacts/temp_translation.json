@@ -113,6 +113,13 @@
         "transformationType": "direct",
         "notes": "Heuristic Reinforcement"
       },
+      "deliveryDate": {
+        "sourceHeader": "ACTUAL DELIVERY DATE",
+        "targetField": "deliveryDate",
+        "confidence": 0.99,
+        "transformationType": "direct",
+        "notes": "Heuristic Reinforcement"
+      },
       "emptyReturnDate": {
         "sourceHeader": "EMPTY RETRN DATE",
         "targetField": "emptyReturnDate",
@@ -120,9 +127,37 @@
         "transformationType": "direct",
         "notes": "Heuristic Reinforcement"
       },
+      "lastFreeDay": {
+        "sourceHeader": "LFD ON PORT / RAIL",
+        "targetField": "lastFreeDay",
+        "confidence": 0.99,
+        "transformationType": "direct",
+        "notes": "Heuristic Reinforcement"
+      },
       "BOOKING DESTINATION": {
         "sourceHeader": "BOOKING DESTINATION",
         "targetField": "metadata.bookingDestination",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
+      },
+      "CONTAINER AVAILABLE": {
+        "sourceHeader": "CONTAINER AVAILABLE",
+        "targetField": "metadata.containerAvailableDate",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
+      },
+      "TRUCKER DELIVERY APPT DATE": {
+        "sourceHeader": "TRUCKER DELIVERY APPT DATE",
+        "targetField": "metadata.truckerDeliveryApptDate",
+        "confidence": 0.95,
+        "transformationType": "semantic",
+        "notes": "Auto-patched by Auditor (Quality Gate)"
+      },
+      "CUSTOMER LFD PER DIEM": {
+        "sourceHeader": "CUSTOMER LFD PER DIEM",
+        "targetField": "metadata.customerLfdPerDiem",
         "confidence": 0.95,
         "transformationType": "semantic",
         "notes": "Auto-patched by Auditor (Quality Gate)"
@@ -165,20 +200,6 @@
         "potentialMeaning": "Unknown"
       },
       {
-        "sourceHeader": "ACTUAL DELIVERY DATE",
-        "sampleValue": null,
-        "suggestedField": null,
-        "confidence": 0,
-        "potentialMeaning": "Unknown"
-      },
-      {
-        "sourceHeader": "LFD ON PORT / RAIL",
-        "sampleValue": null,
-        "suggestedField": null,
-        "confidence": 0,
-        "potentialMeaning": "Unknown"
-      },
-      {
         "sourceHeader": "CUSTOMER LFD PER DIEM",
         "sampleValue": null,
         "suggestedField": null,
@@ -191,7 +212,7 @@
   },
   "containers": [
     {
-      "rawRowId": "d78f4cbe-4b3b-4313-b3d0-84e8393ca065",
+      "rawRowId": "5d2d7538-6190-4635-a85b-f61baf7095e3",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25110146856",
@@ -236,7 +257,9 @@
           "F. Dest": "finalDestination",
           "ETA FINAL DEST": "finalDestinationEta",
           "OUT GATE": "gateOutDate",
-          "EMPTY RETRN DATE": "emptyReturnDate"
+          "ACTUAL DELIVERY DATE": "deliveryDate",
+          "EMPTY RETRN DATE": "emptyReturnDate",
+          "LFD ON PORT / RAIL": "lastFreeDay"
         },
         "source": "Translator",
         "confidence": 0.8
@@ -247,7 +270,7 @@
       ]
     },
     {
-      "rawRowId": "2d8f440b-6a17-4506-bb68-640f4ed24c7f",
+      "rawRowId": "1a58eaaf-4e77-4bd4-a060-af103df2e780",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25110146991",
@@ -290,7 +313,9 @@
           "F. Dest": "finalDestination",
           "ETA FINAL DEST": "finalDestinationEta",
           "OUT GATE": "gateOutDate",
-          "EMPTY RETRN DATE": "emptyReturnDate"
+          "ACTUAL DELIVERY DATE": "deliveryDate",
+          "EMPTY RETRN DATE": "emptyReturnDate",
+          "LFD ON PORT / RAIL": "lastFreeDay"
         },
         "source": "Translator",
         "confidence": 0.8
@@ -301,7 +326,7 @@
       ]
     },
     {
-      "rawRowId": "f11dd811-8f1c-465c-a6d9-f184f650d7a4",
+      "rawRowId": "008830d3-fd0f-4c82-b33f-dbeb997f345a",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25110146728",
@@ -343,7 +368,9 @@
           "F. Dest": "finalDestination",
           "ETA FINAL DEST": "finalDestinationEta",
           "OUT GATE": "gateOutDate",
-          "EMPTY RETRN DATE": "emptyReturnDate"
+          "ACTUAL DELIVERY DATE": "deliveryDate",
+          "EMPTY RETRN DATE": "emptyReturnDate",
+          "LFD ON PORT / RAIL": "lastFreeDay"
         },
         "source": "Translator",
         "confidence": 0.8
@@ -354,7 +381,7 @@
       ]
     },
     {
-      "rawRowId": "976133d5-5a6c-476e-81d8-9f18e0065c60",
+      "rawRowId": "6a78fcd0-4071-4836-abdf-d0cdca4bd637",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25110147216",
@@ -397,7 +424,9 @@
           "F. Dest": "finalDestination",
           "ETA FINAL DEST": "finalDestinationEta",
           "OUT GATE": "gateOutDate",
-          "EMPTY RETRN DATE": "emptyReturnDate"
+          "ACTUAL DELIVERY DATE": "deliveryDate",
+          "EMPTY RETRN DATE": "emptyReturnDate",
+          "LFD ON PORT / RAIL": "lastFreeDay"
         },
         "source": "Translator",
         "confidence": 0.8
@@ -408,7 +437,7 @@
       ]
     },
     {
-      "rawRowId": "4f9825cf-5bae-4d9e-b299-c83af3cb26f6",
+      "rawRowId": "b50acbd7-1480-4602-9cd7-ce3a89d616ad",
       "fields": {},
       "meta": {
         "SHIPMENT ID": "S25110148061",
@@ -453,7 +482,9 @@
           "F. Dest": "finalDestination",
           "ETA FINAL DEST": "finalDestinationEta",
           "OUT GATE": "gateOutDate",
-          "EMPTY RETRN DATE": "emptyReturnDate"
+          "ACTUAL DELIVERY DATE": "deliveryDate",
+          "EMPTY RETRN DATE": "emptyReturnDate",
+          "LFD ON PORT / RAIL": "lastFreeDay"
         },
         "source": "Translator",
         "confidence": 0.8

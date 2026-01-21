@@ -322,6 +322,7 @@ optional_fields:
       - Free Time Ends
       - Demurrage Starts
       - Free Time Expires
+      - LFD ON PORT / RAIL
     data_type: date
     confidence_threshold: 0.8
   discharge_date:
@@ -361,6 +362,7 @@ optional_fields:
       - Final Delivery
       - Drop Off
       - ACTUAL DEL DATE
+      - ACTUAL DELIVERY DATE
     data_type: datetime
     confidence_threshold: 0.85
   emptyReturnDate:
@@ -981,6 +983,24 @@ pending_fields:
     reasoning: Validated by Auditor Auto-Patching
     action: ADD_SYNONYM
     timestamp: 2026-01-21T19:57:26.255Z
-version: 1.0.34
+  - unmappedHeader: CONTAINER AVAILABLE
+    canonicalField: metadata.containerAvailableDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T21:12:40.278Z
+  - unmappedHeader: TRUCKER DELIVERY APPT DATE
+    canonicalField: metadata.truckerDeliveryApptDate
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T21:12:40.278Z
+  - unmappedHeader: CUSTOMER LFD PER DIEM
+    canonicalField: metadata.customerLastFreeDay
+    confidence: 0.99
+    reasoning: Validated by Auditor Auto-Patching
+    action: ADD_SYNONYM
+    timestamp: 2026-01-21T21:12:40.278Z
+version: 1.0.35
 last_updated: 2026-01-21
 total_fields: 29
