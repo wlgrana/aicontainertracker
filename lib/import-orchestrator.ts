@@ -1,5 +1,4 @@
 
-
 import { archiveExcelFile } from '@/agents/archivist';
 import { runTranslator } from '@/agents/translator';
 import { runAuditor } from '@/agents/auditor';
@@ -8,6 +7,7 @@ import { TranslatorInput, AuditorOutput, TranslatorOutput, AuditorInput } from '
 import { runImprovementLoop } from '@/agents/improvement-orchestrator';
 import { runEnricher } from '@/agents/enricher';
 import { persistMappedData, applyAuditorCorrections, updateContainerAuditMeta } from '@/lib/persistence';
+import { saveHeaderMappingsBatch } from '@/lib/dictionary-helper';
 import { AgentStage } from '@prisma/client';
 
 
@@ -287,6 +287,31 @@ export async function orchestrateImport(
         if (failedCount > 0) console.log(`  🚨 ${failedCount} containers failed audit`);
         if (missingFields > 0) console.log(`  ⚠️  ${missingFields} enriched fields not persisted`);
     }
+
+    // ===== STEP 7: DICTIONARY LEARNING =====
+    // After successful import, save high-confidence mappings to dictionary
+    console.log(`\n[Orchestrator] >>> RUNNING STEP 7 [${new Date().toISOString()}] <<<`);
+    console.log('[Orchestrator] >>> STEP 7: DICTIONARY LEARNING <<<');
+
+    if (translatorOutput.schemaMapping && translatorOutput.schemaMapping.fieldMappings) {
+        const mappingsToLearn = Object.values(translatorOutput.schemaMapping.fieldMappings)
+            .filter(m => !m.notes?.includes('DICTIONARY_MATCH')) // Don't re-learn dictionary matches
+            .map(m => ({
+                excelHeader: m.sourceHeader,
+                canonicalField: m.targetField,
+                confidence: m.confidence || 0
+            }));
+
+        if (mappingsToLearn.length > 0) {
+            console.log(`[Learner] Found ${mappingsToLearn.length} AI-generated mappings to evaluate...`);
+            const savedCount = await saveHeaderMappingsBatch(mappingsToLearn, 0.9);
+            console.log(`[Learner] ✅ Saved ${savedCount} high-confidence mappings (threshold: 0.9) to dictionary`);
+            console.log(`[Learner] 💡 These mappings will be reused in future imports (zero AI cost)`);
+        } else {
+            console.log(`[Learner] No new AI mappings to learn (all headers were from dictionary)`);
+        }
+    }
+    console.log(`[Orchestrator] STEP 7 Complete.\n`);
 
     await prisma.importLog.update({
         where: { fileName: archiveResult.importLogId },

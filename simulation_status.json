@@ -75,7 +75,7 @@
         "flaggedForReview": 0
       },
       "sampleContainer": {
-        "rawRowId": "5d2d7538-6190-4635-a85b-f61baf7095e3",
+        "rawRowId": "bb9ffffd-ae03-4701-bf3e-24cfbe1ec9f4",
         "fields": {},
         "meta": {
           "SHIPMENT ID": "S25110146856",
@@ -273,27 +273,6 @@
             "confidence": 0.95,
             "transformationType": "semantic",
             "notes": "Auto-patched by Auditor (Quality Gate)"
-          },
-          "CONTAINER AVAILABLE": {
-            "sourceHeader": "CONTAINER AVAILABLE",
-            "targetField": "metadata.containerAvailableDate",
-            "confidence": 0.95,
-            "transformationType": "semantic",
-            "notes": "Auto-patched by Auditor (Quality Gate)"
-          },
-          "TRUCKER DELIVERY APPT DATE": {
-            "sourceHeader": "TRUCKER DELIVERY APPT DATE",
-            "targetField": "metadata.truckerDeliveryApptDate",
-            "confidence": 0.95,
-            "transformationType": "semantic",
-            "notes": "Auto-patched by Auditor (Quality Gate)"
-          },
-          "CUSTOMER LFD PER DIEM": {
-            "sourceHeader": "CUSTOMER LFD PER DIEM",
-            "targetField": "metadata.customerLfdPerDiem",
-            "confidence": 0.95,
-            "transformationType": "semantic",
-            "notes": "Auto-patched by Auditor (Quality Gate)"
           }
         },
         "unmappedSourceFields": [
@@ -344,16 +323,16 @@
         "detectedForwarder": "Unknown"
       },
       "schemaStats": {
-        "sourceColumns": 29,
+        "sourceColumns": 26,
         "schemaFields": 30,
-        "mapped": 23,
+        "mapped": 20,
         "unmapped": 6
       },
       "stats": {
-        "populated": 1335,
-        "empty": 321,
-        "unmapped": 144,
-        "avgFieldsPerContainer": "18.5"
+        "populated": 1254,
+        "empty": 186,
+        "unmapped": 360,
+        "avgFieldsPerContainer": "17.4"
       },
       "importSample": [
         {
@@ -394,72 +373,54 @@
       "verifiedCount": 0,
       "discrepancyCount": 1,
       "sampleAnalysis": {
-        "container": "GAOU7833822",
+        "container": "ZIMU3192713",
         "raw": {
-          "SHIPMENT ID": "S25110146728",
-          "Status": "OGF",
+          "SHIPMENT ID": "S26010152077",
+          "Status": "VSL",
           "CUSTOMER": "TRICO PRODUCTS CORP (FIRST BRANDS)",
-          "SHIPPER": "ANHUI POWERGUARD TECHNOLOGY CO LTD",
-          "CONTAINER": "GAOU7833822",
-          "SIZE": "40HC",
-          "HBL": "COSU6435259880",
-          "MBL": "COSU6435259880",
-          "PO NO.": "613453-000-010",
-          "ETD POL": 45971,
-          "POL": "Shanghai, CN",
-          "ETA POD": 46004,
+          "SHIPPER": "SERA CO, LTD",
+          "CONTAINER": "ZIMU3192713",
+          "SIZE": "20GP",
+          "HBL": "ZIMUSEL71195637",
+          "MBL": "ZIMUSEL71195637",
+          "PO NO.": "SERA251218TR",
+          "ETD POL": 46030,
+          "POL": "Busan, KR",
+          "ETA POD": 46058,
           "POD": "Houston, TX",
           "F. Dest": "Brownsville, TX",
           "BOOKING DESTINATION": "Houston, TX",
-          "ETA FINAL DEST": 46007.51666666667,
-          "CONTAINER AVAILABLE": 46007,
-          "OUT GATE": 46007.51666666667,
-          "TRUCKER DELIVERY APPT DATE": 46007.51666666667,
-          "ACTUAL DELIVERY DATE": 46007.51666666667,
-          "LFD ON PORT / RAIL": 46010,
-          "CUSTOMER LFD PER DIEM": 46016.51666666667
+          "ETA FINAL DEST": 46069
         },
         "db": {
           "metadata": {
-            "BOOKING DESTINATION": "Houston, TX",
-            "CONTAINER AVAILABLE": 46007,
-            "TRUCKER DELIVERY APPT DATE": 46007.51666666667,
-            "CUSTOMER LFD PER DIEM": 46016.51666666667
+            "BOOKING DESTINATION": "Houston, TX"
           },
-          "shipmentReference": "S25110146728",
-          "currentStatus": "OGF",
+          "shipmentReference": "S26010152077",
+          "currentStatus": "VSL",
           "businessUnit": "TRICO PRODUCTS CORP (FIRST BRANDS)",
-          "shipper": "ANHUI POWERGUARD TECHNOLOGY CO LTD",
-          "containerNumber": "GAOU7833822",
-          "containerType": "40HC",
-          "hbl": "COSU6435259880",
-          "mbl": "COSU6435259880",
-          "customerPo": "613453-000-010",
-          "etd": "2025-11-10T00:00:00.000Z",
-          "pol": "Shanghai, CN",
-          "eta": "2025-12-13T00:00:00.000Z",
+          "shipper": "SERA CO, LTD",
+          "containerNumber": "ZIMU3192713",
+          "containerType": "20GP",
+          "hbl": "ZIMUSEL71195637",
+          "mbl": "ZIMUSEL71195637",
+          "customerPo": "SERA251218TR",
+          "etd": "2026-01-08T00:00:00.000Z",
+          "pol": "Busan, KR",
+          "eta": "2026-02-05T00:00:00.000Z",
           "pod": "Houston, TX",
           "finalDestination": "Brownsville, TX",
-          "finalDestinationEta": "2025-12-16T12:24:00.000Z",
-          "gateOutDate": "2025-12-16T12:24:00.000Z",
-          "deliveryDate": "2025-12-16T12:24:00.000Z",
-          "lastFreeDay": "2025-12-19T00:00:00.000Z"
+          "finalDestinationEta": "2026-02-16T00:00:00.000Z"
         },
         "unmapped": [
-          "BOOKING DESTINATION",
-          "CONTAINER AVAILABLE",
-          "TRUCKER DELIVERY APPT DATE",
-          "CUSTOMER LFD PER DIEM"
+          "BOOKING DESTINATION"
         ],
-        "captureRate": 0.63,
+        "captureRate": 0.94,
         "proposedPatches": {
-          "BOOKING DESTINATION": "metadata.bookingDestination",
-          "CONTAINER AVAILABLE": "metadata.containerAvailableDate",
-          "TRUCKER DELIVERY APPT DATE": "metadata.truckerDeliveryApptDate",
-          "CUSTOMER LFD PER DIEM": "metadata.customerLfdPerDiem"
+          "BOOKING DESTINATION": "metadata.bookingDestination"
         }
       },
-      "patchedCount": 4
+      "patchedCount": 1
     },
     "learner": {
       "scoreImprovement": 0,
@@ -469,8 +430,8 @@
   },
   "enrichEnabled": true,
   "forwarder": null,
-  "logFilename": "TRICO_PRODCTS_CORP_TRACKING_REPORT_FRONTEND_1769030562864.log",
-  "timestamp": 1769030636387,
+  "logFilename": "TRICO_PRODCTS_CORP_TRACKING_REPORT_FRONTEND_1769046482533.log",
+  "timestamp": 1769046575306,
   "metrics": {
     "source": {
       "filename": "TRICO PRODCTS CORP TRACKING REPORT.xlsx",
@@ -483,7 +444,7 @@
     "translation": {
       "mapped": 72,
       "confidence": 0.8,
-      "unmappedFields": 144
+      "unmappedFields": 360
     }
   }
 }

@@ -8,56 +8,43 @@ datasource db {
 }
 
 model ImportLog {
-  fileName        String           @id
-  fileURL         String?
-  importedBy      String?
-  importedOn      DateTime         @default(now())
-  rowsProcessed   Int              @default(0)
-  rowsSucceeded   Int              @default(0)
-  rowsFailed      Int              @default(0)
-  carrierFormatId String?
-  importType      String?
-  status          String           @default("PENDING")
-  errorLog        String?
-  aiAnalysis      Json?
-  aiAnalyzedAt    DateTime?
-  forwarder       String?
-  completedAt     DateTime?
-  summary         Json?
-  simulationLog   String?          // Full simulation log content for Vercel compatibility
-  
-  // File Management
-  fileStoragePath String?          // Path to stored Excel file for downloads
-  fileSizeBytes   Int?             // File size in bytes
-  
-  // Container Statistics (denormalized for performance)
-  containersCreated  Int           @default(0)  // New containers from this import
-  containersUpdated  Int           @default(0)  // Existing containers updated
-  containersEnriched Int           @default(0)  // Containers with AI enrichment
-  
-  // Data Quality Metrics
-  overallConfidence   Decimal?     @db.Decimal(3, 2)  // Average confidence from Translator (0.00-1.00)
-  unmappedFieldsCount Int          @default(0)        // Fields that couldn't be mapped
-  
-  // Auditor Metrics
-  discrepanciesFound  Int          @default(0)  // Data issues detected by Auditor
-  discrepanciesPatched Int         @default(0)  // Issues automatically fixed
-  
-  // Performance Tracking
-  processingDurationMs Int?        // Total import time in milliseconds
-  
-  // Source Tracking
-  importSource     String          @default("MANUAL")  // How it was imported (MANUAL, API, SIMULATION)
-  
-  aceStatusLogs   ACEStatusLog[]
-  containers      Container[]
-  containerEvents ContainerEvent[]
-  carrierFormat   CarrierFormat?   @relation(fields: [carrierFormatId], references: [formatName])
-  rawRows         RawRow[]
-  shipments       Shipment[]
-  shipmentEvents  ShipmentEvent[]
-  improvementJobs ImprovementJob[]
-  
+  fileName             String           @id
+  fileURL              String?
+  importedBy           String?
+  importedOn           DateTime         @default(now())
+  rowsProcessed        Int              @default(0)
+  rowsSucceeded        Int              @default(0)
+  rowsFailed           Int              @default(0)
+  carrierFormatId      String?
+  importType           String?
+  status               String           @default("PENDING")
+  errorLog             String?
+  aiAnalysis           Json?
+  aiAnalyzedAt         DateTime?
+  forwarder            String?
+  completedAt          DateTime?
+  summary              Json?
+  simulationLog        String?
+  containersCreated    Int              @default(0)
+  containersEnriched   Int              @default(0)
+  containersUpdated    Int              @default(0)
+  discrepanciesFound   Int              @default(0)
+  discrepanciesPatched Int              @default(0)
+  fileSizeBytes        Int?
+  fileStoragePath      String?
+  importSource         String           @default("MANUAL")
+  overallConfidence    Decimal?         @db.Decimal(3, 2)
+  processingDurationMs Int?
+  unmappedFieldsCount  Int              @default(0)
+  aceStatusLogs        ACEStatusLog[]
+  containers           Container[]
+  containerEvents      ContainerEvent[]
+  carrierFormat        CarrierFormat?   @relation(fields: [carrierFormatId], references: [formatName])
+  improvementJobs      ImprovementJob[]
+  rawRows              RawRow[]
+  shipments            Shipment[]
+  shipmentEvents       ShipmentEvent[]
+
   @@index([importedOn(sort: Desc)])
   @@index([status])
   @@index([forwarder])
@@ -67,7 +54,7 @@ model ImportLog {
 model RawRow {
   id              String     @id @default(uuid())
   importLogId     String
-  rowIndex        Int        // NEW: 0-indexed original row position
+  rowIndex        Int
   rowNumber       Int
   data            String
   containerId     String?
@@ -88,7 +75,6 @@ model TransitStage {
   dcsaEventType     String?
   dcsaEventCategory String?
   dcsaFacilityType  String?
-  // Removed containers relation to support flexible status (Zero Data Loss)
   previousEvents    ContainerEvent[] @relation("PreviousStageEvents")
   containerEvents   ContainerEvent[] @relation("StageEvents")
   dcsaEventMaps     DCSAEventMap[]
@@ -145,13 +131,9 @@ model Shipment {
 }
 
 model Container {
-  containerNumber     String              @id
+  containerNumber     String               @id
   containerType       String?
-  
-  // Flexible status approach - Zero Data Loss
-  rawStatus           String?             // Carrier's original code (BCN, RTN, OGE, etc.)
-  currentStatus       String?             // Validated canonical value (optional)
-  
+  currentStatus       String?
   currentLocation     String?
   currentVessel       String?
   currentVoyage       String?
@@ -166,7 +148,7 @@ model Container {
   lastFreeDay         DateTime?
   detentionFreeDay    DateTime?
   statusLastUpdated   DateTime?
-  hasException        Boolean             @default(false)
+  hasException        Boolean              @default(false)
   exceptionType       String?
   exceptionOwner      String?
   exceptionNotes      String?
@@ -187,14 +169,14 @@ model Container {
   pgaHold             Boolean?
   pgaAgency           String?
   pgaHoldReason       String?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
   emptyReturnDate     DateTime?
   gateOutDate         DateTime?
   importLogId         String?
   metadata            Json?
   aiAnalysis          Json?
-  aiDerived           Json?       // NEW: Enriched / Inferred data layer
+  aiDerived           Json?
   aiLastUpdated       DateTime?
   daysInTransit       Int?
   demurrageExposure   String?
@@ -217,26 +199,20 @@ model Container {
   pieces              Int?
   serviceType         String?
   volumeCbm           Float?
+  rawStatus           String?
   aceStatusLogs       ACEStatusLog[]
   activityLogs        ActivityLog[]
+  agentProcessingLogs AgentProcessingLog[]
   attentionFlags      AttentionFlag[]
-  
-  // Removed stage relation to support flexible status (Zero Data Loss)
-  // currentStatus can now be null for unknown carrier codes
-  // rawStatus always preserves the original carrier value
-  
-  importLog           ImportLog?          @relation(fields: [importLogId], references: [fileName])
+  importLog           ImportLog?           @relation(fields: [importLogId], references: [fileName])
   events              ContainerEvent[]
   rawRows             RawRow[]
   riskAssessment      RiskAssessment?
   shipmentContainers  ShipmentContainer[]
   statusOverrides     StatusOverride[]
-  agentProcessingLogs AgentProcessingLog[]
-  
-  // Add index on rawStatus for performance
+
   @@index([rawStatus])
 }
-
 
 model ShipmentContainer {
   id                String    @id @default(uuid())
@@ -452,7 +428,6 @@ model StatusOverride {
   container       Container @relation(fields: [containerNumber], references: [containerNumber])
 }
 
-
 model RiskAssessment {
   id              String    @id @default(uuid())
   containerId     String    @unique
@@ -464,41 +439,72 @@ model RiskAssessment {
 }
 
 model AgentProcessingLog {
-  id                    String   @id @default(uuid())
+  id                    String           @id @default(uuid())
   containerId           String
-  container             Container @relation(fields: [containerId], references: [containerNumber])
-  
   stage                 AgentStage
   status                ProcessingStatus
   timestamp             DateTime
   durationMs            Int?
-  
-  // Generic agent data
   input                 Json?
   output                Json?
   confidence            Float?
-  
-  // Translator-specific
   mappings              Json?
   unmappedFields        Json?
   dictionaryVersion     String?
-  
-  // Auditor-specific
   findings              Json?
   discrepancies         Json?
-  
-  // Future use
   improvementsSuggested Json?
   improvementsApplied   Json?
-  
-  // Reference to full logs in artifacts/
   artifactPath          String?
-  
-  createdAt             DateTime @default(now())
-  
+  createdAt             DateTime         @default(now())
+  container             Container        @relation(fields: [containerId], references: [containerNumber])
+
   @@index([containerId])
   @@index([stage])
   @@index([timestamp])
+}
+
+model HeaderMapping {
+  id             String   @id @default(uuid())
+  excelHeader    String
+  canonicalField String
+  confidence     Float
+  timesUsed      Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastUsedAt     DateTime @default(now())
+
+  @@unique([excelHeader, canonicalField], name: "unique_header_mapping")
+  @@index([excelHeader])
+  @@index([canonicalField])
+  @@index([timesUsed(sort: Desc)])
+}
+
+model ImprovementJob {
+  id                    String     @id @default(uuid())
+  importLogId           String?
+  status                JobStatus  @default(QUEUED)
+  currentIteration      Int        @default(0)
+  maxIterations         Int        @default(3)
+  targetCaptureRate     Float      @default(0.95)
+  totalContainers       Int        @default(0)
+  containersProcessed   Int        @default(0)
+  initialCaptureRate    Float?
+  currentCaptureRate    Float?
+  finalCaptureRate      Float?
+  synonymsAdded         Int        @default(0)
+  startedAt             DateTime?
+  completedAt           DateTime?
+  estimatedCompletionAt DateTime?
+  progress              Int        @default(0)
+  improvementsApplied   Json?
+  logs                  Json?
+  error                 String?
+  createdAt             DateTime   @default(now())
+  importLog             ImportLog? @relation(fields: [importLogId], references: [fileName])
+
+  @@index([importLogId])
+  @@index([status])
 }
 
 enum AgentStage {
@@ -534,42 +540,6 @@ enum ContainerEventType {
   AUDIT_START
   AUDIT_DONE
   IMPROVEMENT_ITERATION
-}
-
-
-model ImprovementJob {
-  id                    String    @id @default(uuid())
-  importLogId           String?
-  importLog             ImportLog? @relation(fields: [importLogId], references: [fileName])
-  
-  status                JobStatus  @default(QUEUED)
-  currentIteration      Int        @default(0)
-  maxIterations         Int        @default(3)
-  targetCaptureRate     Float      @default(0.95)
-  
-  totalContainers       Int        @default(0)
-  containersProcessed   Int        @default(0)
-  
-  initialCaptureRate    Float?
-  currentCaptureRate    Float?
-  finalCaptureRate      Float?
-  
-  synonymsAdded         Int        @default(0)
-  
-  startedAt             DateTime?
-  completedAt           DateTime?
-  estimatedCompletionAt DateTime?
-
-  progress              Int        @default(0)
-  improvementsApplied   Json?
-
-  logs                  Json?      // Iteration-by-iteration details
-  error                 String?
-  
-  createdAt             DateTime   @default(now())
-  
-  @@index([importLogId])
-  @@index([status])
 }
 
 enum JobStatus {

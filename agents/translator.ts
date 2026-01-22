@@ -1,9 +1,9 @@
 
 
-
 import { safeDate } from '../lib/date-utils';
 import { TranslatorInput, TranslatorOutput } from '../types/agents';
 import { toCanonicalFieldName, mapHeaderToCanonicalField, validateFieldExists } from './field-name-utils';
+import { loadHeaderMappings, getDictionaryMatch, HeaderMappingEntry } from '../lib/dictionary-helper';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -306,81 +306,131 @@ export async function runTranslator(input: TranslatorInput): Promise<TranslatorO
         throw e;
     }
     const allFields = { ...ONTOLOGY.required_fields, ...ONTOLOGY.optional_fields };
+
+    // ===== STEP 1: DICTIONARY LOOKUP =====
+    console.log(`[Translator] Loading header mapping dictionary...`);
+    const dictionaryMap = await loadHeaderMappings();
+
+    const dictionaryMatches: any = {};
+    const unknownHeaders: string[] = [];
+    let dictionaryHitCount = 0;
+
+    console.log(`[Translator] Checking ${input.headers.length} headers against dictionary...`);
+    for (const header of input.headers) {
+        const match = getDictionaryMatch(header, dictionaryMap);
+        if (match) {
+            // Found in dictionary - use it immediately
+            dictionaryMatches[match.canonicalField] = {
+                sourceHeader: header,
+                targetField: match.canonicalField,
+                confidence: match.confidence,
+                transformationType: 'direct',
+                notes: `DICTIONARY_MATCH (used ${match.timesUsed} times)`
+            };
+            dictionaryHitCount++;
+            console.log(`[Translator] ✅ Dictionary Hit: "${header}" -> "${match.canonicalField}" (confidence: ${match.confidence}, used: ${match.timesUsed}x)`);
+        } else {
+            // Not in dictionary - needs AI analysis
+            unknownHeaders.push(header);
+            console.log(`[Translator] ❓ Unknown Header: "${header}" - will send to AI`);
+        }
+    }
+
+    console.log(`[Translator] Dictionary Summary: ${dictionaryHitCount} hits, ${unknownHeaders.length} unknown headers`);
+
     const client = getAIClient();
     const chunk = input.rawRows;
     let output: TranslatorOutput | null = null;
     let systemPromptEnhanced = "";
     let currentPrompt = "";
 
+    // ===== STEP 2: AI ANALYSIS (ONLY FOR UNKNOWN HEADERS) =====
     try {
-        if (!client) throw new Error("No AI Client");
-        console.log("[Translator] AI Client Active. Preparing prompt...");
+        // If all headers are in dictionary, skip AI entirely
+        if (unknownHeaders.length === 0) {
+            console.log(`[Translator] 🎉 All headers found in dictionary! Skipping AI call (zero cost).`);
+            output = {
+                schemaMapping: {
+                    fieldMappings: dictionaryMatches,
+                    unmappedSourceFields: [],
+                    missingSchemaFields: [],
+                    detectedForwarder: "Unknown"
+                },
+                containers: [],
+                events: [],
+                confidenceReport: {
+                    overallScore: 0.95,
+                    summary: "All headers matched from dictionary",
+                    totalFields: input.headers.length,
+                    highConfidence: Object.keys(dictionaryMatches).length,
+                    mediumConfidence: 0,
+                    lowConfidence: 0,
+                    flaggedForReview: 0
+                },
+                dictionaryVersion: "Dictionary-Only"
+            };
+        } else {
+            // Some headers need AI analysis
+            if (!client) throw new Error("No AI Client");
+            console.log(`[Translator] AI Client Active. Analyzing ${unknownHeaders.length} unknown headers...`);
 
-        const baseSystemPrompt = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/translator-system.md'), 'utf-8');
-        const userPromptTemplate = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/translator-user.md'), 'utf-8');
+            const baseSystemPrompt = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/translator-system.md'), 'utf-8');
+            const userPromptTemplate = fs.readFileSync(path.join(process.cwd(), 'agents/prompts/translator-user.md'), 'utf-8');
 
-        currentPrompt = userPromptTemplate
-            .replace('${JSON.stringify(headers)}', JSON.stringify(input.headers))
-            .replace('${JSON.stringify(rawRows.slice(0, 5), null, 2)}', JSON.stringify(chunk, null, 2))
-            .replace('${JSON.stringify(existingSchemaFields)}', JSON.stringify(input.existingSchemaFields))
-            .replace('${JSON.stringify(transitStages)}', JSON.stringify(input.transitStages))
-            .replace('${rawRows.length}', String(chunk.length));
+            // IMPORTANT: Only send unknown headers to AI
+            currentPrompt = userPromptTemplate
+                .replace('${JSON.stringify(headers)}', JSON.stringify(unknownHeaders))
+                .replace('${JSON.stringify(rawRows.slice(0, 5), null, 2)}', JSON.stringify(chunk, null, 2))
+                .replace('${JSON.stringify(existingSchemaFields)}', JSON.stringify(input.existingSchemaFields))
+                .replace('${JSON.stringify(transitStages)}', JSON.stringify(input.transitStages))
+                .replace('${rawRows.length}', String(chunk.length));
 
-        systemPromptEnhanced = `
+            systemPromptEnhanced = `
 ${baseSystemPrompt}
 ## DICTIONARIES LOADED
 ### Container Field Ontology
 ${JSON.stringify({ required: ONTOLOGY.required_fields, optional: ONTOLOGY.optional_fields }, null, 2)}
 `;
 
-        console.log("[Translator] Sending Request to AI...");
+            console.log(`[Translator] Sending ${unknownHeaders.length} unknown headers to AI...`);
 
-        const aiCall = client.chat.completions.create({
-            model: AZURE_DEPLOYMENT,
-            messages: [
-                { role: 'system', content: systemPromptEnhanced },
-                { role: 'user', content: currentPrompt }
-            ],
-            temperature: 0.1,
-            response_format: { type: 'json_object' }
-        }, { timeout: 15000 });
+            const aiCall = client.chat.completions.create({
+                model: AZURE_DEPLOYMENT,
+                messages: [
+                    { role: 'system', content: systemPromptEnhanced },
+                    { role: 'user', content: currentPrompt }
+                ],
+                temperature: 0.1,
+                response_format: { type: 'json_object' }
+            }, { timeout: 15000 });
 
-        const timeoutProtection = new Promise<any>((_, reject) =>
-            setTimeout(() => reject(new Error("Hard Timeout enforced")), 15000)
-        );
+            const timeoutProtection = new Promise<any>((_, reject) =>
+                setTimeout(() => reject(new Error("Hard Timeout enforced")), 15000)
+            );
 
-        const response = await Promise.race([aiCall, timeoutProtection]);
+            const response = await Promise.race([aiCall, timeoutProtection]);
 
-        const content = response.choices[0].message.content;
-        console.log("[Translator] AI Response Received length:", content?.length);
-        if (process.env.LOG_LEVEL === 'trace') {
-            console.log(`[Translator-TRACE] Full Prompt Sent:`);
-            console.log(currentPrompt);
-            console.log(`[Translator-TRACE] Full AI Response:`);
-            console.log(content);
-        }
-        if (content) {
-            output = JSON.parse(content) as TranslatorOutput;
+            const content = response.choices[0].message.content;
+            console.log("[Translator] AI Response Received length:", content?.length);
+            if (process.env.LOG_LEVEL === 'trace') {
+                console.log(`[Translator-TRACE] Full Prompt Sent:`);
+                console.log(currentPrompt);
+                console.log(`[Translator-TRACE] Full AI Response:`);
+                console.log(content);
+            }
+            if (content) {
+                output = JSON.parse(content) as TranslatorOutput;
 
-            // Post-Process AI Output: Normalize Field Names!
-            if (output && output.schemaMapping && output.schemaMapping.fieldMappings) {
-                const newMappings: any = {};
-                for (const [key, val] of Object.entries(output.schemaMapping.fieldMappings)) {
-                    // "val" is { sourceHeader, targetField, ... }
-                    // "key" is usually the targetField (or sometimes sourceHeader depending on AI hallucination)
-
-                    // Use the helper to canonicalize what AI thought was the field name
-                    const rawTarget = (val as any).targetField || key;
-                    const canonical = toCanonicalFieldName(rawTarget);
-
-                    if (canonical) {
-                        newMappings[canonical] = {
-                            ...(val as any),
-                            targetField: canonical // Ensure consistency
-                        };
-                    }
+                // ===== STEP 3: MERGE DICTIONARY MATCHES WITH AI SUGGESTIONS =====
+                console.log(`[Translator] Merging dictionary matches with AI suggestions...`);
+                if (output && output.schemaMapping && output.schemaMapping.fieldMappings) {
+                    // Merge: Dictionary matches + AI suggestions
+                    output.schemaMapping.fieldMappings = {
+                        ...dictionaryMatches,
+                        ...output.schemaMapping.fieldMappings
+                    };
+                    console.log(`[Translator] Final mapping count: ${Object.keys(output.schemaMapping.fieldMappings).length} (${dictionaryHitCount} from dictionary, ${Object.keys(output.schemaMapping.fieldMappings).length - dictionaryHitCount} from AI)`);
                 }
-                output.schemaMapping.fieldMappings = newMappings;
             }
         }
 
