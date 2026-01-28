@@ -223,6 +223,7 @@ export async function getDashboardData(
                 manualPriority: true,
                 lastFreeDay: true,
                 carrier: true,
+                forwarder: true, // NEW
                 containerType: true,
                 atd: true,
                 eta: true,
@@ -284,7 +285,7 @@ export async function getDashboardData(
             // Extract extended fields
             const businessUnit = c.businessUnit || c.shipmentContainers?.[0]?.shipment?.businessUnit || "Unassigned";
             const freightCost = c.shipmentContainers?.[0]?.shipment?.freightCost || 0;
-            const forwarder = c.shipmentContainers?.[0]?.shipment?.forwarder || null;
+            const forwarder = c.forwarder || c.shipmentContainers?.[0]?.shipment?.forwarder || null; // Prefer direct, fallback to shipment join
             const riskAssessment = c.riskAssessment || null;
 
             return {

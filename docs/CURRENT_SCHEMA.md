@@ -28,6 +28,7 @@ Stores raw rows from imported files for auditability.
 ### Container
 Core entity representing a shipping container.
 - **containerNumber** (ID): Standard 11-char container number.
+- **forwarder**: (String) Forwarder/NVOCC name.
 - **currentStatus**: References `TransitStage` (e.g., 'BOOK', 'DEP', 'ARR').
 - **meta**: JSON field for agent-specific metadata (mapping confidence, flags).
 - **aiAnalysis** & **aiAssessment**: JSON fields for detailed AI reasoning.

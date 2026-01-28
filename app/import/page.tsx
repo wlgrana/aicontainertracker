@@ -69,6 +69,7 @@ export default function SimulationPage() {
     const [autoRun, setAutoRun] = useState(true);
     const [enrichEnabled, setEnrichEnabled] = useState(true);
     const [forwarder, setForwarder] = useState(""); // Forwarder input state
+    const [editedMappings, setEditedMappings] = useState<Record<string, string>>({}); // New local state for edits
 
     // ============================================
     // DEBOUNCED ACTION HANDLER (prevents rapid clicks)
@@ -116,7 +117,10 @@ export default function SimulationPage() {
                 filename: action === 'START' ? (filenameOverride || selectedFile) : undefined,
                 containerLimit: action === 'START' ? containerLimit : undefined,
                 enrichEnabled: action === 'START' ? enrichEnabled : undefined,
-                forwarder: action === 'START' ? forwarder : undefined
+                containerLimit: action === 'START' ? containerLimit : undefined,
+                enrichEnabled: action === 'START' ? enrichEnabled : undefined,
+                forwarder: action === 'START' ? forwarder : undefined,
+                mappings: action === 'PROCEED' ? editedMappings : undefined
             };
 
             console.log('[UI] Request body:', JSON.stringify(requestBody, null, 2));
@@ -236,9 +240,13 @@ export default function SimulationPage() {
             if (status.step === 'ARCHIVIST_COMPLETE') {
                 console.log('[UI] Auto-proceed: ARCHIVIST_COMPLETE -> proceed');
                 handleControl('proceed');
-            } else if (status.step === 'TRANSLATOR_COMPLETE' || status.step === 'TRANSLATOR_REVIEW') {
-                console.log('[UI] Auto-proceed: TRANSLATOR -> proceed');
+            } else if (status.step === 'TRANSLATOR_COMPLETE') {
+                // SKIP TRANSLATOR_REVIEW - we want to pause there!
+                console.log('[UI] Auto-proceed: TRANSLATOR_COMPLETE -> proceed');
                 handleControl('proceed');
+            } else if (status.step === 'TRANSLATOR_REVIEW') {
+                // PAUSE FOR REVIEW
+                console.log('[UI] Auto-proceed: Pausing for TRANSLATOR_REVIEW');
             } else if (status.step === 'AUDITOR_COMPLETE') {
                 console.log('[UI] Auto-proceed: AUDITOR_COMPLETE -> proceed');
                 handleControl('proceed');
@@ -541,24 +549,35 @@ export default function SimulationPage() {
                                                 <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
                                                     <CheckCircle2 className="w-3 h-3 text-green-500" /> ACTIVE MAPPINGS
                                                 </div>
-                                                <div className="bg-white rounded border border-slate-200 overflow-hidden text-xs max-h-60 overflow-y-auto">
+                                                <div className="bg-white rounded border border-slate-200 overflow-hidden text-xs max-h-80 overflow-y-auto">
                                                     <table className="w-full text-left">
-                                                        <thead className="bg-slate-50 text-slate-400 sticky top-0">
-                                                            <tr><th className="p-2 font-medium">Map Rule</th><th className="p-2 font-medium text-right">Conf.</th></tr>
+                                                        <thead className="bg-slate-50 text-slate-400 sticky top-0 z-10">
+                                                            <tr><th className="p-2 font-medium">Source Header</th><th className="p-2 font-medium">Target Field</th><th className="p-2 font-medium text-right">Conf.</th></tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-slate-100">
                                                             {Object.values(data.schemaMapping.fieldMappings || {}).map((m: any, i) => (
                                                                 <tr key={i} className="group hover:bg-slate-50">
+                                                                    <td className="p-2 font-mono text-slate-700 w-1/3" title={m.sourceHeader}>{m.sourceHeader}</td>
                                                                     <td className="p-2">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="font-mono text-slate-700" title={m.sourceHeader}>{m.sourceHeader}</span>
-                                                                            <ArrowRight className="w-3 h-3 text-slate-300" />
-                                                                            <span className="font-bold text-blue-600" title={m.targetField}>{m.targetField}</span>
-                                                                            {m.targetField === 'etd' && <span className="text-[10px] text-slate-400 ml-1">(Est. Departure)</span>}
-                                                                            {m.targetField === 'eta' && <span className="text-[10px] text-slate-400 ml-1">(Est. Arrival)</span>}
-                                                                        </div>
+                                                                        {status.step === 'TRANSLATOR_REVIEW' ? (
+                                                                            <select
+                                                                                className="w-full p-1 border border-slate-300 rounded text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 text-xs"
+                                                                                value={editedMappings[m.sourceHeader] || m.targetField}
+                                                                                onChange={(e) => setEditedMappings(prev => ({ ...prev, [m.sourceHeader]: e.target.value }))}
+                                                                            >
+                                                                                {data.validSchemaFields?.map((f: string) => (
+                                                                                    <option key={f} value={f}>{f}</option>
+                                                                                ))}
+                                                                                <option value="IGNORE">-- Ignore / Metadata --</option>
+                                                                            </select>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="font-bold text-blue-600" title={m.targetField}>{m.targetField}</span>
+                                                                                {m.targetField === 'etd' && <span className="text-[10px] text-slate-400 ml-1">(Est. Departure)</span>}
+                                                                            </div>
+                                                                        )}
                                                                     </td>
-                                                                    <td className="p-2 text-right">
+                                                                    <td className="p-2 text-right w-16">
                                                                         {m.confidence > 0.9 ? (
                                                                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1 py-0 h-4">High</Badge>
                                                                         ) : (
@@ -575,14 +594,32 @@ export default function SimulationPage() {
                                             <div className="space-y-4">
                                                 <div>
                                                     <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
-                                                        <Database className="w-3 h-3 text-amber-500" /> LEFT OVER (Meta)
+                                                        <Database className="w-3 h-3 text-amber-500" /> UNMAPPED (Meta)
                                                     </div>
-                                                    <div className="bg-amber-50 rounded border border-amber-100 p-2 text-xs max-h-40 overflow-y-auto space-y-1">
+                                                    <div className="bg-amber-50 rounded border border-amber-100 p-2 text-xs max-h-60 overflow-y-auto space-y-1">
                                                         {(data.schemaMapping.unmappedSourceFields || []).length > 0 ? (
                                                             data.schemaMapping.unmappedSourceFields.map((u: any, i: number) => (
-                                                                <div key={i} className="flex justify-between items-center bg-white p-1.5 rounded border border-amber-100 shadow-sm">
-                                                                    <span className="font-mono text-slate-600 truncate max-w-[120px]" title={u.sourceHeader}>{u.sourceHeader}</span>
-                                                                    <span className="text-[8px] text-amber-600 bg-amber-100 px-1 rounded">Meta</span>
+                                                                <div key={i} className="flex flex-col bg-white p-1.5 rounded border border-amber-100 shadow-sm gap-1">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="font-mono text-slate-600 truncate max-w-[120px]" title={u.sourceHeader}>{u.sourceHeader}</span>
+                                                                        <span className="text-[8px] text-amber-600 bg-amber-100 px-1 rounded">Meta</span>
+                                                                    </div>
+                                                                    {status.step === 'TRANSLATOR_REVIEW' && (
+                                                                        <select
+                                                                            className="w-full p-1 border border-slate-200 rounded text-slate-700 bg-slate-50 text-[10px]"
+                                                                            value={editedMappings[u.sourceHeader] || ""}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.value) {
+                                                                                    setEditedMappings(prev => ({ ...prev, [u.sourceHeader]: e.target.value }));
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <option value="">Map to...</option>
+                                                                            {data.validSchemaFields?.map((f: string) => (
+                                                                                <option key={f} value={f}>{f}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    )}
                                                                 </div>
                                                             ))
                                                         ) : <div className="text-slate-400 italic p-2">None</div>}

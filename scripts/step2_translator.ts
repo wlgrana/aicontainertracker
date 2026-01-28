@@ -49,7 +49,7 @@ export async function runTranslatorStep() {
             "pieces", "grossWeight", "volumeCbm",
             "sealNumber", "containerType",
             "mbl", "hbl", "shipmentReference",
-            "consignee", "shipper", "customerPo"
+            "consignee", "shipper", "customerPo", "forwarder"
         ];
 
         const transitStages = await prisma.transitStage.findMany();
@@ -165,7 +165,8 @@ export async function runTranslatorStep() {
                         mapped: mappedTargetFields.size,
                         unmapped: trueUnmappedHeaders.length,
                         missing: trueMissingDBFields.length
-                    }
+                    },
+                    validSchemaFields: containerFields
                 }
             }
         });

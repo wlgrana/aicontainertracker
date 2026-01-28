@@ -16,7 +16,8 @@ The system is visualized through an interactive **Simulation Dashboard** (`/impo
 graph TD
     A[User Upload] -->|Step 1| B(Archivist)
     B -->|Step 2| C(Translator)
-    C -->|Step 3| D(Auditor)
+    C -->|Step 2.5| C2{Manual Review}
+    C2 -->|Step 3| D(Auditor)
     D -->|Step 4| E(Importer)
     E -->|Step 4.5| F{Enricher}
     F -->|Step 5| G(Learner)
@@ -34,6 +35,15 @@ graph TD
 - **UI Enhancements**:
     - **Low Confidence Mappings Table**: dedicated table showing any mapping with < 80% confidence, listing specific issues (e.g., "No dictionary match").
     - **Active Mapping Visualization**: clearer `Source -> Target` display with helper text for acronyms (e.g., "etd -> Est. Departure").
+    - **Forwarder Support**: AI now attempts to identify the "Forwarder" column automatically.
+
+### 2.5. Translator Review (Step 2.5 - NEW)
+- **Role**: Human-in-the-Loop Verification.
+- **Function**: Pauses the pipeline to allow users to review and correct AI-generated mappings.
+- **Capabilities**:
+    - **Manual Overrides**: Users can re-map any column using a visual dropdown interface.
+    - **Unmapped Field Handling**: "Left Over" columns can be manually assigned to schema fields (e.g., assigning a custom header to `forwarder`).
+    - **Resume Pipeline**: Once approved, the simulation proceeds to the Auditor with the *user-corrected* mapping rules.
 
 ### 3. Auditor (Step 3)
 - **Role**: Quality Gate & Self-Healing.

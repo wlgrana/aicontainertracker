@@ -53,7 +53,7 @@ The central entity representing a commercial booking.
 
 ### `Container`
 Represents a physical shipping container.
-- **Key Fields**: `containerNumber`, `containerType`, `carrier`
+- **Key Fields**: `containerNumber`, `containerType`, `carrier`, `forwarder`
 - **Status Fields**: `currentStatus` (e.g., 'DIS'), `lastFreeDay`, `pgaHold`
 - **Dates**: `etd`, `atd` (Actual Departure), `eta`, `ata` (Actual Arrival), `gateOutDate`
 - **AI Fields (New)**: 

@@ -162,6 +162,13 @@ The application is deployed to Vercel using the **Vercel CLI** (direct-to-produc
 For a detailed breakdown of the AI agents, their prompts, and invocation flows, please refer to:
 [AGENTS_AUDIT.md](./docs/AGENTS_AUDIT.md)
 
+## 📚 Documentation
+- [**Manual Mapping Guide**](docs/MANUAL_MAPPING.md): How to use the Human-in-the-Loop review step.
+- [**Development Workflow**](docs/DEV_ENVIRONMENT.md): Guide to using the isolated Dev Database.
+- [AI Integration](docs/AI_INTEGRATION.md)
+- [Database Architecture](docs/DATABASE.md)
+
+
 ## 🧹 Maintenance
 
 ### Database Cleanup

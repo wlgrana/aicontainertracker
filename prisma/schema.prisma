@@ -138,6 +138,7 @@ model Container {
   currentVessel       String?
   currentVoyage       String?
   mbl                 String?
+  forwarder           String?
   carrier             String?
   pol                 String?
   pod                 String?

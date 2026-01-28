@@ -208,6 +208,7 @@ export async function persistMappedData(
                 rawStatus: statusResult.rawStatus,        // NEW: Always store carrier's value
                 currentStatus: finalCurrentStatus,        // NEW: Validated value or NULL
                 carrier: f.carrier?.value,
+                forwarder: f.forwarder?.value || forwarder || null, // Prefer mapping, fallback to arg
                 pol: f.pol?.value,
                 pod: f.pod?.value,
                 etd: safeDate(f.etd?.value),
@@ -241,6 +242,7 @@ export async function persistMappedData(
             // Calculate Update Payload (Pre-Locking)
             const updatePayload: any = {
                 rawStatus: statusResult.rawStatus,        // NEW: Update raw value
+                forwarder: f.forwarder?.value || forwarder || undefined, // Update forwarder if present
                 currentStatus: finalCurrentStatus,        // NEW: Update validated value
                 atd: safeDate(f.atd?.value),
                 ata: safeDate(f.ata?.value),
@@ -505,7 +507,7 @@ export async function applyAuditorCorrections(containerNumber: string, result: A
         "lastFreeDay", "detentionFreeDay", "sealNumber", "grossWeight",
         "emptyReturnDate", "gateOutDate", "daysInTransit",
         "deliveryDate", "finalDestinationEta", "hbl", "loadType", "pieces", "serviceType", "volumeCbm",
-        "businessUnit"
+        "businessUnit", "forwarder"
     ];
 
     const safeUpdates: any = {};

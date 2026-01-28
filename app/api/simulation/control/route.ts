@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { getStatusPath, getPidPath } from '@/lib/path-utils';
+import { getStatusPath, getPidPath, getArtifactPath } from '@/lib/path-utils';
 
 const PID_FILE = getPidPath();
 const STATUS_FILE = getStatusPath();
@@ -293,6 +293,54 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true, message: 'Proceeding to Step 2...' });
         }
         if (currentStep === 'TRANSLATOR_REVIEW' || currentStep === 'TRANSLATOR_COMPLETE') {
+
+            // MANUAL MAPPING OVERRIDE
+            if (body.mappings && Object.keys(body.mappings).length > 0) {
+                console.log('[PROCEED] Applying manual mappings:', JSON.stringify(body.mappings));
+                try {
+                    const artifactPath = getArtifactPath('temp_translation.json');
+                    if (fs.existsSync(artifactPath)) {
+                        const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf-8'));
+
+                        // Apply patches to fieldMappings
+                        const fieldMappings = artifact.schemaMapping.fieldMappings || {};
+
+                        for (const [sourceHeader, targetField] of Object.entries(body.mappings)) {
+                            // If it exists, update it
+                            if (fieldMappings[sourceHeader]) {
+                                fieldMappings[sourceHeader].targetField = targetField;
+                                fieldMappings[sourceHeader].confidence = 1.0;
+                                fieldMappings[sourceHeader].notes = 'Manual Override';
+                            } else {
+                                // If it was unmapped, create new entry
+                                fieldMappings[sourceHeader] = {
+                                    sourceHeader: sourceHeader,
+                                    targetField: targetField,
+                                    confidence: 1.0,
+                                    notes: 'Manual Override (New)'
+                                };
+                            }
+
+                            // Remove from unmappedSourceFields if present
+                            if (artifact.schemaMapping.unmappedSourceFields) {
+                                artifact.schemaMapping.unmappedSourceFields = artifact.schemaMapping.unmappedSourceFields.filter(
+                                    (u: any) => u.sourceHeader !== sourceHeader
+                                );
+                            }
+                        }
+
+                        artifact.schemaMapping.fieldMappings = fieldMappings;
+                        fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2));
+                        console.log('[PROCEED] Artifact updated with manual mappings.');
+                    } else {
+                        console.warn('[PROCEED] Artifact not found at', artifactPath);
+                    }
+                } catch (e) {
+                    console.error('[PROCEED] Failed to apply manual mappings:', e);
+                    // Non-fatal, proceed anyway but log error
+                }
+            }
+
             const next = { ...JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8') || '{}'), step: 'AUDITOR', message: 'Starting Auditor...' };
             try { fs.writeFileSync(STATUS_FILE, JSON.stringify(next, null, 2)); } catch (e) { }
             spawnStep(['3']);
