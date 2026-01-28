@@ -163,9 +163,9 @@ export async function exportContainerData(
         const rows = rawContainers.map(c => {
             const s = c.shipmentContainers?.[0]?.shipment; // Primary shipment context
 
-            const formatDate = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd') : "N/A";
-            const formatDateTime = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd HH:mm') : "N/A";
-            const safeStr = (v: any) => (v === null || v === undefined || v === "") ? "N/A" : String(v);
+            const formatDate = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd') : "";
+            const formatDateTime = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd HH:mm') : "";
+            const safeStr = (v: any) => (v === null || v === undefined) ? "" : String(v);
 
             return [
                 // --- Core Identity ---
