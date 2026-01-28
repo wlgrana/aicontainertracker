@@ -74,40 +74,16 @@ export async function exportContainerData(
         }
 
         // Fetch ALL matching containers (no pagination)
+        // Select ALL fields by NOT using 'select' (default is all), but we need to Include shipment.
+        // Actually, explicit select is safer for control, but 'include' is easier for "All Fields".
+        // Let's use include to get relations, and default fetch for all scalar fields.
         let rawContainers = await prisma.container.findMany({
             where,
             orderBy: { containerNumber: 'asc' },
-            select: {
-                containerNumber: true,
-                currentStatus: true,
-                containerType: true,
-                carrier: true,
-                atd: true,
-                eta: true,
-                daysInTransit: true,
-                lastFreeDay: true,
-                statusLastUpdated: true,
-                currentLocation: true,
-                hasException: true,
-                exceptionType: true,
-                aiOperationalStatus: true,
-                aiAttentionCategory: true,
-                businessUnit: true,
-                gateOutDate: true,
-                emptyReturnDate: true,
-                ata: true,
-                // AI Fields
-                healthScore: true,
+            include: {
                 shipmentContainers: {
                     include: {
-                        shipment: {
-                            select: {
-                                businessUnit: true,
-                                forwarder: true,
-                                shipmentReference: true,
-                                hbl: true
-                            }
-                        }
+                        shipment: true // Include ALL shipment fields
                     }
                 }
             }
@@ -144,51 +120,138 @@ export async function exportContainerData(
 
 
         // Transform data for CSV
+        // Define ALL Headers matching Schema
         const headers = [
-            "Container Number",
-            "Business Unit",
-            "Carrier",
-            "Forwarder",
-            "Status",
-            "Type",
-            "Reference",
-            "HBL",
-            "ATD",
-            "ETA",
-            "LFD",
-            "Days In Transit",
-            "Location",
-            "Has Exception",
-            "Exception Type",
-            "AI Status",
-            "Status Last Updated"
+            // --- Core Container Identity ---
+            "Container Number", "Type", "Status", "Business Unit", "Carrier",
+            "MBL", "HBL", "Load Type", "Service Type", "Seal Number",
+            "Gross Weight", "Pieces", "Volume CBM",
+
+            // --- Dates & Locations ---
+            "Current Location", "Vessel", "Voyage",
+            "POL", "ETD", "ATD",
+            "POD", "ETA", "ATA",
+            "Last Free Day", "Detention Free Day",
+            "Gate Out Date", "Empty Return Date",
+            "Delivery Date", "Final Dest.", "Final Dest. ETA",
+            "Status Updated At", "Days In Transit",
+
+            // --- Exceptions & Risk ---
+            "Has Exception", "Exception Type", "Exception Owner", "Exception Notes", "Exception Date",
+            "Demurrage Exposure", "Health Score",
+            "Manual Priority", "Priority Reason", "Priority Set By",
+
+            // --- AI & Intelligence ---
+            "AI Operational Status", "AI Attention Category",
+            "AI Attention Headline", "AI Recommended Owner",
+            "AI Status Reason", "AI Urgency Level", "AI Data Confidence",
+            "AI Last Updated",
+
+            // --- Customs (ACE/PGA) ---
+            "ACE Entry Number", "ACE Disposition", "ACE Status", "ACE Last Updated",
+            "PGA Hold", "PGA Agency", "PGA Hold Reason",
+
+            // --- Shipment Context (First Linked Shipment) ---
+            "Shipment Ref", "Forwarder", "Shipper", "Consignee", "Shipment Type",
+            "Booking Ref", "Customer Ref", "PO Number", "IncoTerms",
+            "Freight Cost", "Shipment Notes",
+
+            // --- Metadata ---
+            "Created At", "Updated At", "Import Log ID", "Notes"
         ];
 
         const rows = rawContainers.map(c => {
-            const shipment = c.shipmentContainers?.[0]?.shipment;
-            const bu = c.businessUnit || shipment?.businessUnit || "Unassigned";
-            const fwd = shipment?.forwarder || "—";
-            const ref = shipment?.shipmentReference || "—";
-            const hbl = shipment?.hbl || "—";
+            const s = c.shipmentContainers?.[0]?.shipment; // Primary shipment context
+
+            const formatDate = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd') : "N/A";
+            const formatDateTime = (d: Date | null) => d ? format(new Date(d), 'yyyy-MM-dd HH:mm') : "N/A";
+            const safeStr = (v: any) => (v === null || v === undefined || v === "") ? "N/A" : String(v);
 
             return [
-                c.containerNumber,
-                bu,
-                c.carrier || "—",
-                fwd,
-                c.currentStatus || "UNKNOWN",
-                c.containerType || "—",
-                ref,
-                hbl,
-                c.atd ? format(new Date(c.atd), 'yyyy-MM-dd') : "—",
-                c.eta ? format(new Date(c.eta), 'yyyy-MM-dd') : "—",
-                c.lastFreeDay ? format(new Date(c.lastFreeDay), 'yyyy-MM-dd') : "—",
-                c.daysInTransit?.toString() || "0",
-                c.currentLocation || "—",
+                // --- Core Identity ---
+                safeStr(c.containerNumber),
+                safeStr(c.containerType),
+                safeStr(c.currentStatus),
+                safeStr(c.businessUnit || s?.businessUnit), // Fallback to shipment BU
+                safeStr(c.carrier),
+                safeStr(c.mbl || s?.mbl),
+                safeStr(c.hbl || s?.hbl),
+                safeStr(c.loadType),
+                safeStr(c.serviceType),
+                safeStr(c.sealNumber),
+                safeStr(c.grossWeight),
+                safeStr(c.pieces),
+                safeStr(c.volumeCbm),
+
+                // --- Dates & Locations ---
+                safeStr(c.currentLocation),
+                safeStr(c.currentVessel),
+                safeStr(c.currentVoyage),
+                safeStr(c.pol || s?.pol),
+                formatDate(c.etd),
+                formatDate(c.atd),
+                safeStr(c.pod || s?.pod),
+                formatDate(c.eta),
+                formatDate(c.ata),
+                formatDate(c.lastFreeDay),
+                formatDate(c.detentionFreeDay),
+                formatDate(c.gateOutDate),
+                formatDate(c.emptyReturnDate),
+                formatDate(c.deliveryDate),
+                safeStr(c.finalDestination || s?.finalDestination),
+                formatDate(c.finalDestinationEta),
+                formatDateTime(c.statusLastUpdated),
+                safeStr(c.daysInTransit),
+
+                // --- Exceptions & Risk ---
                 c.hasException ? "YES" : "NO",
-                c.exceptionType || "",
-                c.aiOperationalStatus || "",
-                c.statusLastUpdated ? format(new Date(c.statusLastUpdated), 'yyyy-MM-dd HH:mm') : "—"
+                safeStr(c.exceptionType),
+                safeStr(c.exceptionOwner),
+                safeStr(c.exceptionNotes),
+                formatDate(c.exceptionDate),
+                safeStr(c.demurrageExposure),
+                safeStr(c.healthScore),
+                safeStr(c.manualPriority),
+                safeStr(c.priorityReason),
+                safeStr(c.prioritySetBy),
+
+                // --- AI & Intelligence ---
+                safeStr(c.aiOperationalStatus),
+                safeStr(c.aiAttentionCategory),
+                safeStr(c.aiAttentionHeadline),
+                safeStr(c.aiRecommendedOwner),
+                safeStr(c.aiStatusReason),
+                safeStr(c.aiUrgencyLevel),
+                safeStr(c.aiDataConfidence),
+                formatDateTime(c.aiLastUpdated),
+
+                // --- Customs ---
+                safeStr(c.aceEntryNumber || s?.aceEntryNumber),
+                safeStr(c.aceDisposition),
+                safeStr(c.aceStatus),
+                formatDateTime(c.aceLastUpdated),
+                c.pgaHold ? "YES" : "NO",
+                safeStr(c.pgaAgency),
+                safeStr(c.pgaHoldReason),
+
+                // --- Shipment Context ---
+                safeStr(s?.shipmentReference),
+                safeStr(s?.forwarder),
+                safeStr(s?.shipper),
+                safeStr(s?.consignee),
+                safeStr(s?.shipmentType),
+                safeStr(s?.bookingReference),
+                safeStr(s?.customerReference),
+                safeStr(s?.poNumber),
+                safeStr(s?.incoTerms),
+                safeStr(s?.freightCost),
+                safeStr(s?.notes),
+
+                // --- Metadata ---
+                formatDateTime(c.createdAt),
+                formatDateTime(c.updatedAt),
+                safeStr(c.importLogId),
+                safeStr(c.notes)
             ];
         });
 
@@ -198,7 +261,7 @@ export async function exportContainerData(
             ...rows.map(row => row.map(cell => `"${(cell || "").toString().replace(/"/g, '""')}"`).join(","))
         ].join("\n");
 
-        return { csv: csvContent };
+        return { csv: "\uFEFF" + csvContent };
 
     } catch (e: any) {
         console.error("Export failed:", e);
