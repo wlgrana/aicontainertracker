@@ -262,6 +262,8 @@ function DashboardContent() {
                                 stats={stats}
                                 buFilter={buFilter}
                                 onBuFilterChange={handleBuFilterChange}
+                                statusFilter={statusFilter}
+                                forwarderFilter={forwarderFilter}
                             />
                         </>
                     )}

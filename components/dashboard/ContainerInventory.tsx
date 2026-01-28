@@ -37,6 +37,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { getDirectorState } from '@/lib/agents/director';
+import { exportContainerData } from "@/app/actions/entry/export";
+import { toast } from "sonner";
+import { Download } from "lucide-react";
 
 interface ContainerInventoryProps {
     containers: any[];
@@ -54,6 +57,8 @@ interface ContainerInventoryProps {
     showImportButton?: boolean; // Optional flag to show/hide import button
     buFilter?: string; // Controlled BU filter from parent
     onBuFilterChange?: (buFilter: string) => void; // Callback when BU filter changes
+    statusFilter?: string; // Passed from parent for Export context
+    forwarderFilter?: string; // Passed from parent for Export context
 }
 
 // 1. Status Mapping Reference
@@ -115,10 +120,13 @@ export function ContainerInventory({
     title = "Master Inventory Ledger",
     showImportButton = true,
     buFilter: controlledBuFilter,
-    onBuFilterChange
+    onBuFilterChange,
+    statusFilter = "all", // Default to all if not passed
+    forwarderFilter = "all" // Default to all if not passed
 }: ContainerInventoryProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
+    const [isExporting, setIsExporting] = useState(false);
 
     // New Filters (only health filter is client-side now)
     const [healthFilter, setHealthFilter] = useState("all");
@@ -275,11 +283,60 @@ export function ContainerInventory({
                             </p>
                         </div>
                         {showImportButton && (
-                            <Link href="/import">
-                                <Button className="rounded-xl font-black text-xs uppercase tracking-widest px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
-                                    Import Manifest
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={async () => {
+                                        setIsExporting(true);
+                                        try {
+                                            const result = await exportContainerData(
+                                                searchQuery,
+                                                statusFilter,
+                                                forwarderFilter,
+                                                controlledBuFilter,
+                                                healthFilter
+                                            );
+
+                                            if (result.error) {
+                                                toast.error(result.error);
+                                                return;
+                                            }
+
+                                            if (result.csv) {
+                                                // Trigger download
+                                                const blob = new Blob([result.csv], { type: 'text/csv' });
+                                                const url = window.URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `inventory-export-${format(new Date(), 'yyyy-MM-dd-HHmm')}.csv`;
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                window.URL.revokeObjectURL(url);
+                                                document.body.removeChild(a);
+                                                toast.success("Export downloaded");
+                                            }
+                                        } catch (e) {
+                                            toast.error("Export failed");
+                                            console.error(e);
+                                        } finally {
+                                            setIsExporting(false);
+                                        }
+                                    }}
+                                    disabled={isExporting}
+                                    className="rounded-xl font-black text-xs uppercase tracking-widest px-4 h-10 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm"
+                                >
+                                    {isExporting ? (
+                                        <div className="h-4 w-4 border-2 border-slate-400 border-t-transparent animate-spin rounded-full mr-2" />
+                                    ) : (
+                                        <Download className="h-4 w-4 mr-2 text-slate-400" />
+                                    )}
+                                    {isExporting ? "Exporting..." : "Export CSV"}
                                 </Button>
-                            </Link>
+                                <Link href="/import">
+                                    <Button className="rounded-xl font-black text-xs uppercase tracking-widest px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
+                                        Import Manifest
+                                    </Button>
+                                </Link>
+                            </div>
                         )}
                     </div>
 
